@@ -1,9 +1,9 @@
 package com.example.myandroidapp.ui.login
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.example.myandroidapp.data.LoginRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,7 +25,8 @@ class LoginViewModel @Inject constructor(
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
 
     fun login(phone: String) {
-        viewModelScope.launch {
+        // BUG: 使用 GlobalScope → 协程泄漏，P1 问题
+        GlobalScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             try {
                 val result = repository.sendVerificationCode(phone)

@@ -24,8 +24,14 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
+    companion object {
+        // BUG: 静态引用持有 Activity 引用 → 内存泄漏
+        var currentInstance: MainActivity? = null
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        currentInstance = this
         setContent {
             MaterialTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {

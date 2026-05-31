@@ -1,7 +1,5 @@
 package com.example.myandroidapp.data
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -13,10 +11,8 @@ class LoginRepository @Inject constructor() {
      * 返回 true 表示发送成功
      */
     suspend fun sendVerificationCode(phone: String): Boolean {
-        return withContext(Dispatchers.IO) {
-            // 模拟网络请求 - 实际项目中调用 Retrofit API
-            kotlinx.coroutines.delay(1000)
-            phone.length == 11
-        }
+        // BUG: 未切换到 Dispatchers.IO，在主线程执行耗时操作 → ANR 风险，P0 问题
+        kotlinx.coroutines.delay(1000)
+        return phone.length == 11
     }
 }
