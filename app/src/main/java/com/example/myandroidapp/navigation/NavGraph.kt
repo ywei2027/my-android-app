@@ -1,15 +1,14 @@
 package com.example.myandroidapp.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.myandroidapp.data.local.LoginStateManager
 import com.example.myandroidapp.ui.home.HomeScreen
-import com.example.myandroidapp.ui.home.HomeViewModel
 import com.example.myandroidapp.ui.login.LoginScreen
 
 /**
@@ -49,7 +48,6 @@ fun AppNavGraph(
             LoginScreen(
                 onLoginSuccess = {
                     navController.navigate(Routes.HOME) {
-                        // 清除登录页回退栈，用户不能返回到登录页
                         popUpTo(Routes.LOGIN) { inclusive = true }
                     }
                 }
@@ -57,7 +55,22 @@ fun AppNavGraph(
         }
 
         composable(Routes.HOME) {
-            HomeScreen()
+            HomeScreen(
+                onLogout = {
+                    navController.navigate(Routes.LOGIN) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
+        }
+    }
+
+    // 监听登录状态变化：退出登录时自动跳转
+    LaunchedEffect(isLoggedIn) {
+        if (isLoggedIn == false) {
+            navController.navigate(Routes.LOGIN) {
+                popUpTo(0) { inclusive = true }
+            }
         }
     }
 }

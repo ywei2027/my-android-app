@@ -15,6 +15,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
+    onLogout: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     Scaffold(
@@ -27,7 +28,10 @@ fun HomeScreen(
                     )
                 },
                 actions = {
-                    IconButton(onClick = { viewModel.logout() }) {
+                    IconButton(onClick = {
+                        viewModel.logout()
+                        onLogout()
+                    }) {
                         Icon(
                             Icons.AutoMirrored.Filled.ExitToApp,
                             contentDescription = "退出登录"
