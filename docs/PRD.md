@@ -1,6 +1,6 @@
 # PRD.md — 搜索功能
 
-> 版本: v0.2-review | 状态: 评审完成·待人工确认 | 创建: 2026-05-31
+> 版本: v1.0-confirmed | 状态: 已冻结 | 创建: 2026-05-31
 > 关联: [飞书文档 - PRD 搜索功能 v0.2](https://qcn6yjruroy2.feishu.cn/docx/V9LDd5jO9o5j0fxJ6MIc7VCtnGe)
 
 ---
