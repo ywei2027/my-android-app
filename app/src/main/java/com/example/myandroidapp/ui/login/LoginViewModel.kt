@@ -3,6 +3,8 @@ package com.example.myandroidapp.ui.login
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myandroidapp.data.LoginRepository
+import com.example.myandroidapp.data.CalculatorHistoryDataSource
+import com.example.myandroidapp.domain.search.SearchHistoryStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,7 +20,9 @@ data class LoginUiState(
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
-    private val repository: LoginRepository
+    private val repository: LoginRepository,
+    private val searchHistoryStore: SearchHistoryStore,
+    private val calculatorHistoryDataSource: CalculatorHistoryDataSource,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoginUiState())
@@ -39,6 +43,14 @@ class LoginViewModel @Inject constructor(
                     errorMessage = e.message ?: "登录失败"
                 )
             }
+        }
+    }
+
+    fun onLogout() {
+        viewModelScope.launch {
+            searchHistoryStore.clearAll()
+            calculatorHistoryDataSource.clearAll()
+            _uiState.value = LoginUiState()
         }
     }
 }
