@@ -1,36 +1,10 @@
 {
-  "workflow": "android-intelligent-rd",
-  "current_stage": "STAGE_CODE",
-  "feature_name": "全局搜索",
-  "stages": {
-    "prd": {
-      "status": "completed",
-      "version": "v1.0-confirmed"
-    },
-    "ui_design": {
-      "status": "confirmed",
-      "version": "v1.0-confirmed",
-      "round": 3,
-      "resolutions": 68
-    },
-    "design": {
-      "status": "confirmed",
-      "version": "v1.0-confirmed",
-      "p0_fixed": 8,
-      "p1_open": 13
-    },
-    "code": {
-      "status": "in_review",
-      "issues": [19, 20, 21, 22, 23, 24, 25, 26],
-      "commit": "accebb0",
-      "pr_number": 27,
-      "pr_url": "https://github.com/ywei2027/my-android-app/pull/27"
-    }
-  },
-  "feishu": {
-    "prd_doc_url": "https://bytedance.feishu.cn/docx/HmKLdvyLwoDca7xUzrpcNmW1nUW",
-    "ui_design_doc_url": "https://bytedance.feishu.cn/docx/WbjgdiwbyoAFMuxG7gNcnRfOnNc",
-    "design_doc_url": "https://bytedance.feishu.cn/docx/N2Wxd5q90oOaD6xUshocmdG7n9f"
-  },
-  "last_updated": "2026-06-01T23:20:00+08:00"
+  "current_stage": "IDLE",
+  "feature_name": "",
+  "prd_version": "",
+  "ui_design_version": "",
+  "design_version": "",
+  "issues": [],
+  "issue_urls": {},
+  "updated": "2026-06-02T07:35:00+08:00"
 }
