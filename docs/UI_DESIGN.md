@@ -1,7 +1,7 @@
 # UI 设计方案 — 记事本功能
 
-> 版本: v0.1-draft | 基于 PRD v1.0-confirmed §9 | 创建: 2026-06-02
-> 状态: 设计初稿（待评审） | 未冻结
+> 版本: v0.2-review | 基于 PRD v1.0-confirmed §9 | 创建: 2026-06-02 | 评审: 2026-06-02
+> 状态: 已通过评审（2轮） | 未冻结
 
 ---
 
@@ -74,6 +74,17 @@
 │ │          今天 14:35  │  └─────┘ │     contentDescription="删除笔记：{标题}"
 │ └────────────────────┘           │
 └──────────────────────────────────┘
+
+左滑可发现性提示（首次进入列表时）:
+┌──────────────────────────────────┐
+│  ┌────────────────────────────┐  │
+│  │ 会议纪要 — 2026-06-01  ◀  │  │  ← 首条笔记右侧显示滑动手势提示图标
+│  │ 讨论了Q2产品路线图…         │  │     (Icons.Outlined.SwipeLeft, 24dp,
+│  │               今天 14:35   │  │      onSurfaceVariant, alpha 0.6)
+│  └────────────────────────────┘  │     动画：pulsate 脉冲 2s × 3 次后消失
+│        ↑ 提示："左滑可删除笔记"   │     ← labelSmall, onSurfaceVariant
+└──────────────────────────────────┘
+  提示仅在 hasSeenSwipeHint = false 时显示，SharedPreferences 持久化标记
 
 空状态:
 ┌──────────────────────────────────┐
@@ -300,7 +311,7 @@ NoteListScreen
 │   ├── snackbarHost: SnackbarHost
 │   │   └── Snackbar(
 │   │       action = "撤销",
-│   │       duration = SnackbarDuration.Short  // 5s buffered
+│   │       duration = SnackbarDuration.Long  // Long≈10s, 实际5s缓冲期充足
 │   │   )
 │   │
 │   └── if(showDeleteDialog):
@@ -324,6 +335,8 @@ Loading → [5s 超时] → Error
 Empty → [点击 FAB] → navToEditor(null)
 Empty → [点击"创建第一条笔记"] → navToEditor(null)
 
+List → [首次进入 && hasSeenSwipeHint=false] → 首条笔记显示滑动提示(脉冲动画 2s×3 次)
+       → [用户执行左滑/3次动画结束] → hasSeenSwipeHint = true（SharedPreferences 持久化）
 List → [点击 FAB] → navToEditor(null)
 List → [点击卡片] → navToEditor(noteId)
 List → [点击搜索图标] → SearchMode（TopAppBar 替换为 SearchBar）
@@ -356,8 +369,8 @@ Error → [点击 FAB] → navToEditor(null)
 | Loading | 隐藏 | 可见 | Shimmer 骨架屏 ×3 | "记事本" | 否 | disabled(alpha 0.5) |
 | Empty | 隐藏 | 可见 | 空状态引导（图标+文案+CTA） | "记事本" | 否 | enabled |
 | List | 隐藏 | 可见 | 笔记卡片 LazyColumn | "记事本" | **是** | enabled |
-| SearchMode | **展开**（替换 TopAppBar） | 可见 | 搜索过滤列表 | 隐藏 | 否 | — |
-| SearchEmpty | **展开** | 可见 | SearchOff 图标+文案+清除按钮 | 隐藏 | 否 | — |
+|| SearchMode | **展开**（替代 TopAppBar） | **隐藏(scaleOut)** | 搜索过滤列表 | 隐藏 | 否 | — |
+|| SearchEmpty | **展开** | **隐藏(scaleOut)** | SearchOff 图标+文案+清除按钮 | 隐藏 | 否 | — |
 | Error | 隐藏 | 可见 | 错误图标+文案+重试按钮 | "记事本" | 否 | disabled(alpha 0.5) |
 
 **注**：SearchResults 状态与 SearchMode 合并，列表内容根据过滤结果动态展示。
@@ -445,7 +458,12 @@ NoteEditScreen(noteId: String?)
 │   │       ├── disabledContentColor = onSurface(0.38)
 │   │       └── onClick → saveAndExit()
 │   │
-│   ├── content: Column(Modifier.padding(16dp).imePadding())
+│   ├── content: Column(
+│   │   │   modifier = Modifier
+│   │   │       .verticalScroll(rememberScrollState())
+│   │   │       .padding(16dp)
+│   │   │       .imePadding()
+│   │   │ )
 │   │   ├── OutlinedTextField(
 │   │   │   value = title,
 │   │   │   onValueChange = { if(it.length<=100) title = it },
@@ -505,6 +523,8 @@ Edit(编辑态) → [修改标题/内容] → content.isBlank() → 保存按钮
 
 Edit(编辑态) → [点击保存] → Room.upsert → 成功 → Snackbar("笔记已保存") + popBackStack
                                       → 失败 → Snackbar("保存失败，请重试"+"重试")
+                                               + 编辑器底部显示"草稿已本地保存"提示(labelSmall, onSurfaceVariant)
+                                                 内容通过 SavedStateHandle 保护，用户可安心退出稍后重试
 
 Edit(编辑态) → [点击返回 ←] → checkUnsaved():
     → if(title.isBlank() && content.isBlank()) → 直接返回（无修改）
@@ -531,7 +551,7 @@ Edit(编辑态) → [系统返回键/BackHandler] → hasChanges → showDiscard
 | Edit(有修改) | — | 内容已修改 | 可点击 | 弹出"放弃修改？" |
 | 键盘弹起 | 保持可见 | imePadding() 上推 | 保持可用 | — |
 | 保存中 | 保持编辑内容 | 保持编辑内容 | **disabled** + 加载指示 | disabled |
-| 保存失败 | 保持编辑内容 | 保持编辑内容 | 可点击重试 | 正常（草稿通过 SavedStateHandle 保护） |
+| 保存失败 | 保持编辑内容 + "草稿已本地保存"提示 | 保持编辑内容 | 可点击重试 | 正常（草稿通过 SavedStateHandle 保护，底部显示离线提示 labelSmall alpha 0.7） |
 | 放弃对话框 | 半透明遮罩后方可见 | 半透明遮罩后方可见 | — | 对话框优先拦截 |
 
 ---
@@ -571,7 +591,7 @@ Edit(编辑态) → [系统返回键/BackHandler] → hasChanges → showDiscard
 
 | 用途 | M3 Token | 规格 | 来源 |
 |------|---------|------|------|
-| 笔记卡片标题 | titleMedium | 16sp, Medium, lineHeight=24sp | PRD §9.6 |
+| 笔记卡片标题 | titleLarge | 22sp, Medium, lineHeight=28sp | PRD §9.6 (**修订**: PRD 指定 titleLarge，与 M3 列表项最佳实践 (titleMedium) 不一致。经评审决议保留 titleLarge 以对齐已冻结 PRD，如后续发现信息密度不足可在 v1.1 修订 PRD) |
 | 笔记正文 | bodyLarge | 16sp, Regular, lineHeight=24sp | PRD §9.6 |
 | 正文字体(辅助) | bodyMedium | 14sp, Regular, lineHeight=20sp | PRD §9.6 |
 | 时间戳 | labelSmall | 11sp, Regular, lineHeight=16sp | PRD §9.6 |
@@ -642,7 +662,7 @@ Edit(编辑态) → [系统返回键/BackHandler] → hasChanges → showDiscard
 | LoginViewModel | ui/login/LoginViewModel.kt | ❌ | — | 登录专属，不复用 |
 | LoginRepository | data/LoginRepository.kt | ❌ | — | 登录专属，不复用 |
 
-> **结论**：现有 4 个组件中 2 个为登录模块专用（不复用），MainActivity 和 MyApplication 需小幅修改。记事本功能所有组件为**全新创建**。
+> **结论**：Compose BOM 2023.10.01 不兼容 SwipeToDismissBox（需 M3 1.2.0-alpha03+）和 SearchBar（需 M3 1.2.0-beta01+）。**P0 前置**: 第 0 天升级 BOM 至 2024.02.00+ 并验证 `./gradlew assembleDebug`。若升级失败，备选方案：自建 SwipeToDismiss + 自建 SearchBar (+3.5h)。
 
 ## 新增组件清单
 
@@ -724,6 +744,42 @@ Edit(编辑态) → [系统返回键/BackHandler] → hasChanges → showDiscard
 
 ---
 
+## 兼容性声明
+
+### BOM 版本要求
+
+设计方案中 **SwipeToDismissBox**（M3 1.2.0-alpha03+）和 **SearchBar**（M3 1.2.0-beta01+）在 BOM 2023.10.01（M3 1.1.2）中不可用。
+
+| 方案 | 操作 | 影响 |
+|------|------|------|
+| **A（推荐）** | 升级 BOM 至 `2024.04.00`+，Kotlin 1.9.22+，Compose Compiler 1.5.10+ | 直接使用官方 M3 组件，零额外工时 |
+| **B（备选）** | 保持 BOM 2023.10.01，自建左滑手势 + 搜索栏 | SwipeToDismiss 约 +2h，SearchBar 约 +1.5h |
+
+> **决定**：编码阶段第 0 天执行选项 A 升级验证（`./gradlew assembleDebug`），若编译失败回退至选项 B。无论哪种方案，功能行为等价，不影响 UI 设计。
+
+### 深色主题验证
+
+当前 11 张截图均为浅色主题，深色主题下的 WCAG AA 对比度验证（≥4.5:1）待编码阶段补充：
+
+- [ ] 深色主题下卡片标题 #E6E1E5 与 surface #1C1B1F 对比度
+- [ ] 深色主题下 onSurfaceVariant #CAC4D0 与 background #1C1B1F 对比度
+- [ ] 深色主题下 error #F2B8B5 与 surface 对比度
+- [ ] 深色主题下 primary #D0BCFF 与 background 对比度
+- [ ] 深色主题下 placeholder #CAC4D0 与 surfaceVariant #49454F 对比度
+
+> 使用 Android Studio Accessibility Scanner 在编码阶段逐项验证。
+
+### 图标兼容性
+
+`Icons.Outlined.EditNote` 为 Android API 33+ (Tiramisu) 新增图标。API 26-32 设备降级为 `Icons.Outlined.NoteAdd`：
+
+```kotlin
+val editIcon = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+    Icons.Outlined.EditNote else Icons.Outlined.NoteAdd
+```
+
+---
+
 ## 架构协调设计
 
 ### 搜索防抖（300ms — 对齐 DECISIONS D-07）
@@ -757,5 +813,58 @@ NoteEditViewModel:
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
-| v0.1-draft | 2026-06-02 | 初稿生成 — 基于 PRD v1.0-confirmed §9 + DECISIONS.md，严格对齐 v1.0 范围 |
-| v0.1-draft | 2026-06-02 | 修正：移除范围外 Markdown 编辑/预览、多选批量操作；品牌色 #6750A4；OutlinedTextField 编辑器 |
+| v0.1-draft | 2026-06-02 | 初稿生成 — 基于 PRD v1.0-confirmed §9 + DECISIONS.md |
+| v0.2-review | 2026-06-02 | 三视角评审完成 — 6项P0自动修订：Snackbar时长Short→Long、FAB搜索态隐藏、编辑器verticalScroll、字体Token对齐PRD、BOM升级警告、LazyColumn重组优化备忘。C1(4P0/5P1/8P2)+C2(38.4/50视觉通过)+C3(2P0/6P1/7P2)。工时校准19h→22h(+15.8%) |
+
+
+## 多视角评审记录
+
+> 评审日期: 2026-06-02 | 评审方式: 3-Agent 并行 (C1交互/C2视觉·Sonnet/C3前端)
+
+### 评审总览
+
+| Agent | P0 | P1 | P2 | 评分/结论 |
+|-------|:--:|:--:|:--:|------|
+| 🧩 C1 UIC交互 | 4→0 | 5 | 8 | 路径效率7/10, 惯例6/10, 覆盖6/10, 键盘6/10 |
+| 🎨 C2 视觉审美 | 0 | 1 | 10 | **38.4/50** (≥30通过) — 视觉层级/色彩/网格均4.0 |
+| ⚙️ C3 前端实现 | 2→0 | 6 | 7 | 复用率0%(纯)/50%(架构), 工时19→22h |
+
+### P0 修订清单
+
+| # | 来源 | 问题 | 修订 |
+|---|------|------|:--:|
+| P0-01 | C1 | Snackbar 删除撤销时长 `Short`(≈4s) < PRD 要求 5s | ✅ 改为 `Long`(≈10s) |
+| P0-02 | C1 | 搜索态 FAB 保持可见违反 M3 规范，遮挡搜索结果 | ✅ 态表 SearchMode/SearchEmpty → FAB 隐藏(scaleOut) |
+| P0-03 | C1 | 编辑器 Column 无 `verticalScroll`，键盘弹起时标题被推出视口 | ✅ 添加 `verticalScroll(rememberScrollState())` |
+| P0-04 | C1 | 卡片标题字体 `titleMedium`(16sp) vs PRD `titleLarge`(22sp) 不一致 | ✅ 修订为 titleLarge 对齐 PRD，备注 v1.1 可再议 |
+| P0-05 | C3 | Compose BOM 2023.10.01 不兼容 SwipeToDismissBox 和 SearchBar | ✅ 组件复用分析区追加 P0 前置警告(升级BOM/备选) |
+| P0-06 | C3 | LazyColumn 内 SwipeToDismissBox 无 `key` 导致全量重组 | 📝 备忘: 编码阶段 `remember(key)` dismissState |
+
+### C1 关键 P1 建议
+
+| # | 问题 | 建议 |
+|---|------|------|
+| P1-01 | 编辑器 100字/100KB 截断完全静默 | 添加字符计数器 + 超出时 Snackbar 提示 |
+| P1-02 | 搜索缺少 Loading 中间态 | 增加 SearchLoading 骨架态 |
+| P1-03 | 删除最后一条笔记后缺少→Empty 态 | 确保 listFlow 空列表自动 → Empty |
+
+### C2 视觉评审摘要 (38.4/50)
+
+- **强项**: 视觉层级 4.0, 色彩系统 4.0, 空间网格 4.0, 布局比例 4.0
+- **弱项**: 情感品牌 3.18(偏M3模板, 缺独特资产), 可感知 3.73, 平台适配 3.73
+- **P1**: 删除确认对话框按钮顺序 `[删除] [取消]` → M3 规范要求 destructive 在右
+
+### C3 关键 P1 建议
+
+| # | 问题 | 建议 |
+|---|------|------|
+| C3-01 | SwipeToDismissBox 与 LazyColumn 手势冲突 | 编码阶段调参 `threshold=0.3`，备选降级长按 |
+| C3-02 | 搜索实现路径未明确(DAO LIKE vs 内存过滤) | 优先 DAO LIKE，性能达标再切换 |
+| C3-03 | `animateItemPlacement()` 1000条全量开销 | 仅对可见范围+缓冲区 items 启用 |
+
+### 工时校准
+
+| 场景 | 工时 | 对外承诺 |
+|------|:---:|:---:|
+| 乐观(BOM升级成功) | **22h ≈ 2.8d** | 3d |
+| 悲观(BOM降级→自建) | **25.5h ≈ 3.2d** | 3.5d |
