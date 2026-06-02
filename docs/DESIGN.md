@@ -1,6 +1,6 @@
 # 主界面底部版本号显示 — 技术方案
 
-> **版本:** v0.1-draft
+> **版本:** v1.0-confirmed
 > **功能名称:** 主界面底部版本号显示
 > **基于:** PRD v1.0-confirmed | UI_DESIGN v1.0-confirmed
 
