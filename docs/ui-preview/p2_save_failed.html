@@ -5,66 +5,54 @@
 <meta name="viewport" content="width=375, initial-scale=1">
 <title>P2 笔记编辑器 — 保存失败</title>
 <style>
-:root {
-  --primary: #1A4FBF; --error: #B81C1C; --errorContainer: #FFDAD6; --onError: #FFFFFF;
-  --surface: #FEFBFF; --onSurface: #1C1B1E; --onSurfaceVariant: #49454F;
-  --outline: #79747E; --outlineVariant: #CAC4D0;
-  --background: #FEFBFF; --surfaceVariant: #E7E0EC;
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 375px; margin: 0 auto;
+  font-family: Roboto, 'Noto Sans SC', sans-serif;
+  background: #FFFBFE; color: #1C1B1E; min-height: 812px;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --primary: #B0C6FF; --error: #FFB4AB; --errorContainer: #93000A; --onError: #690005;
-    --surface: #1C1B1F; --onSurface: #E6E1E5; --onSurfaceVariant: #CAC4D0;
-    --outline: #938F99; --outlineVariant: #49454F;
-    --background: #1C1B1F; --surfaceVariant: #49454F;
-  }
-}
-* { margin:0; padding:0; box-sizing:border-box; }
-body { width:375px; margin:0 auto; font-family:Roboto,'Noto Sans SC',sans-serif; background:var(--background); color:var(--onSurface); min-height:812px; display:flex; flex-direction:column; }
-.status-bar { height:44px; display:flex; align-items:center; justify-content:flex-end; padding:0 16px; font-size:14px; font-weight:600; }
-.top-app-bar { height:64px; display:flex; align-items:center; padding:0 4px 0 4px; gap:4px; background:var(--surface); border-bottom:1px solid var(--outlineVariant); }
-.back-btn { width:48px; height:48px; display:flex; align-items:center; justify-content:center; border:none; background:transparent; cursor:pointer; color:var(--onSurface); border-radius:24px; }
-.back-btn svg { width:24px; height:24px; }
-.title-input { flex:1; border:none; background:transparent; font-size:18px; font-weight:400; color:var(--onSurface); outline:none; padding:4px 0; }
-.toggle-btn { width:48px; height:48px; display:flex; align-items:center; justify-content:center; border:none; background:transparent; cursor:pointer; color:var(--onSurfaceVariant); border-radius:24px; opacity:0.5; }
-.toggle-btn svg { width:24px; height:24px; }
-.editor-area { flex:1; padding:16px; }
-.editor-area textarea { width:100%; height:100%; border:none; background:transparent; font-size:16px; line-height:24px; color:var(--onSurface); outline:none; resize:none; font-family:Roboto,'Noto Sans SC',sans-serif; }
-.char-count { font-size:11px; color:var(--error); padding:4px 16px; text-align:right; font-weight:500; }
-.char-count.limit { color:var(--error); }
-.toolbar { height:48px; display:flex; align-items:center; padding:0 8px; background:var(--surface); border-top:1px solid var(--outlineVariant); gap:4px; }
-.toolbar button { width:40px; height:40px; border:none; background:transparent; border-radius:20px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--onSurfaceVariant); font-size:16px; opacity:0.38; }
-.snackbar { position:fixed; bottom:24px; left:16px; right:16px; height:48px; border-radius:4px; background:var(--errorContainer); color:var(--onSurface); display:flex; align-items:center; padding:0 16px; font-size:14px; }
-.snackbar .icon { width:20px; height:20px; color:var(--error); margin-right:12px; flex-shrink:0; }
-.snackbar .msg { flex:1; }
-.snackbar .action { color:var(--primary); font-weight:500; cursor:pointer; margin-left:8px; background:none; border:none; font-size:14px; white-space:nowrap; }
+.header { height: 64px; display: flex; align-items: center; padding: 0 4px; justify-content: space-between; border-bottom: 1px solid #CAC4D0; background: #FFFBFE; }
+.header-left { display: flex; align-items: center; }
+.btn-back { width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 50%; cursor: pointer; border: none; background: transparent; }
+.btn-back svg { width: 24px; height: 24px; fill: #1C1B1E; }
+.header-title { font-size: 22px; font-weight: 400; margin-left: 4px; }
+.btn-save { padding: 8px 16px; border: none; border-radius: 20px; background: transparent; font-size: 14px; font-weight: 500; cursor: pointer; font-family: inherit; color: #6750A4; margin-right: 4px; }
+
+.form { padding: 16px; display: flex; flex-direction: column; height: calc(100vh - 64px); }
+.field { border: 1px solid #79747E; border-radius: 4px; padding: 12px 16px; position: relative; margin-bottom: 12px; }
+.field-label { position: absolute; top: -8px; left: 12px; background: #FFFBFE; padding: 0 4px; font-size: 12px; color: #6750A4; }
+.field input { width: 100%; border: none; outline: none; font-size: 16px; font-weight: 500; font-family: inherit; color: #1C1B1E; background: transparent; }
+.field-content { border: 1px solid #79747E; border-radius: 4px; padding: 12px 16px; flex: 1; display: flex; flex-direction: column; position: relative; min-height: 280px; }
+.field-content .field-label { color: #49454F; }
+.field-content textarea { width: 100%; flex: 1; border: none; outline: none; font-size: 16px; font-family: inherit; resize: none; color: #1C1B1E; background: transparent; line-height: 24px; }
+
+.snackbar { position: fixed; bottom: 24px; left: 12px; right: 12px; width: calc(375px - 24px); background: #313033; border-radius: 4px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; z-index: 200; box-shadow: 0 6px 10px rgba(0,0,0,0.14); }
+.snackbar-text { color: #F4EFF4; font-size: 14px; }
+.snackbar-action { color: #D0BCFF; font-weight: 500; cursor: pointer; border: none; background: transparent; font-family: inherit; font-size: 14px; padding: 4px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+.snackbar-action:hover { background: rgba(208,188,255,0.12); }
 </style>
 </head>
 <body>
-<div class="status-bar">9:41</div>
-<div class="top-app-bar">
-  <button class="back-btn" aria-label="返回">
-    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
-  </button>
-  <input class="title-input" type="text" placeholder="笔记标题" value="超长标题示例 — 这是一段非常长的标题内容已被截断" maxlength="100" aria-label="笔记标题">
-  <span class="char-count limit" style="position:absolute; right:56px;">100/100</span>
-  <button class="toggle-btn" disabled aria-label="切换预览">
-    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
-  </button>
+<div class="header">
+  <div class="header-left">
+    <button class="btn-back"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+    <span class="header-title">编辑笔记</span>
+  </div>
+  <button class="btn-save">保存</button>
 </div>
-<div class="editor-area">
-  <textarea aria-label="笔记内容">这些内容还未成功保存。Room 数据库写入失败。</textarea>
+<div class="form">
+  <div class="field">
+    <span class="field-label">标题</span>
+    <input type="text" value="重要会议笔记">
+  </div>
+  <div class="field-content">
+    <span class="field-label">内容</span>
+    <textarea>这是需要保存的重要内容，包含了会议讨论的关键决策和后续行动项。</textarea>
+  </div>
 </div>
-<div class="char-count">24 / 50,000</div>
-<div class="toolbar" role="toolbar">
-  <button disabled aria-label="标题"><b>#</b></button>
-  <button disabled aria-label="粗体"><b>B</b></button>
-  <button disabled aria-label="斜体"><i>I</i></button>
-</div>
-<div class="snackbar" role="alert">
-  <svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
-  <span class="msg">保存失败，请重试</span>
-  <button class="action">重试</button>
+<div class="snackbar">
+  <span class="snackbar-text">保存失败，请重试</span>
+  <button class="snackbar-action">重试</button>
 </div>
 </body>
 </html>

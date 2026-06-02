@@ -5,77 +5,53 @@
 <meta name="viewport" content="width=375, initial-scale=1">
 <title>P2 笔记编辑器 — 编辑已有笔记</title>
 <style>
-:root {
-  --primary: #1A4FBF; --onPrimary: #FFFFFF; --primaryContainer: #DAE2FF; --onPrimaryContainer: #001849;
-  --surface: #FEFBFF; --onSurface: #1C1B1E; --onSurfaceVariant: #49454F;
-  --outline: #79747E; --outlineVariant: #CAC4D0;
-  --background: #FEFBFF; --surfaceVariant: #E7E0EC;
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 375px; margin: 0 auto;
+  font-family: Roboto, 'Noto Sans SC', sans-serif;
+  background: #FFFBFE; color: #1C1B1E; min-height: 812px;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --primary: #B0C6FF; --onPrimary: #001D36; --primaryContainer: #0040A5; --onPrimaryContainer: #DAE2FF;
-    --surface: #1C1B1F; --onSurface: #E6E1E5; --onSurfaceVariant: #CAC4D0;
-    --outline: #938F99; --outlineVariant: #49454F;
-    --background: #1C1B1F; --surfaceVariant: #49454F;
-  }
-}
-* { margin:0; padding:0; box-sizing:border-box; }
-body { width:375px; margin:0 auto; font-family:Roboto,'Noto Sans SC',sans-serif; background:var(--background); color:var(--onSurface); min-height:812px; display:flex; flex-direction:column; }
-.status-bar { height:44px; display:flex; align-items:center; justify-content:flex-end; padding:0 16px; font-size:14px; font-weight:600; }
-.top-app-bar { height:64px; display:flex; align-items:center; padding:0 4px 0 4px; gap:4px; background:var(--surface); border-bottom:1px solid var(--outlineVariant); }
-.back-btn { width:48px; height:48px; display:flex; align-items:center; justify-content:center; border:none; background:transparent; cursor:pointer; color:var(--onSurface); border-radius:24px; }
-.back-btn svg { width:24px; height:24px; }
-.title-input { flex:1; border:none; background:transparent; font-size:18px; font-weight:400; color:var(--onSurface); outline:none; padding:4px 0; }
-.toggle-btn { width:48px; height:48px; display:flex; align-items:center; justify-content:center; border:none; background:transparent; cursor:pointer; color:var(--onSurfaceVariant); border-radius:24px; }
-.toggle-btn svg { width:24px; height:24px; }
-.editor-area { flex:1; padding:16px; }
-.editor-area textarea { width:100%; height:100%; border:none; background:transparent; font-size:16px; line-height:24px; color:var(--onSurface); outline:none; resize:none; font-family:Roboto,'Noto Sans SC',sans-serif; }
-.char-count { font-size:11px; color:var(--onSurfaceVariant); padding:4px 16px; text-align:right; }
-.toolbar { height:48px; display:flex; align-items:center; padding:0 8px; background:var(--surface); border-top:1px solid var(--outlineVariant); gap:4px; }
-.toolbar button { width:40px; height:40px; border:none; background:transparent; border-radius:20px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--onSurfaceVariant); font-size:16px; font-weight:500; }
-.toolbar button:active { background:var(--ripple-primary, rgba(26,79,191,0.08)); }
-.toolbar .separator { width:1px; height:24px; background:var(--outlineVariant); margin:0 4px; }
-.save-hint { font-size:12px; color:var(--onSurfaceVariant); padding:4px 16px 8px; text-align:center; background:var(--surface); opacity:0.7; }
-.title-char-count { font-size:11px; color:var(--onSurfaceVariant); position:absolute; right:56px; top:50%; transform:translateY(-50%); }
+.header { height: 64px; display: flex; align-items: center; padding: 0 4px; justify-content: space-between; border-bottom: 1px solid #CAC4D0; background: #FFFBFE; }
+.header-left { display: flex; align-items: center; }
+.btn-back { width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 50%; cursor: pointer; border: none; background: transparent; }
+.btn-back svg { width: 24px; height: 24px; fill: #1C1B1E; }
+.header-title { font-size: 22px; font-weight: 400; margin-left: 4px; }
+.btn-save { padding: 8px 16px; border: none; border-radius: 20px; background: transparent; font-size: 14px; font-weight: 500; cursor: pointer; font-family: inherit; color: #6750A4; margin-right: 4px; }
+.btn-save:hover { background: rgba(103,80,164,0.08); }
+
+.form { padding: 16px; display: flex; flex-direction: column; height: calc(100vh - 64px); }
+.field { border: 1px solid #79747E; border-radius: 4px; padding: 12px 16px; position: relative; margin-bottom: 12px; }
+.field-label { position: absolute; top: -8px; left: 12px; background: #FFFBFE; padding: 0 4px; font-size: 12px; color: #6750A4; }
+.field input { width: 100%; border: none; outline: none; font-size: 16px; font-weight: 500; font-family: inherit; color: #1C1B1E; background: transparent; }
+
+.field-content { border: 1px solid #79747E; border-radius: 4px; padding: 12px 16px; flex: 1; display: flex; flex-direction: column; position: relative; min-height: 280px; }
+.field-content .field-label { color: #49454F; }
+.field-content textarea { width: 100%; flex: 1; border: none; outline: none; font-size: 16px; font-family: inherit; resize: none; color: #1C1B1E; background: transparent; line-height: 24px; }
 </style>
 </head>
 <body>
-<div class="status-bar">9:41</div>
-<div class="top-app-bar" style="position:relative;">
-  <button class="back-btn" aria-label="返回">
-    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
-  </button>
-  <input class="title-input" type="text" placeholder="笔记标题" value="会议纪要 — 2026-06-01" maxlength="100" aria-label="笔记标题">
-  <span class="title-char-count">12/100</span>
-  <button class="toggle-btn" aria-label="切换预览">
-    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
-  </button>
+<div class="header">
+  <div class="header-left">
+    <button class="btn-back"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+    <span class="header-title">编辑笔记</span>
+  </div>
+  <button class="btn-save">保存</button>
 </div>
-<div class="editor-area">
-  <textarea aria-label="笔记内容">## Q2 产品路线图讨论
+<div class="form">
+  <div class="field">
+    <span class="field-label">标题</span>
+    <input type="text" value="会议纪要 — 2026-06-01">
+  </div>
+  <div class="field-content">
+    <span class="field-label">内容</span>
+    <textarea>讨论了Q2产品路线图，确定了以下关键方向：
 
-### 搜索结果默认排序
-- **决策**: 相关度优先排序（标题命中权重 > 正文命中权重）
-- **否决**: 纯时间倒序
+1. 记事本功能 v1.0 范围确认
+2. 搜索功能 PRD 评审通过
+3. 技术选型：Room + MVVM + Compose M3
 
-### 搜索历史本地存储
-- **决策**: DataStore 存储 JSON 列表（最多5条，去重）
-- **否决**: Room（过度设计）
-
-### 笔记功能
-- **决策**: Room 作为主存储，DataStore 用于草稿暂存
-- **否决**: DataStore 存储笔记（无法支撑搜索/排序/CRUD）</textarea>
+下一步：启动 UI 设计评审，准备编码阶段。</textarea>
+  </div>
 </div>
-<div class="char-count">283 / 50,000</div>
-<div class="toolbar" role="toolbar" aria-label="Markdown 快捷工具栏">
-  <button aria-label="标题"><b>#</b></button>
-  <button aria-label="粗体"><b>B</b></button>
-  <button aria-label="斜体"><i>I</i></button>
-  <span class="separator"></span>
-  <button aria-label="无序列表">≡</button>
-  <button aria-label="链接">🔗</button>
-  <button aria-label="代码块">&lt;/&gt;</button>
-</div>
-<div class="save-hint">已自动保存 14:32</div>
 </body>
 </html>

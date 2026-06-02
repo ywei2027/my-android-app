@@ -5,56 +5,40 @@
 <meta name="viewport" content="width=375, initial-scale=1">
 <title>P1 笔记列表 — 错误状态</title>
 <style>
-:root {
-  --primary: #1A4FBF; --onPrimary: #FFFFFF;
-  --error: #B81C1C; --onError: #FFFFFF; --errorContainer: #FFDAD6;
-  --surface: #FEFBFF; --onSurface: #1C1B1E; --onSurfaceVariant: #49454F;
-  --outline: #79747E; --background: #FEFBFF; --surfaceVariant: #E7E0EC;
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 375px; margin: 0 auto;
+  font-family: Roboto, 'Noto Sans SC', sans-serif;
+  background: #FFFBFE; color: #1C1B1E; min-height: 812px;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --primary: #B0C6FF; --onPrimary: #001D36;
-    --error: #FFB4AB; --onError: #690005; --errorContainer: #93000A;
-    --surface: #1C1B1F; --onSurface: #E6E1E5; --onSurfaceVariant: #CAC4D0;
-    --outline: #938F99; --background: #1C1B1F; --surfaceVariant: #49454F;
-  }
-}
-* { margin:0; padding:0; box-sizing:border-box; }
-body { width:375px; margin:0 auto; font-family:Roboto,'Noto Sans SC',sans-serif; background:var(--background); color:var(--onSurface); min-height:812px; display:flex; flex-direction:column; }
-.status-bar { height:44px; display:flex; align-items:center; justify-content:flex-end; padding:0 16px; font-size:14px; font-weight:600; }
-.top-bar { height:64px; display:flex; align-items:center; padding:0 4px 0 16px; }
-.search-bar { flex:1; height:56px; border-radius:28px; background:var(--surfaceVariant); display:flex; align-items:center; padding:0 8px; }
-.search-bar svg { width:24px; height:24px; color:var(--onSurfaceVariant); margin:0 8px; }
-.search-bar input { flex:1; border:none; background:transparent; font-size:16px; outline:none; }
-.error-area { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0 48px; }
-.error-icon { width:64px; height:64px; border-radius:32px; background:var(--errorContainer); display:flex; align-items:center; justify-content:center; margin-bottom:24px; color:var(--error); }
-.error-icon svg { width:32px; height:32px; }
-.error-title { font-size:20px; font-weight:500; line-height:28px; color:var(--onSurface); text-align:center; margin-bottom:8px; }
-.error-desc { font-size:14px; line-height:20px; color:var(--onSurfaceVariant); text-align:center; margin-bottom:24px; }
-.retry-btn { padding:10px 24px; border-radius:20px; background:var(--primary); color:var(--onPrimary); border:none; font-size:14px; font-weight:500; cursor:pointer; }
-.snackbar { position:fixed; bottom:24px; left:16px; right:16px; height:48px; border-radius:4px; background:#313033; color:#F4EFF4; display:flex; align-items:center; padding:0 16px; font-size:14px; }
-.snackbar .action { color:#B0C6FF; font-weight:500; cursor:pointer; margin-left:auto; background:none; border:none; font-size:14px; }
+.header { height: 64px; display: flex; align-items: center; padding: 0 16px; justify-content: space-between; }
+.header-title { font-size: 22px; font-weight: 400; }
+.header-icon { width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 50%; opacity: 0.5; }
+.header-icon svg { width: 24px; height: 24px; fill: #49454F; }
+
+.error-area { display: flex; flex-direction: column; align-items: center; justify-content: center; height: calc(100vh - 64px); padding: 32px; }
+.error-circle { width: 64px; height: 64px; border-radius: 50%; background: #F9DEDC; display: flex; align-items: center; justify-content: center; margin-bottom: 24px; }
+.error-circle svg { width: 32px; height: 32px; fill: #B3261E; }
+.error-title { font-size: 24px; font-weight: 400; line-height: 32px; margin-bottom: 8px; }
+.error-desc { font-size: 14px; color: #49454F; line-height: 20px; text-align: center; margin-bottom: 24px; }
+.retry-btn { padding: 10px 24px; border: none; border-radius: 20px; background: #6750A4; color: #FFFFFF; font-size: 14px; font-weight: 500; cursor: pointer; font-family: inherit; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+.retry-btn:hover { background: #5C4690; }
+
+.fab { position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px; border-radius: 16px; background: #EADDFF; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 8px rgba(0,0,0,0.14); cursor: pointer; }
+.fab svg { width: 24px; height: 24px; fill: #21005D; }
 </style>
 </head>
 <body>
-<div class="status-bar">9:41</div>
-<div class="top-bar">
-  <div class="search-bar" role="search">
-    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-    <input type="search" placeholder="搜索笔记" disabled>
-  </div>
+<div class="header">
+  <span class="header-title">记事本</span>
+  <span class="header-icon"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg></span>
 </div>
 <div class="error-area">
-  <div class="error-icon">
-    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
-  </div>
+  <div class="error-circle"><svg viewBox="0 0 24 24"><path d="M11 15h2v2h-2zm0-8h2v6h-2zm.99-5C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg></div>
   <div class="error-title">加载失败</div>
-  <div class="error-desc">无法读取笔记数据，请检查存储权限后重试</div>
+  <div class="error-desc">网络异常，请检查连接后重试</div>
   <button class="retry-btn">重试</button>
 </div>
-<div class="snackbar">
-  <span>读取笔记失败</span>
-  <button class="action">重试</button>
-</div>
+<div class="fab"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></div>
 </body>
 </html>
