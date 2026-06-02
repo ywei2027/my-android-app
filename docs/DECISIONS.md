@@ -19,6 +19,15 @@
 | D-09 | 2026-06-02 | Room v1.0 使用 fallbackToDestructiveMigration()，exportSchema=true，v1.1 开始手动 Migration | 已确认 |
 | D-10 | 2026-06-02 | Repository 层返回 Result<T>，ViewModel 映射到 UiState.Error（统一错误处理契约） | 已确认 |
 | D-11 | 2026-06-02 | 编辑页草稿通过 SavedStateHandle 保护（进程死亡恢复），最大丢失 ≤ 500ms 内容 | 已确认 |
+| D-12 | 2026-06-02 | 版本号展示策略: Debug 构建在主界面底部显示（含 VERSION_NAME + VERSION_CODE + 构建类型），Release 构建仅在「设置→关于」显示 | 待确认 |
+| D-13 | 2026-06-02 | 版本号颜色使用 Material3 `onSurfaceVariant` Token，废弃 PRD 硬编码 `#9E9E9E`/`#BDBDBD`（不满足 WCAG AA 对比度） | 待确认 |
+| D-14 | 2026-06-02 | minSdk 统一修正为 26（PRD 原声明 API 24 与实际 build.gradle 配置 26 不一致） | 待确认 |
+| D-15 | 2026-06-02 | 版本号信息格式: `v{name} ({code}) {buildType}` + 可选 Git SHA 短码，替代原 `v1.0.0` 单一字段 | 待确认 |
+| D-16 | 2026-06-02 | 新增 windowInsets 适配全面屏手势导航栏 + 横屏/字体缩放/分屏场景覆盖 | 待确认 |
+| D-17 | 2026-06-02 | 版本号 TalkBack contentDescription 设为「应用版本号」，对比度目标 ≥ 3:1（WCAG AA 大文本标准） | 待确认 |
+| D-18 | 2026-06-02 | UI 设计决议: 版本号格式扩展为 `v{name}({code}){buildType}` (D-15)，Debug/Release 条件编译 (D-12)，darkColorScheme 补建 | 待确认 |
+| D-19 | 2026-06-02 | UI 设计决议: VersionTag 视觉层级降级——使用较低对比度或 opacity 0.6 与导航文字区分 | 待确认 |
+| D-20 | 2026-06-02 | UI 设计决议: 下边距修正为 8px(8dp 网格对齐)，横屏/分屏 <480dp 隐藏版本号 | 待确认 |
 
 ---
 
@@ -26,5 +35,4 @@
 
 | 日期 | 变更 | 触发事件 |
 |------|------|----------|
-| 2026-06-02 | UI 设计决议: 6项P0自动修订 (Snackbar时长/搜索FAB/编辑器滚动/字体Token/BOM升级/重组优化) | C1+C2+C3 三视角并行评审 |
-| 2026-06-02 | 初始决策记录 | 记事本 PRD v0.1-draft 3-Agent 并行评审 |
+| 2026-06-02 | UI 设计三视角评审 (C1/C2/C3): 4 P0 / 8 P1 / C2 综合 37/50，新增 3 项决议 (D-18~D-20) | delegate_task 并行评审 |
