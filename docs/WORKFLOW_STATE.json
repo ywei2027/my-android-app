@@ -3,14 +3,11 @@
   "feature_name": "主界面底部版本号显示",
   "prd_version": "v1.0-confirmed",
   "ui_design_version": "v1.0-confirmed",
-  "ui_design_doc_url": "https://bytedance.feishu.cn/docx/SFU6daPrgoYRHBxyVVZcIzmonhd",
   "design_version": "v1.0-confirmed",
-  "design_doc_url": "https://bytedance.feishu.cn/docx/KT1udDpZsotHHaxkSYpc7ir0n2g",
-  "p0_fixed": 5,
-  "p1_open": 3,
-  "issues": ["#28"],
+  "issues": [28],
   "issue_urls": {
-    "#28": "https://github.com/ywei2027/my-android-app/issues/28"
+    "28": "https://github.com/ywei2027/my-android-app/issues/28"
   },
-  "updated": "2026-06-02T13:00:00+08:00"
+  "pr_url": "https://github.com/ywei2027/my-android-app/pull/32",
+  "updated": "2026-06-02T14:52:00+08:00"
 }
