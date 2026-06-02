@@ -1,9 +1,9 @@
 # 关于页面版本号显示 — UI 设计方案
 
-> **版本:** v0.1-draft
+> **版本:** v0.2-review
 > **功能名称:** 关于页面版本号显示
 > **创建日期:** 2026-06-02
-> **基于:** PRD v1.0-confirmed §9 | DECISIONS.md R2-D-22~R2-D-26
+> **基于:** PRD v1.0-confirmed §9 | DECISIONS.md R2-D-22~R2-D-26 | C2 视觉 41/50
 
 ---
 
@@ -62,7 +62,8 @@ LoginScreen (Column, fillMaxSize)
 ├── 应用图标 + 名称 (Column, center)
 ├── 手机号输入框 (TextField)
 ├── 获取验证码按钮 (Button)
-└── 关于 (TextButton, Modifier.align(BottomCenter))
+└── 关于 (TextButton, Modifier.align(BottomCenter)
+    .defaultMinSize(minHeight=48.dp, minWidth=48.dp))
     └── onClick → navController.navigate("about")
 ```
 
@@ -82,9 +83,8 @@ LoginScreen (Column, fillMaxSize)
 │          版本号                   │  ← label
 │  v1.0.0(42)debug                 │  ← bodyMedium 14sp
 │                                  │      onSurfaceVariant, alpha=0.6
-│                                  │
-│                                  │
-│                                  │
+│                                  │      maxWidth=240dp, maxLines=1
+│ ← 底部 8dp + WindowInsets        │
 └──────────────────────────────────┘
 ```
 
@@ -97,14 +97,20 @@ AboutScreen
 │   │   └── navigationIcon: IconButton(ArrowBack)
 │   │       └── onClick → navController.popBackStack()
 │   └── content: Column (center, padding 16dp)
-│       ├── Icon/Image  (48×48dp, rounded 12dp)
+│       ├── Icon/Image  (48×48dp, rounded 12dp, contentDescription="应用图标")
 │       ├── Spacer(16dp)
 │       ├── Text(appName, titleLarge)
 │       ├── Spacer(16dp)
-│       ├── HorizontalDivider  (outlineVariant)
+│       ├── HorizontalDivider  (outlineVariant, importantForAccessibility=no)
 │       ├── Spacer(16dp)
 │       ├── Row("版本号" label)
-│       └── Text(formatVersionTag(), bodyMedium)
+│       └── Text(formatVersionTag(), bodyMedium,
+│           color=onSurfaceVariant.copy(alpha=0.6f),
+│           maxLines=1, overflow=Ellipsis,
+│           modifier=Modifier.widthIn(max=240.dp)
+│               .windowInsetsPadding(WindowInsets.navigationBars)
+│               .padding(bottom=8.dp)
+│               .semantics { contentDescription = formatVersionDescription() })
 ```
 
 ---
@@ -120,7 +126,8 @@ AboutScreen
        ▼
 ┌─────────────┐
 │  Fallback    │
-│  版本未知    │ ← alpha=1.0, 不可点击
+│  版本未知    │ ← alpha=1.0, 不可点击,
+│              │    contentDescription="版本信息暂时不可用"
 └─────────────┘
 ```
 
@@ -194,4 +201,56 @@ AboutScreen 返回箭头 → navController.popBackStack()
 
 ---
 
-> **状态:** 待评审 (v0.1-draft) — 三视角评审后将升级为 v0.2-review。
+## §10 前置依赖
+
+| 依赖 | 说明 | 状态 |
+|------|------|------|
+| darkColorScheme | D-18 决议，需在 Theme.kt 中补建 | ⚠️ 编码阶段一并完成 |
+| NavHost | navigation-compose 已引入，需在 MainActivity 接线 | ⚠️ 编码阶段一并完成 |
+
+---
+
+## §11 多视角评审记录
+
+> 评审日期: 2026-06-02 | 方式: delegate_task 三视角并行 | 耗时: ~120s
+
+### 评审总览
+
+| 视角 | 评分 | P0 | P1 | 核心发现 |
+|------|------|----|----|----------|
+| C1 UX 交互 | 6/10 | 4 | 8 | 下边距/WindowInsets 缺失、maxWidth 未约束、Fallback 缺 contentDescription |
+| C2 视觉审美 | 41/50 ✅ | 0 | 2 | 通过(≥40)，跨文件一致性 3/5 需关注 |
+| C3 前端实现 | 4.2/5 | 2 | 4 | darkColorScheme+NavHost 前置依赖、工时 1.75-2h |
+
+### P0 修订记录（已在正文自动修订）
+
+| 编号 | 问题 | 修订内容 |
+|------|------|----------|
+| P0-UX-01 | 下边距+WindowInsets 缺失 | §4 线框图+组件树增加 padding(bottom=8.dp)+windowInsetsPadding |
+| P0-UX-02 | maxWidth 240dp 未约束 | §4 组件树增加 widthIn(max=240.dp) |
+| P0-UX-03 | Fallback 缺 contentDescription | §5 状态机增加"版本信息暂时不可用" |
+| P0-UX-04 | 按钮触摸目标未声明 | §3 组件树增加 defaultMinSize(48.dp) |
+| P0-IMPL-01 | darkColorScheme 未建 | §10 前置依赖纳管，编码阶段补建 |
+| P0-IMPL-02 | NavHost 未接线 | §10 前置依赖纳管，编码阶段一并实现 |
+
+### C2 视觉评审 10 维度
+
+| # | 维度 | 评分 | 关键评语 |
+|---|------|:---:|------|
+| 1 | 格式塔 | 4 | 垂直流清晰，信息密度一致 |
+| 2 | 视觉层级 | 4 | 四级递减合理(22sp→14sp→opacity 0.6) |
+| 3 | 色彩 | 5 | M3 Token 完整，对比度 ≥3:1 ✅ |
+| 4 | 字体 | 4 | M3 type scale + Noto Sans SC |
+| 5 | 空间 | 4 | 48px padding-top, 8dp 底部网格对齐 |
+| 6 | 布局 | 4 | 375×812 手机模拟，flex column 居中 |
+| 7 | 可感知性 | 5 | aria-label 完整，≥48dp 触控 |
+| 8 | 一致性 | 3 | 跨文件细节差异（字号/字重/Token 命名） |
+| 9 | 情感品牌 | 4 | 紫色调专业温暖，品牌辨识度可提升 |
+| 10 | 平台适配 | 4 | 深浅色+safe-area+窄屏 ✅ |
+
+**综合: 41/50** — 基于源码推断（快速通道无截图）
+
+---
+
+> **版本:** v0.2-review
+> **状态:** 三视角评审完成，P0 已自动修订。请审阅后回复「确认」冻结进入技术方案。

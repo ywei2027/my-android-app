@@ -29,6 +29,11 @@
 | D-19 | 2026-06-02 | UI 设计决议: VersionTag 视觉层级降级——使用较低对比度或 opacity 0.6 与导航文字区分 | 已确认 |
 | D-20 | 2026-06-02 | UI 设计决议: 下边距修正为 8px(8dp 网格对齐)，横屏/分屏 <480dp 隐藏版本号 | 已确认 |
 | D-21 | 2026-06-02 | 技术方案决议: VersionTag 与 LoginScreen 解耦（Box bottom-align），`v{name}({code}){buildType}` 格式，WindowInsets.navigationBars，maxLines+Ellipsis | 待确认 |
+| R2-D-22 | 2026-06-02 | 关于页面入口方案: 登录页底部「关于」TextButton → 路由 /about | 待确认 |
+| R2-D-23 | 2026-06-02 | AboutScreen 始终显示版本号，不受 BuildConfig.DEBUG 控制（VersionTag 仅 Debug 的规则不适用） | 待确认 |
+| R2-D-24 | 2026-06-02 | 关于页面版本号为静态展示，不添加点击复制等交互 | 待确认 |
+| R2-D-25 | 2026-06-02 | 导航初版双路由 Login + About，NavHost 接线在本功能中一并实现 | 待确认 |
+| R2-D-26 | 2026-06-02 | TalkBack contentDescription 包含完整版本信息（name+code+buildType） | 待确认 |
 
 ---
 
@@ -36,5 +41,6 @@
 
 | 日期 | 变更 | 触发事件 |
 |------|------|----------|
+| 2026-06-02 | 关于页面 UI 设计三视角评审 (C1/C2/C3): 6 P0 → 自动修订，C2 视觉 41/50 通过 | delegate_task 并行评审 |
 | 2026-06-02 | 技术方案三视角评审 (B1/B2/B3): 7 P0 → 5 项自动修订，新增 D-21 | delegate_task 并行评审 |
 | 2026-06-02 | UI 设计三视角评审 (C1/C2/C3): 4 P0 / 8 P1 / C2 综合 37/50，新增 3 项决议 (D-18~D-20) | delegate_task 并行评审 |
