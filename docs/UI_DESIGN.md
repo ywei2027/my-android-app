@@ -222,5 +222,5 @@ AboutScreen 无特殊 BackHandler 需求，系统返回键按导航栈 popBackSt
 
 ---
 
-> **版本:** v0.2-review
+> **版本:** v1.0-confirmed
 > **状态:** 三视角评审完成，P0 已自动修订。请审阅后回复「确认」冻结进入技术方案。

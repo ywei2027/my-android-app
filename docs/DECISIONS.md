@@ -36,6 +36,7 @@
 | R2-D-26 | 2026-06-02 | TalkBack contentDescription 包含完整版本信息（name+code+buildType） | 待确认 |
 | R3-D-27 | 2026-06-02 | PRD 轻量 3-Agent 评审: AC-01 格式对齐 D-15，交互对齐 D-24，minSdk 修正为 API 26，新增 AC-04 无障碍验收 — 7 P0 已自动修订 | 待确认 |
 | R3-D-28 | 2026-06-02 | UI 设计 3-Agent 轻量评审: C2 视觉 37/50 条件通过，版本号方案统一为 BuildConfig(对齐 VersionTag.kt)，textIsSelectable 放行(原生选中≠自定义交互)，降级态增加视觉差异化 | 待确认 |
+| R3-D-29 | 2026-06-02 | 技术方案 3-Agent 评审: B1 8.5/10 通过 / B2 安全零风险 / B3 测试策略加强。VersionText 复用 formatVersionTag()、SelectionContainer 替代 textIsSelectable、新增 T5-T7 测试用例 — 3 P0 已自动修订 | 待确认 |
 
 ---
 
