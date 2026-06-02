@@ -91,7 +91,7 @@ AboutScreen
 ### 交互状态机
 ```
 ┌─────────────┐
-│    Idle     │ ← 进入页面 → PackageManager 读取版本信息
+│    Idle     │ ← 进入页面 → BuildConfig 读取版本信息
 └──────┬──────┘
        │ 版本信息获取成功
        ▼
@@ -110,7 +110,7 @@ AboutScreen
 | 状态 | UI 表现 | 说明 |
 |------|---------|------|
 | 默认（Display） | 显示 `v1.0.0(42)release` | 版本信息正常读取 |
-| 降级（Unknown） | 显示 "版本未知" | PackageManager 异常时 |
+| 降级（Unknown） | 显示 "版本未知" | BuildConfig 异常时（罕见，降级文本） |
 | 深色模式 | onSurfaceVariant 自动切换暗色值 | M3 Theme 自动适配 |
 
 ---
@@ -181,9 +181,46 @@ AboutScreen 无特殊 BackHandler 需求，系统返回键按导航栈 popBackSt
 | 依赖 | 说明 | 状态 |
 |------|------|------|
 | Material3 Theme | Color.kt / Type.kt / Theme.kt | ⚠️ 编码阶段完成 |
-| PackageManager | 系统 API，无需额外依赖 | ✅ 内置 |
+| BuildConfig | 编译时常量，无需 Context，对齐现有 VersionTag.kt 方案 | ✅ 内置 |
 
 ---
 
-> **版本:** v0.1-draft
-> **状态:** 待评审 — 3-Agent 评审后升级 v0.2-review
+---
+
+## §9 多视角评审记录
+
+> **评审日期:** 2026-06-02 | 方式: delegate_task 三视角并行 | 耗时: ~140s
+> **快速通道**（手动编写 UI_DESIGN.md + HTML，评审 pipeline 照常执行）
+
+### 评审总览
+
+| 视角 | 评分 | P0 | P1 | 核心发现 |
+|------|------|:--:|:--:|----------|
+| C1 UX 交互 | — | 2 | 4 | textIsSelectable 约束过紧、降级态无视觉区分 |
+| C2 视觉审美 | **37/50** | 0 | 3 | M3 规范一致性好，降级态缺少视觉差异化 |
+| C3 前端实现 | — | 2 | 3 | 版本号源冲突 PackageManager→BuildConfig、缺 Preview |
+
+### 门禁修订
+
+| 编号 | 问题 | 修订内容 |
+|------|------|----------|
+| P0-1 | 版本号获取方式冲突（PackageManager vs BuildConfig） | 统一为 BuildConfig，对齐现有 VersionTag.kt |
+| P0-2 | 缺少 dark/light Preview | 要求编码时添加 @Preview(uiMode=...) |
+| P1-1 | textIsSelectable 约束过紧 | 原生选中≠自定义交互，改回 textIsSelectable=true |
+| P1-2 | 降级态缺少视觉差异化 | PRD §9 交互规格补充 opacity 0.5 区分 |
+
+### 工时估算（C3 前端）
+
+| 工作项 | 估时 |
+|--------|------|
+| InfoItem.kt | 15 min |
+| VersionText.kt（BuildConfig 方案） | 20 min |
+| AboutScreen.kt | 30 min |
+| @Preview × 3 | 20 min |
+| 测试 & 验证 | 15 min |
+| **总计** | **~1.5 小时** |
+
+---
+
+> **版本:** v0.2-review
+> **状态:** 三视角评审完成，P0 已自动修订。请审阅后回复「确认」冻结进入技术方案。
