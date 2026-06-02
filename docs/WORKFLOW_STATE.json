@@ -5,12 +5,14 @@
   "ui_design_version": "v1.0-confirmed",
   "design_version": "v1.0-confirmed",
   "issues": [
-    {"id": "29", "url": "https://github.com/ywei2027/my-android-app/issues/29", "title": "VersionTag 组件实现"},
-    {"id": "30", "url": "https://github.com/ywei2027/my-android-app/issues/30", "title": "MainActivity 集成"}
+    {"id": "29", "url": "https://github.com/ywei2027/my-android-app/issues/29", "title": "VersionTag 组件实现", "status": "closed"},
+    {"id": "30", "url": "https://github.com/ywei2027/my-android-app/issues/30", "title": "MainActivity 集成", "status": "closed"}
   ],
   "issue_urls": {
     "29": "https://github.com/ywei2027/my-android-app/issues/29",
     "30": "https://github.com/ywei2027/my-android-app/issues/30"
   },
-  "updated": "2026-06-02T14:15:00+08:00"
+  "pr_url": "https://github.com/ywei2027/my-android-app/pull/31",
+  "updated": "2026-06-02T14:18:00+08:00"
 }
+
