@@ -27,6 +27,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     composeOptions {
@@ -36,9 +37,17 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
 }
 
 dependencies {
+    // Material (for Activity theme)
+    implementation("com.google.android.material:material:1.11.0")
+
     // Compose
     implementation(platform("androidx.compose:compose-bom:2023.10.01"))
     implementation("androidx.compose.ui:ui")
