@@ -1,10 +1,11 @@
 {
-  "current_stage": "IDLE",
-  "feature_name": "",
-  "prd_version": "",
-  "ui_design_version": "",
-  "design_version": "",
+  "current_stage": "STAGE_DESIGN",
+  "feature_name": "主界面底部版本号显示",
+  "prd_version": "v1.0-confirmed",
+  "ui_design_version": "v1.0-confirmed",
+  "ui_design_doc_url": "https://bytedance.feishu.cn/docx/SFU6daPrgoYRHBxyVVZcIzmonhd",
+  "design_version": "v0.1-draft",
   "issues": [],
   "issue_urls": {},
-  "updated": "2026-06-02T07:35:00+08:00"
+  "updated": "2026-06-02T12:35:00+08:00"
 }

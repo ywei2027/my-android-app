@@ -25,9 +25,10 @@
 | D-15 | 2026-06-02 | 版本号信息格式: `v{name} ({code}) {buildType}` + 可选 Git SHA 短码，替代原 `v1.0.0` 单一字段 | 待确认 |
 | D-16 | 2026-06-02 | 新增 windowInsets 适配全面屏手势导航栏 + 横屏/字体缩放/分屏场景覆盖 | 待确认 |
 | D-17 | 2026-06-02 | 版本号 TalkBack contentDescription 设为「应用版本号」，对比度目标 ≥ 3:1（WCAG AA 大文本标准） | 待确认 |
-| D-18 | 2026-06-02 | UI 设计决议: 版本号格式扩展为 `v{name}({code}){buildType}` (D-15)，Debug/Release 条件编译 (D-12)，darkColorScheme 补建 | 待确认 |
-| D-19 | 2026-06-02 | UI 设计决议: VersionTag 视觉层级降级——使用较低对比度或 opacity 0.6 与导航文字区分 | 待确认 |
-| D-20 | 2026-06-02 | UI 设计决议: 下边距修正为 8px(8dp 网格对齐)，横屏/分屏 <480dp 隐藏版本号 | 待确认 |
+| D-18 | 2026-06-02 | UI 设计决议: 版本号格式扩展为 `v{name}({code}){buildType}` (D-15)，Debug/Release 条件编译 (D-12)，darkColorScheme 补建 | 已确认 |
+| D-19 | 2026-06-02 | UI 设计决议: VersionTag 视觉层级降级——使用较低对比度或 opacity 0.6 与导航文字区分 | 已确认 |
+| D-20 | 2026-06-02 | UI 设计决议: 下边距修正为 8px(8dp 网格对齐)，横屏/分屏 <480dp 隐藏版本号 | 已确认 |
+| D-21 | 2026-06-02 | 技术方案决议: VersionTag 与 LoginScreen 解耦（Box bottom-align），`v{name}({code}){buildType}` 格式，WindowInsets.navigationBars，maxLines+Ellipsis | 待确认 |
 
 ---
 
@@ -35,4 +36,5 @@
 
 | 日期 | 变更 | 触发事件 |
 |------|------|----------|
+| 2026-06-02 | 技术方案三视角评审 (B1/B2/B3): 7 P0 → 5 项自动修订，新增 D-21 | delegate_task 并行评审 |
 | 2026-06-02 | UI 设计三视角评审 (C1/C2/C3): 4 P0 / 8 P1 / C2 综合 37/50，新增 3 项决议 (D-18~D-20) | delegate_task 并行评审 |
