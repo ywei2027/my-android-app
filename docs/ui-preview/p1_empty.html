@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=375, initial-scale=1">
+<title>P1 笔记列表 — 空状态</title>
+<style>
+:root {
+  --primary: #1A4FBF; --primaryContainer: #DAE2FF; --onPrimaryContainer: #001849;
+  --surface: #FEFBFF; --onSurface: #1C1B1E; --onSurfaceVariant: #49454F;
+  --outline: #79747E; --background: #FEFBFF;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary: #B0C6FF; --primaryContainer: #0040A5; --onPrimaryContainer: #DAE2FF;
+    --surface: #1C1B1F; --onSurface: #E6E1E5; --onSurfaceVariant: #CAC4D0;
+    --outline: #938F99; --background: #1C1B1F;
+  }
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { width:375px; margin:0 auto; font-family:Roboto,'Noto Sans SC',sans-serif; background:var(--background); color:var(--onSurface); min-height:812px; display:flex; flex-direction:column; }
+.status-bar { height:44px; align-items:center; justify-content:flex-end; padding:0 16px; font-size:14px; font-weight:600; display:flex; }
+.top-bar { height:64px; display:flex; align-items:center; padding:0 4px 0 16px; }
+.search-bar { flex:1; height:56px; border-radius:28px; background:var(--surfaceVariant,#E7E0EC); display:flex; align-items:center; padding:0 8px; }
+.search-bar svg { width:24px; height:24px; color:var(--onSurfaceVariant); margin:0 8px; flex-shrink:0; }
+.search-bar input { flex:1; border:none; background:transparent; font-size:16px; color:var(--onSurface); outline:none; }
+.search-bar input::placeholder { color:var(--onSurfaceVariant); }
+.empty-area { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0 48px; padding-bottom:100px; }
+.empty-illustration { width:120px; height:120px; border-radius:60px; background:var(--primaryContainer,#DAE2FF); display:flex; align-items:center; justify-content:center; margin-bottom:24px; }
+.empty-title { font-size:24px; font-weight:400; line-height:32px; color:var(--onSurface); text-align:center; margin-bottom:8px; }
+.empty-desc { font-size:14px; line-height:20px; color:var(--onSurfaceVariant); text-align:center; }
+.arrow-hint { position:absolute; bottom:100px; right:44px; width:32px; height:40px; color:var(--primary); }
+.fab { position:fixed; bottom:24px; right:24px; width:56px; height:56px; border-radius:16px; background:var(--primaryContainer); box-shadow:0 4px 8px rgba(0,0,0,0.16); display:flex; align-items:center; justify-content:center; border:none; cursor:pointer; }
+.fab svg { width:24px; height:24px; color:var(--onPrimaryContainer); }
+</style>
+</head>
+<body>
+<div class="status-bar">9:41</div>
+<div class="top-bar">
+  <div class="search-bar" role="search" aria-label="搜索笔记">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+    <input type="search" placeholder="搜索笔记" aria-label="搜索笔记">
+  </div>
+</div>
+<div class="empty-area" style="position:relative;">
+  <div class="empty-illustration">
+    <svg width="64" height="64" viewBox="0 0 24 24" fill="var(--onPrimaryContainer)">
+      <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
+    </svg>
+  </div>
+  <div class="empty-title">还没有笔记</div>
+  <div class="empty-desc">点击右下角按钮创建第一篇笔记</div>
+</div>
+<button class="fab" aria-label="创建新笔记">
+  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+</button>
+</body>
+</html>

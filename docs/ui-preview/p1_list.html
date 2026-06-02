@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=375, initial-scale=1">
+<title>P1 笔记列表 — 列表展示态</title>
+<style>
+:root {
+  --primary: #1A4FBF; --onPrimary: #FFFFFF; --primaryContainer: #DAE2FF; --onPrimaryContainer: #001849;
+  --secondary: #575E71; --secondaryContainer: #DBE2F9;
+  --error: #B81C1C; --errorContainer: #FFDAD6; --onErrorContainer: #410002;
+  --surface: #FEFBFF; --onSurface: #1C1B1E; --surfaceVariant: #E7E0EC; --onSurfaceVariant: #49454F;
+  --outline: #79747E; --outlineVariant: #CAC4D0;
+  --background: #FEFBFF; --onBackground: #1C1B1E;
+  --ripple-primary: rgba(26,79,191,0.08); --ripple-error: rgba(184,28,28,0.08);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary: #B0C6FF; --onPrimary: #001D36; --primaryContainer: #0040A5; --onPrimaryContainer: #DAE2FF;
+    --secondary: #BFC6DC; --secondaryContainer: #404759;
+    --error: #FFB4AB; --errorContainer: #93000A; --onErrorContainer: #FFDAD6;
+    --surface: #1C1B1F; --onSurface: #E6E1E5; --surfaceVariant: #49454F; --onSurfaceVariant: #CAC4D0;
+    --outline: #938F99; --outlineVariant: #49454F;
+    --background: #1C1B1F; --onBackground: #E6E1E5;
+    --ripple-primary: rgba(176,198,255,0.08); --ripple-error: rgba(255,180,171,0.08);
+  }
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { width:375px; margin:0 auto; font-family:Roboto,'Noto Sans SC',sans-serif; background:var(--background); color:var(--onSurface); min-height:812px; }
+.status-bar { height:44px; display:flex; align-items:center; justify-content:flex-end; padding:0 16px; font-size:14px; font-weight:600; color:var(--onSurface); }
+.top-bar { height:64px; display:flex; align-items:center; padding:0 4px 0 16px; }
+.search-bar { flex:1; height:56px; border-radius:28px; background:var(--surfaceVariant); display:flex; align-items:center; padding:0 8px; }
+.search-bar svg { width:24px; height:24px; color:var(--onSurfaceVariant); margin:0 8px; flex-shrink:0; }
+.search-bar input { flex:1; border:none; background:transparent; font-size:16px; color:var(--onSurface); outline:none; }
+.search-bar input::placeholder { color:var(--onSurfaceVariant); }
+.content { padding:0 16px 80px; }
+.card { border-radius:12px; background:var(--surface); border:1px solid var(--outlineVariant); padding:16px; margin-bottom:12px; cursor:pointer; transition:box-shadow 0.15s; }
+.card:hover { box-shadow:0 1px 3px rgba(0,0,0,0.12); }
+.card-title { font-size:16px; font-weight:500; line-height:24px; color:var(--onSurface); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.card-summary { font-size:14px; line-height:20px; color:var(--onSurfaceVariant); margin-top:4px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.card-time { font-size:11px; line-height:16px; color:var(--onSurfaceVariant); margin-top:8px; }
+.fab { position:fixed; bottom:24px; right:24px; width:56px; height:56px; border-radius:16px; background:var(--primaryContainer); box-shadow:0 4px 8px rgba(0,0,0,0.16); display:flex; align-items:center; justify-content:center; cursor:pointer; border:none; }
+.fab svg { width:24px; height:24px; color:var(--onPrimaryContainer); }
+.snackbar { position:fixed; bottom:80px; left:16px; right:16px; height:48px; border-radius:4px; background:var(--inverseSurface,#313033); color:var(--inverseOnSurface,#F4EFF4); display:flex; align-items:center; padding:0 16px; font-size:14px; gap:8px; }
+.snackbar .action { color:var(--primary); font-weight:500; cursor:pointer; margin-left:auto; background:none; border:none; font-size:14px; }
+.undo-line { position:fixed; bottom:80px; left:16px; right:16px; border-radius:4px; background:#313033; color:#F4EFF4; display:flex; align-items:center; padding:0 16px; font-size:14px; height:48px; }
+.undo-line .btn { color:#B0C6FF; font-weight:500; margin-left:auto; cursor:pointer; background:none; border:none; font-size:14px; }
+</style>
+</head>
+<body>
+<div class="status-bar">9:41</div>
+<div class="top-bar">
+  <div class="search-bar" role="search" aria-label="搜索笔记">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+    <input type="search" placeholder="搜索笔记" aria-label="搜索笔记">
+  </div>
+</div>
+<div class="content" id="note-list">
+  <div class="card" style="animation:fadeIn 0.3s ease;">
+    <div class="card-title">会议纪要 — 2026-06-01</div>
+    <div class="card-summary">讨论了Q2产品路线图，确定了搜索功能的优先级…</div>
+    <div class="card-time">今天 14:35</div>
+  </div>
+  <div class="card">
+    <div class="card-title">学习笔记：Jetpack Compose</div>
+    <div class="card-summary">StateFlow vs LiveData 的对比分析…</div>
+    <div class="card-time">昨天 09:12</div>
+  </div>
+  <div class="card">
+    <div class="card-title">待办事项</div>
+    <div class="card-summary">1. Room 数据库调研 2. M3 主题适配 3. 无障碍测试…</div>
+    <div class="card-time">周二 16:00</div>
+  </div>
+  <div class="card">
+    <div class="card-title">项目架构决策</div>
+    <div class="card-summary">MVVM + Compose + Hilt + Room，所有协程绑定 viewModelScope…</div>
+    <div class="card-time">06/02</div>
+  </div>
+</div>
+<button class="fab" aria-label="创建新笔记">
+  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+</button>
+</body>
+</html>

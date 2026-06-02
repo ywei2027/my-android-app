@@ -1,24 +1,25 @@
-# UI 设计方案 — 全局搜索功能
+# UI 设计方案 — 记事本功能
 
-> 版本：v1.0-confirmed | 第3轮生成 | 基于 [PRD v1.0-confirmed](../docs/PRD.md)
-> 吸收全部决议：PRD P0×8 + P1×13 + P2×10 | UI R1 UR×15 | UI R2 UR2×11 | UI R3 UR3×11 = **68 项**
+> 版本: v0.1-draft | 基于 PRD v1.0-confirmed | 创建: 2026-06-02
+> 状态: 设计初稿（待评审） | 未冻结
 
 ---
 
 ## 设计依据
 
-- **PRD 第 9 节**：页面清单、布局规格、交互规格、状态覆盖、M3 组件选型、设计约束
+- **PRD 第 9 节**：页面清单（P1/P2）、布局规格、交互规格、组件选型、设计约束
 - **CLAUDE.md**：MVVM + Compose M3 + Hilt + Room，架构分层约束
-- **DECISIONS.md**：S1-S31（PRD评审决议）+ UR-1~UR-15（UI R1）+ UR2-1~UR2-11（UI R2）
-- **项目 Theme**：无独立 Theme 文件 — 使用 PRD §9.6 设计约束作为 Token 源
-- **已有组件**：CalculatorScreen, CalculatorHistorySheet, CalculatorViewModel(CalculatorUiState sealed), CalculatorEvent sealed, CalcHistory(id/expression/result/timestamp), DataStoreHistoryStore, NavGraph, CalculatorModule, MainActivity（17 文件）
+- **DECISIONS.md**：记事本模块全部技术决策（Room 存储/草稿三层防护/软删除/Markdown 渲染库/预览页架构）
+- **项目 Theme**：无独立 Theme 文件（Color.kt/Type.kt/Theme.kt 均不存在）— 基于 PRD §9.5 设计约束自建 M3 Token 体系
+- **已有组件**：MainActivity / MyApplication / LoginViewModel / LoginRepository（4 文件，均为登录模块）
 - **Figma 参考**：无
+- **Compose BOM**：2023.10.01
 
 ---
 
 ## 页面设计
 
-### 页面1: CalculatorScreen（含 Docked SearchBar）
+### P1: 笔记列表页 (`/notes`)
 
 #### 线框图
 
@@ -27,262 +28,493 @@
 │  Status Bar                     9:41 │
 ├──────────────────────────────────────┤
 │ ┌──────────────────────────────────┐ │
-│ │ 🔍 搜索计算历史                   │ │  ← DockedSearchBar (56dp×24dp)
-│ │                     contentDesc   │ │     M3 SearchBar, surface 容器
-│ └──────────────────────────────────┘ │     leadingIcon=Search(24dp)
-│                                       │     border=outline(1dp unfocused)
-│                                       │       → primary(2dp focused)
-│                                       │     radius=28dp, margin=12dp_top+16dp_h
-│                                       │     contentDescription="搜索计算历史，
-│                                       │     双击展开搜索"
-│                                       │     ripple(primary 8%)
+│ │ 🔍 搜索笔记                       │ │  ← SearchBar (M3, EnterAlways)
+│ └──────────────────────────────────┘ │     docked: surfaceVariant 容器
+│                                       │     focused: surface + primary(2dp)
+│                                       │     radius=28dp, padding=12dp_top+16dp_h
+│                                       │     leadingIcon=Search(24dp)
 ├──────────────────────────────────────┤
-│         ┌──────────────────┐         │
-│         │   计算结果显示区   │         │
-│         │   (display area)  │         │
-│         └──────────────────┘         │
-│                                      │
-│ ┌──┐ ┌──┐ ┌──┐ ┌──┐               │
-│ │C │ │()│ │% │ │/ │               │
-│ ├──┤ ├──┤ ├──┤ ├──┤               │  ← 计算器键盘
-│ │7 │ │8 │ │9 │ │× │               │     visible = !isSearchExpanded
-│ ├──┤ ├──┤ ├──┤ ├──┤               │
-│ │4 │ │5 │ │6 │ │- │               │
-│ ├──┤ ├──┤ ├──┤ ├──┤               │
-│ │1 │ │2 │ │3 │ │+ │               │
-│ ├──┴─┴──┴─┴──┤ ├──┤               │
-│ │     0      │ │= │               │
-│ └────────────┘ └──┘               │
+│ ┌──────────────────────────────────┐ │
+│ │ 会议纪要 — 2026-06-01            │ │  ← ElevatedCard (12dp)
+│ │ 讨论了Q2产品路线图，确定了…       │ │     titleMedium + bodyMedium 摘要
+│ │          今天 14:35              │ │     labelSmall + 相对时间
+│ └──────────────────────────────────┘ │     left swipe → EndToStart 删除
+│ ┌──────────────────────────────────┐ │
+│ │ 学习笔记：Jetpack Compose        │ │
+│ │ StateFlow vs LiveData 的对比…    │ │
+│ │          昨天 09:12              │ │
+│ └──────────────────────────────────┘ │
+│ ┌──────────────────────────────────┐ │
+│ │ 待办事项                         │ │
+│ │ 1. Room 数据库调研 2. M3 主题…   │ │
+│ │          周二 16:00              │ │
+│ └──────────────────────────────────┘ │
+│                                       │
+│                                  ┌──┐ │
+│                                  │+ │ │  ← FAB (primaryContainer, 16dp)
+│                                  └──┘ │     contentDescription="创建新笔记"
 └──────────────────────────────────────┘
 ```
 
 #### 组件层级树
 
 ```
-CalculatorScreen
+NoteListScreen
 ├── Scaffold
-│   └── content: Column
-│       ├── SearchBar (docked)                         ← M3 SearchBar, surface 容器
-│       │   ├── Row (verticalAlignment=Center)
-│       │   │   ├── Icon (Search, 24dp, onSurfaceVariant)
-│       │   │   ├── Spacer (12dp)
-│       │   │   └── Text ("搜索计算历史", bodyLarge, onSurfaceVariant)
-│       │   ├── contentDescription = "搜索计算历史，双击展开搜索"
-│       │   └── modifier.clickable → expansion + ripple(primary 8%)
-│       │
-│       ├── Spacer (16dp)
-│       │
-│       └── CalculatorContent
-│           ├── DisplayArea
-│           └── KeypadGrid (visible = !isSearchExpanded)   ← 搜索展开时隐藏
-│
-│   SearchScreen (AnimatedVisibility overlay, 展开时)      ← 独立 Composable
-│   ├── BackHandler(enabled = isSearchExpanded) {          ← 优先消费返回事件
-│   │       focusManager.clearFocus()
-│   │       → AnimatedVisibility.collapse(250ms)
-│   │   }
+│   ├── topBar: TopAppBar (enterAlwaysCollapsed)
+│   │   ├── title: Text("记事本")
+│   │   └── actions: IconButton(Search) → scrollBehavior collapse
 │   │
-│   ├── topBar: SearchBar (expanded)
-│   │   ├── containerColor = surface                        ← WCAG AA placeholder 5.9:1
-│   │   ├── unfocusedBorder = outline(1dp)                  ← 统一边框规格
-│   │   ├── focusedIndicator = primary(2dp)                 ← 焦点下划线
-│   │   ├── leadingIcon: IconButton(ArrowBack, 48dp touch)
-│   │   │   └── contentDescription = "收起搜索"
-│   │   ├── TextField (query, IME Search, maxLength=100)
-│   │   │   └── onValueChange → { if(length>100) Toast"最多输入100字"; else update }
-│   │   ├── trailingIcon: if(query.notEmpty) IconButton(Close, 48dp touch)
-│   │   │   └── contentDescription = "清除搜索内容"
-│   │   └── modifier.imePadding()
+│   ├── content: Column
+│   │   ├── SearchBar (docked, enterAlwaysCollapsed)
+│   │   │   ├── leadingIcon: Icon(Search, 24dp, onSurfaceVariant)
+│   │   │   ├── placeholder: Text("搜索笔记", onSurfaceVariant)
+│   │   │   ├── trailingIcon: if(query.notEmpty) IconButton(Close, 48dp)
+│   │   │   │   └── contentDescription = "清除搜索内容"
+│   │   │   ├── modifier.imePadding()
+│   │   │   └── onFocusChange → if(gained) expand search
+│   │   │
+│   │   └── when(uiState)
+│   │       ├── Loading →
+│   │       │   Box(Modifier.fillMaxSize(), contentAlignment=Center)
+│   │       │   ├── CircularProgressIndicator(48dp, primary, strokeWidth=4dp)
+│   │       │   └── Text("加载笔记中...", bodyMedium, onSurfaceVariant, top=24dp)
+│   │       │   └── 超时 3s → Error + Snackbar
+│   │       │
+│   │       ├── Empty →
+│   │       │   EmptyNoteState
+│   │       │   ├── Column(horizontalAlignment=CenterHorizontally, fillMaxSize)
+│   │       │   ├── Spacer(weight=1)
+│   │       │   ├── Box(120dp, primaryContainer, CircleShape)
+│   │       │   │   └── Icon(NoteAdd, 64dp, onPrimaryContainer)
+│   │       │   ├── Spacer(24dp)
+│   │       │   ├── Text("还没有笔记", headlineSmall, onSurface)
+│   │       │   ├── Spacer(8dp)
+│   │       │   ├── Text("点击右下角按钮创建第一篇笔记", bodyMedium, onSurfaceVariant)
+│   │       │   ├── Spacer(weight=1)
+│   │       │   └── FAB 引导箭头 (Canvas, primary, arrow+curve)
+│   │       │
+│   │       ├── List →
+│   │       │   LazyColumn
+│   │       │   └── items(notes, key={it.id}, animateItemPlacement)
+│   │       │       └── SwipeToDismissBox(state, EndToStart,
+│   │       │               enableDismissFromStartToEnd=false,
+│   │       │               gestureStartEnd=24.dp)
+│   │       │           ├── background: Box(constraintModifier=fillMaxSize)
+│   │       │           │   └── Row(horizontalArrangement=End)
+│   │       │           │       └── Icon(Delete, 24dp, contentColor=onError)
+│   │       │           │           .background(error, roundedCorner(8dp))
+│   │       │           └── ElevatedCard(12dp, clickable)
+│   │       │               ├── Column(padding=16dp)
+│   │       │               │   ├── Text(title, titleMedium, maxLines=1, overflow=Ellipsis)
+│   │       │               │   ├── Spacer(4dp)
+│   │       │               │   ├── Text(summary, bodyMedium, onSurfaceVariant,
+│   │       │               │   │       maxLines=2, overflow=Ellipsis)
+│   │       │               │   ├── Spacer(8dp)
+│   │       │               │   └── Text(relativeTime, labelSmall, onSurfaceVariant)
+│   │       │               └── modifier.combinedClickable:
+│   │       │                   ├── onClick → navToEditor(noteId)
+│   │       │                   └── onLongClick → haptic + enterMultiSelect(noteId)
+│   │       │
+│   │       ├── SearchResults →
+│   │       │   Column
+│   │       │   ├── Text("找到 {count} 条结果", labelMedium, onSurfaceVariant, 12dp_top+16dp_h)
+│   │       │   └── LazyColumn
+│   │       │       └── items(filteredNotes, key={it.id})
+│   │       │           └── NoteCard (同 List 卡片，含 HighlightedText 高亮)
+│   │       │
+│   │       ├── SearchEmpty →
+│   │       │   SearchEmptyState
+│   │       │   ├── Column(horizontalAlignment=Center, fillMaxSize)
+│   │       │   ├── Spacer(weight=1)
+│   │       │   ├── Icon(SearchOff, 64dp, outline)
+│   │       │   │   └── contentDescription = "未找到搜索结果"
+│   │       │   ├── Spacer(16dp)
+│   │       │   ├── Text("没有找到包含"{query}"的笔记", headlineSmall, textAlign=Center)
+│   │       │   ├── Spacer(8dp)
+│   │       │   ├── Text("换个关键词试试", bodyMedium, onSurfaceVariant)
+│   │       │   ├── Spacer(24dp)
+│   │       │   ├── OutlinedButton("清除搜索")
+│   │       │   └── Spacer(weight=1)
+│   │       │
+│   │       ├── MultiSelect →
+│   │       │   Column
+│   │       │   ├── MultiSelectTopBar (替换原有 TopAppBar)
+│   │       │   │   ├── IconButton(Close, contentDesc="退出多选模式")
+│   │       │   │   ├── Text("已选 {count} 项", titleLarge)
+│   │       │   │   └── TextButton("全选")
+│   │       │   ├── LazyColumn
+│   │       │   │   └── items(notes, key={it.id})
+│   │       │   │       └── Row(verticalAlignment=CenterVertically)
+│   │       │   │           ├── Checkbox(checked, onCheckedChange)
+│   │       │   │           └── NoteCard (简化版，无 swipe)
+│   │       │   └── BottomAppBar
+│   │       │       └── Button("删除选中({count})", error)
+│   │       │           └── onClick → AlertDialog 确认
+│   │       │
+│   │       └── Error →
+│   │           Column(horizontalAlignment=Center, fillMaxSize, padding=16dp)
+│   │           ├── Spacer(weight=1)
+│   │           ├── Box(64dp, errorContainer, CircleShape)
+│   │           │   └── Icon(ErrorOutline, 32dp, error)
+│   │           ├── Spacer(24dp)
+│   │           ├── Text("加载失败", headlineSmall)
+│   │           ├── Spacer(8dp)
+│   │           ├── Text(errorMessage, bodyMedium, onSurfaceVariant, textAlign=Center)
+│   │           ├── Spacer(24dp)
+│   │           ├── Button("重试")
+│   │           └── Spacer(weight=1)
+│   │
+│   ├── floatingActionButton: FAB
+│   │   ├── onClick → navToEditor(null)  // 新建
+│   │   ├── containerColor = primaryContainer
+│   │   ├── contentColor = onPrimaryContainer
+│   │   ├── Icon(Add, 24dp)
+│   │   ├── contentDescription = "创建新笔记"
+│   │   ├── enabled = noteCount < 500
+│   │   └── if disabled: alpha 0.38 + longClick Toast"已达上限"
 │   │
 │   ├── snackbarHost: SnackbarHost
+│   │   └── Snackbar(action="撤销", duration=SnackbarDuration.Long+2s)
 │   │
-│   └── content: when(uiState)
-│       ├── is History | Typing →
-│       │   Column(padding=16dp)
-│       │   ├── if history.isEmpty() && query.isEmpty() →   ← History(空) 分支
-│       │   │   └── EmptyHistoryGuide
-│       │   │       ├── Spacer(48dp)
-│       │   │       ├── Text("输入关键词搜索计算历史", headlineSmall)
-│       │   │       └── Text("如'123'、'99+1='", bodyMedium, onSurfaceVariant)
-│       │   │
-│       │   ├── else:
-│       │   │   ├── Text("最近搜索", labelSmall, outline, 12sp)
-│       │   │   ├── Spacer(8dp)
-│       │   │   ├── LazyColumn(5 items, key=query)
-│       │   │   │   └── items: ListItem
-│       │   │   │       ├── leadingContent: Icon(Search, 24dp, contentDesc=null) ← 装饰性
-│       │   │   │       ├── headlineContent: Text(query, 16sp)
-│       │   │   │       ├── trailingContent: IconButton(Close, 24dp, error, 48dp)
-│       │   │   │       │   └── contentDescription = "删除此搜索记录"
-│       │   │   │       ├── modifier.combinedClickable:
-│       │   │   │       │   └── onClick → 填入搜索框 + 触发搜索
-│       │   │   │       │   └── onLongClick → DropdownMenu("删除")
-│       │   │   │       └── modifier.indication = ripple(primary 8%)
-│       │   │   │       └── modifier.clickable(enabled = !isLoading)
-│       │   │   │           .then(if(isLoading) Modifier.alpha(0.5f)) ← 禁用不阻止触摸
-│       │   │   ├── Spacer(16dp)
-│       │   │   └── TextButton("清除全部搜索历史", error, minHeight=48dp)
-│       │   │       ├── enabled = history.isNotEmpty()
-│       │   │       └── disabled: opacity 0.38
-│       │   └── Modifier.imePadding()
-│       │
-│       ├── Loading →
-│       │   Column(padding=16dp)
-│       │   ├── ShimmerBlock(dynamicWidth=260-340dp, height=16dp)
-│       │   │   └── modifier.placeholder(visible=true, color=surfaceVariant)
-│       │   │     wave 1000ms, 200ms 启动延迟
-│       │   ├── ShimmerBlock(dynamicWidth=150-220dp, height=12dp)
-│       │   ├── Spacer(12dp)
-│       │   ├── ShimmerBlock(dynamicWidth=280-340dp, height=16dp)
-│       │   ├── ShimmerBlock(dynamicWidth=120-180dp, height=12dp)
-│       │   └── 超时：5s → Error + Snackbar"搜索超时，请重试"
-│       │
-│       ├── Results →
-│       │   Column(padding=16dp)
-│       │   ├── AnimatedVisibility(visible=true, enter=fadeIn(300ms))
-│       │   │   Text("找到 {totalCount} 条结果", labelMedium, 12sp, outline)
-│       │   │   └── aria-live="polite"
-│       │   ├── Spacer(8dp)
-│       │   ├── LazyColumn(items, key={it.id})
-│       │   │   └── items (animateItemPlacement):
-│       │   │       ├── ListItem
-│       │   │       │   ├── headlineContent: HighlightedText(expression, query)
-│       │   │       │   │   └── AnnotatedString + SpanStyle(primary, Bold, bg=primary(18%))
-│       │   │       │   │   └── maxLines=1, TextOverflow.Ellipsis
-│       │   │       │   ├── supportingContent:
-│       │   │       │   │   └── Text(relativeTimestamp, labelSmall, 11sp)
-│       │   │       │   │       ├── <24h: "今天 HH:mm"
-│       │   │       │   │       ├── <48h: "昨天 HH:mm"
-│       │   │       │   │       ├── <7d: "N天前"
-│       │   │       │   │       └── ≥7d: "YYYY-MM-DD"
-│       │   │       │   ├── contentDescription = "{expression}={result}, {相对时间}"
-│       │   │       │   ├── modifier.combinedClickable:
-│       │   │       │   │   └── onClick → dismiss + calcVM.onEvent(ExpandHistoryAndScroll(id))
-│       │   │       │   │   └── onLongClick → DropdownMenu("复制结果","复制表达式")
-│       │   │       │   │       └── onClick → clipboard + Snackbar"已复制到剪贴板"
-│       │   │       │   └── modifier.indication = ripple(primary 8%)
-│       │   │       │   └── modifier.clickable(enabled = !isLoading)
-│       │   │       └── >200 条时顶部 Text("仅显示最近 200 条结果", labelSmall, outline)
-│       │   ├── LaunchedEffect(uiState is Results):
-│       │   │   └── announceForAccessibility("找到{totalCount}条结果")
-│       │   └── Modifier.imePadding()
-│       │
-│       ├── Empty →
-│       │   Column(Modifier.fillMaxSize(), horizontalAlignment=Center)
-│       │   ├── Spacer(weight=1)
-│       │   ├── Icon(SearchOff, 64dp, outline, #79747E)      ← WCAG AA 4.5:1, 非 surfaceVariant
-│       │   │   └── contentDescription = "未找到搜索结果"
-│       │   ├── Spacer(16dp)
-│       │   ├── Text("未找到\"{query}\"的相关结果", headlineSmall, 24sp, lineHeight=32sp)
-│       │   ├── Spacer(8dp)
-│       │   └── Text("换个关键词试试", bodyMedium, 14sp, onSurfaceVariant, lineHeight=20sp)
-│       │   └── Spacer(weight=1)
-│       │
-│       └── Error →
-│           Column(padding=16dp)
-│           ├── 保留上次加载的成功结果（不闪白）
-│           ├── Snackbar(errorMessage, action="重试")
-│           │   └── onAction → retry search
-│           └── if 用户修改搜索词 → Typing (searchJob.cancel + dismiss snackbar)
-│
-│   └── AlertDialog (if showClearAllDialog):
+│   └── AlertDialog (if showDeleteDialog):
 │       AlertDialog(
 │           role = Role.AlertDialog,
-│           title = "确定清除全部搜索历史？",
-│           text = "此操作不可撤销",
-│           confirmButton = TextButton("确定", error, minHeight=48dp),
+│           title = "确定删除{N}条笔记？",
+│           text = if N==1 "此操作可以撤销" else "可在8秒内撤销",
+│           confirmButton = TextButton("删除", error),
 │           dismissButton = TextButton("取消"),
 │       )
 ```
 
-#### 交互状态机（完整版·吸收全部决议）
+#### 交互状态机
 
 ```
-Docked → [点击 SearchBar] → if history.isEmpty() → History(空)
-                           → else               → History
+Idle(进入页面) → [Room Flow 首帧未到] → Loading
+Loading → [3s 内收到 Flow] → if notes.isEmpty() → Empty
+                              → else            → List
+Loading → [3s 超时] → Error
 
-History → [输入字符]               → Typing (保持历史列表)
-History(空) → [输入字符]            → Typing (保持引导文案)
-Typing  → [debounce 300ms | IME Search] → Loading
+Empty → [点击 FAB] → navToEditor(null)
 
-Loading → [搜索返回 非空]          → Results (fadeIn 300ms)
-Loading → [搜索返回 空]            → Empty
-Loading → [搜索异常]               → Error (Snackbar + 保留上次结果)
-Loading → [用户修改输入]            → Typing (searchJob?.cancel())     ← 回归路径
-Loading → [5s 超时]               → Error (Snackbar"搜索超时，请重试")  ← 超时机制
+List → [点击 FAB] → navToEditor(null)
+List → [点击卡片] → navToEditor(noteId)
+List → [点击搜索框] → SearchMode(保持列表)
+List → [长按卡片] → MultiSelect(初始 0 项选中)
 
-Results → [点击×清除]             → History (仅清空搜索框)
-Results → [按返回/ArrowBack]      → Docked (clearFocus→收起键盘→250ms collapse)
-Results → [点击结果项]             → Docked + CalcVM.ExpandHistoryAndScroll(id)
-Results → [长按结果项]             → DropdownMenu("复制结果"|"复制表达式")
-                                     → 点击后 Snackbar"已复制到剪贴板"     ← 复制反馈
+SearchMode → [输入关键词] → debounce 300ms → SearchResults / SearchEmpty
+SearchMode → [清空搜索框] → List
+SearchMode → [按返回键] → List（失去焦点）
 
-Empty → [点击× / 修改输入]        → Typing
-Empty → [按返回/ArrowBack]        → Docked
+SearchResults → [点击卡片] → navToEditor(noteId)
+SearchResults → [点击 ✕] → List（清空+失去焦点）
 
-Error → [点击重试]                → Loading
-Error → [按返回/ArrowBack]        → Docked
-Error → [用户修改输入]             → Typing (searchJob.cancel + dismiss snackbar) ← 回归路径
+SearchEmpty → [点击清除搜索] → List
+SearchEmpty → [修改关键词] → debounce → SearchResults / SearchEmpty
 
-History → [点击历史项]            → Loading (预填+自动搜索)
-History → [点击删除按钮]          → History (Snackbar"已删除"+撤销4s)
-History → [长按历史项]             → DropdownMenu("删除")              ← 长按菜单
-History → [点击清除全部]           → AlertDialog → 确认 → 清除
-History → [按返回]                → Docked
-History(空) → [按返回]            → Docked
+MultiSelect → [勾选卡片] → selectedCount++ / --
+MultiSelect → [点击全选] → selectAll
+MultiSelect → [点击 ✕] → List（退出多选）
+MultiSelect → [按返回键] → List（退出多选）
+MultiSelect → [最后一项取消勾选] → List（自动退出）
+MultiSelect → [点击删除选中] → AlertDialog → 确认 → 批量软删除
+         → Snackbar("已删除 N 条" + "撤销", 8s)
+         → 撤销期间点击撤销 → 恢复所有 + List
+         → 超时 → 后台物理清理
 
-搜索历史 FIFO 淘汰规则：5条上限，第6条不同关键词时移除最旧记录（按timestamp）
+Error → [点击重试] → Loading
+Error → [点击 FAB] → navToEditor(null)（允许新建）
+
+List → [左滑卡片] → SwipeToDismissBox 动画
+      → if 滑过阈值 → AlertDialog 确认
+      → 确认 → 软删除 + Snackbar("已删除"+"撤销", 8s)
+      → 撤销 → 恢复卡片到原位
+      → 超时 → 后台物理清理
 ```
 
-#### 状态覆盖（完整版·吸收全部决议）
+#### 状态覆盖（P1 完整态）
 
-| 状态 | 搜索框 | leadingIcon | trailingIcon | 内容区域 | 键盘 | KeypadGrid |
-|------|--------|------------|--------------|---------|:--:|:--:|
-| Docked | 折叠, placeholder="搜索计算历史" | Search(24dp) | 无 | 计算器界面 | 隐藏 | **显示** |
-| History | 展开, 空, 获焦, 边框=outline(1dp) | ArrowBack | 无 | 搜索历史(5条) + ripple + 长按 | 弹起 | **隐藏** |
-| History(空) | 展开, 空, 获焦, 边框=outline(1dp) | ArrowBack | 无 | 引导文案("输入关键词搜…") | 弹起 | **隐藏** |
-| Typing | 展开, 有内容, 获焦, 焦点指示器=primary(2dp) | ArrowBack | Close(×) | 保持历史列表/引导文案(不闪) | 弹起 | **隐藏** |
-| Loading | 展开, 保持内容, 焦点指示器=primary(2dp) | ArrowBack | Close(×) | Shimmer骨架+历史disabled(opacity 0.5) | 弹起 | **隐藏** |
-| Results | 展开, 保持内容, 焦点指示器=primary(2dp) | ArrowBack | Close(×) | 计数+结果列表+ripple+长按+>200截断 | 弹起 | **隐藏** |
-| Empty | 展开, 保持内容, 焦点指示器=primary(2dp) | ArrowBack | Close(×) | SearchOff(64dp,outline)+标题+引导 | 弹起 | **隐藏** |
-| Error | 展开, 保持内容, 焦点指示器=primary(2dp) | ArrowBack | Close(×) | 保留上次结果+Snackbar"重试" | 弹起 | **隐藏** |
-
-### 页面2: 各状态线框图（HTML 预览版）
-
-_详细可视化 HTML 见 → `docs/ui-preview/`_
+| 状态 | SearchBar | FAB | 内容区 | TopAppBar | 左滑删除 |
+|------|-----------|-----|--------|-----------|:--:|
+| Loading | 折叠, disabled(alpha 0.5) | 可见(可点击) | CircularProgressIndicator + 骨架卡片 | "记事本" | 否 |
+| Empty | 折叠, enabled | **可见(引导箭头)** | 插画+文案+引导 | "记事本" | 否 |
+| List | 折叠, enabled | 可见 | 笔记卡片 LazyColumn | "记事本" | **是** |
+| SearchMode | 展开, focused, border=primary(2dp) | 可见 | 搜索过滤列表 | "记事本" | 否 |
+| SearchEmpty | 展开, focused, border=primary(2dp) | 可见 | SearchOff(64dp)+文案+清除按钮 | "记事本" | 否 |
+| MultiSelect | 隐藏 | 隐藏 | Checkbox+卡片+BottomAppBar | **替换为** "已选 N 项 \| 全选 \| ✕" | 否 |
+| Error | 折叠, disabled(0.5) | 可见(可点击) | error 图标+文案+重试按钮 | "记事本" | 否 |
 
 ---
 
-## Token 映射表（完整版·吸收 WCAG 修正）
+### P2: 笔记编辑器 (`/notes/edit?noteId={noteId}`)
 
-| 元素 | M3 Token | 浅色值 | 深色值 | 来源 | WCAG |
-|------|---------|--------|--------|------|:--:|
-| SearchBar 容器(Docked) | surface | #FEFBFF | #1C1B1F | PRD §9.6 | — |
-| SearchBar 容器(展开) | surface | #FEFBFF | #1C1B1F | UR-9: surfaceVariant→surface | — |
-| SearchBar 边框(未聚焦) | outline(1dp) | #79747E | #938F99 | UR2-13: 统一边框规格 | 4.5:1 |
-| SearchBar 焦点指示器 | primary(2dp) | #1A4FBF | #B0C6FF | UR-10: 新增 focusedIndicator | 7.8:1 |
-| placeholder 文字 | onSurfaceVariant | #49454F | #CAC4D0 | PRD §9.6 | 5.9:1 |
-| 关键词高亮字色 | primary Bold | #1A4FBF | #B0C6FF | PRD §9.6 | 7.8:1 |
-| 关键词高亮背景 | primaryContainer(18%) | rgba(26,79,191,0.18) | rgba(176,198,255,0.18) | UR-11: 0.12→0.18 | — |
-| 结果文字 | onSurface | #1C1B1E | #E6E1E5 | M3 默认 | 16.9:1 |
-| 相对时间戳 | onSurfaceVariant | #49454F | #CAC4D0 | PRD §9.6 | 5.9:1 |
-| 空状态图标 | **outline** | #79747E | #938F99 | UR-1: surfaceVariant(1.3:1)→outline(4.5:1) | 4.5:1 |
-| 删除/清除按钮 | error | #B81C1C | #FFB4AB | PRD §9.6 | 4.5:1 |
-| Shimmer 骨架 | surfaceVariant | #E7E0EC | #49454F | PRD §9.6 | — |
-| ripple(pressed) | primary(8%) | rgba(26,79,191,0.08) | rgba(176,198,255,0.08) | UR-10: 新增交互态 | — |
-| ripple(error) | error(8%) | rgba(184,28,28,0.08) | rgba(255,180,171,0.08) | — | — |
-| disabled(opacity) | onSurface(38%) | opacity 0.38 | opacity 0.38 | UR-10: M3 标准 | — |
-| 搜索图标(装饰性) | onSurfaceVariant | 24dp | 24dp | UR-13: 统一20dp→24dp | — |
-| SearchBar 高度 | — | 56dp | 56dp | PRD §9.6 | — |
-| 水平 padding | — | 16dp | 16dp | PRD §9.6 | — |
-| Docked margin-top | — | 12dp | 12dp | UR2-14: 8dp→12dp 增加呼吸感 | — |
-| 触控最小尺寸 | — | 48dp × 48dp | 48dp × 48dp | Android 无障碍 | — |
-| SearchBar 圆角 | — | 28dp | 28dp | M3 SearchBar | — |
-| 结果标题 | titleMedium | 16sp, Medium, lineHeight=24sp | 16sp, Medium | PRD §9.6 | — |
-| 空状态标题 | headlineSmall | 24sp, Regular, lineHeight=32sp | 24sp, Regular | PRD §9.6 | — |
-| 引导文案 | bodyMedium | 14sp, Regular, lineHeight=20sp | 14sp, Regular | PRD §9.6 | — |
-| 计数标题 | labelMedium | 12sp, Medium, lineHeight=16sp | 12sp, Medium | PRD §9.6 | — |
-| 时间戳 | labelSmall | 11sp, Regular, lineHeight=16sp | 11sp, Regular | PRD §9.6 | — |
+#### 线框图
+
+```
+┌──────────────────────────────────────┐
+│  Status Bar                     9:41 │
+├──────────────────────────────────────┤
+│  ← │ 笔记标题_______________ │ 👁    │  ← TopAppBar
+│    │         12/100           │      │     ← 计数(≥90字符出现)
+│    │                          │      │     ← 预览切换按钮
+│    │                          │      │
+├──────────────────────────────────────┤
+│                                      │
+│                                      │
+│   BasicTextField                     │  ← 编辑区（占满剩余空间）
+│   placeholder:                        │     imePadding() 避让键盘
+│   "开始输入笔记内容..."               │
+│                                      │
+│   ## 标题                            │
+│   **粗体** *斜体*                     │
+│   - 列表项                           │
+│   [链接](url)                        │
+│   ``` 代码块 ```                      │
+│                                      │
+│                                      │
+├──────────────────────────────────────┤
+│  # │ B │ I │ │ ≡ │ 🔗 │ </> │      │  ← Markdown 快捷工具栏
+├──────────────────────────────────────┤   (键盘弹起时收缩为单行内联)
+│  已自动保存 14:32                    │  ← 轻量保存提示（非 Snackbar）
+└──────────────────────────────────────┘
+```
+
+#### 组件层级树
+
+```
+NoteEditScreen(noteId: String?)
+├── Scaffold
+│   ├── topBar: TopAppBar
+│   │   ├── navigationIcon: IconButton(ArrowBack, 48dp)
+│   │   │   ├── contentDescription = "返回"
+│   │   │   └── onClick → { saveDraft; navController.popBackStack() }
+│   │   │
+│   │   ├── title: Row
+│   │   │   ├── BasicTextField(
+│   │   │   │   value = title,
+│   │   │   │   onValueChange = { if(it.length<=100) update; else block },
+│   │   │   │   placeholder = "笔记标题",
+│   │   │   │   textStyle = titleMedium,
+│   │   │   │   singleLine = true,
+│   │   │   │   modifier.weight(1f),
+│   │   │   │ )
+│   │   │   └── if(title.length >= 90)
+│   │   │       └── Text("{title.length}/100",
+│   │   │             labelSmall,
+│   │   │             color = if(title.length>=100) error else onSurfaceVariant)
+│   │   │
+│   │   └── actions: Row
+│   │       └── IconToggleButton(
+│   │           checked = isPreviewMode,
+│   │           onCheckedChange = { togglePreview() },
+│   │           contentDescription = if(isPreview) "编辑" else "预览",
+│   │           )
+│   │           ├── if(edit): Icon(Preview, 24dp)
+│   │           └── if(preview): Icon(Edit, 24dp)
+│   │
+│   ├── content: Box(Modifier.fillMaxSize().imePadding())
+│   │   └── if(isPreviewMode)
+│   │       └── PreviewContent
+│   │           ├── Column(Modifier.verticalScroll(rememberScrollState()))
+│   │           ├── Text(title, headlineSmall, onSurface)  ← 只读标题
+│   │           └── NoteMarkdownRenderer(content, modifier)  ← Markdown 渲染
+│   │               ├── 标题: h1/h2/h3 via SpanStyle
+│   │               ├── 粗体: Bold
+│   │               ├── 斜体: Italic
+│   │               ├── 列表: bullet + indent
+│   │               ├── 链接: primary + UrlRole + underline
+│   │               ├── 代码块: surfaceVariant bg + mono font
+│   │               └── 行内代码: surfaceVariant bg + mono font + padding
+│   │   └── else
+│   │       └── EditContent
+│   │           ├── BasicTextField(
+│   │           │   value = content,
+│   │           │   onValueChange = { if(it.length<=50000) update; else block },
+│   │           │   placeholder = "开始输入笔记内容...",
+│   │           │   textStyle = bodyLarge(lineHeight=24sp),
+│   │           │   modifier = Modifier.fillMaxSize().padding(16.dp),
+│   │           │ )
+│   │           └── LaunchedEffect(content) {
+│   │               debounce(500ms) → saveDraftToDataStore()
+│   │           }
+│   │
+│   ├── bottomBar: if(!isPreviewMode)  ← 预览态隐藏
+│   │   └── MarkdownToolbar (keyboardAware: 键盘弹起时收缩)
+│   │       ├── Row(horizontalArrangement=SpaceEvenly, padding=8dp_h)
+│   │       │   ├── IconButton("#", title="标题")    ← TooltipBox(500ms)
+│   │       │   ├── IconButton("B", title="粗体")
+│   │       │   ├── IconButton("I", title="斜体")
+│   │       │   ├── VerticalDivider(24dp)
+│   │       │   ├── IconButton("≡", title="无序列表")
+│   │       │   ├── IconButton("🔗", title="链接")
+│   │       │   └── IconButton("</>", title="代码块")
+│   │       └── if 键盘弹起: collapse to InlineToolbar
+│   │           └── Row(padding=4dp_h)
+│   │               ├── IconButton("#")
+│   │               ├── IconButton("B")
+│   │               ├── IconButton("-")
+│   │               └── IconButton("...", onClick → expand full toolbar)
+│   │
+│   └── snackbarHost: SnackbarHost
+│       ├── 首次进入(新建): Snackbar("使用工具栏快速插入格式", duration=3s)
+│       └── 保存失败: Snackbar("保存失败，请重试", action="重试")
+│
+│   LaunchedEffect(Unit):
+│   ├── if noteId != null → loadNoteFromRoom(noteId)
+│   └── if noteId == null → loadDraftFromDataStore()  ← 草稿恢复
+│
+│   DisposableEffect:
+│   └── onDispose → saveDraftToDataStore()  ← L3 最后写入
+│
+│   SavedStateHandle:  ← L1 旋转/配置变更
+│   ├── save("title", title)
+│   ├── save("content", content)
+│   └── restore → setState
+```
+
+#### 交互状态机
+
+```
+Create(新建) → [noteId=null]
+    → 加载 DataStore 草稿 → if 有草稿 → DraftRecovery
+    → 显示空编辑器 + 首次引导 Snackbar(3s)
+
+Edit(编辑已有) → [noteId=id]
+    → Room.load(noteId) → 显示已有内容
+    → 底部轻量文字 "已自动保存 HH:mm"
+
+Edit(编辑态) → [输入标题/内容] → debounce 500ms → DataStore.writeDraft
+Edit(编辑态) → [点击工具栏按钮] → 光标位置插入语法 + 更新 content
+Edit(编辑态) → [点击 ← / BackHandler] → check:
+    → if title.isBlank() && content.isBlank() → 不创建笔记, popBackStack
+    → if title.isBlank() && content.isNotBlank() → autoTitle="无标题笔记(HH:mm)", Room.upsert, popBackStack
+    → else → Room.upsert, popBackStack
+
+Edit(编辑态) → [切后台/锁屏] → onDispose → DataStore.writeDraft
+Edit(编辑态) → [杀进程] → L2 已 debounce(500ms) 写入, 丢失 ≤500ms
+
+Edit(编辑态) → [点击预览按钮] → Preview
+Preview → [点击编辑按钮 / BackHandler] → Edit（保持滚动位置）
+
+DraftRecovery → [显示 Snackbar "恢复未保存的草稿？" + "恢复"/"放弃"]
+    → 恢复: fill editor + 草稿清除
+    → 放弃: 清除草稿 + 空编辑器
+
+SaveFailed → [Room 写入异常 / 内容超限]
+    → Snackbar(action="重试")
+    → 重试 → Room.upsert → 成功 → popBackStack / 保持编辑
+    → 返回 → 不保存, popBackStack（草稿已存 DataStore）
+```
+
+#### 状态覆盖（P2 完整态）
+
+| 状态 | 标题区 | 编辑/预览 | 工具栏 | 底部提示 |
+|------|--------|:--:|:--:|------|
+| Create(空) | placeholder="笔记标题" | 编辑, 空, placeholder | 显示, 全部按钮 | 首次引导 Snackbar(3s 淡出) |
+| Edit(有内容) | 标题内容 + 计数(≥90字符) | 编辑, 已填充 | 显示 | "已自动保存 HH:mm" |
+| Preview | 只读标题 | 渲染 Markdown, 可滚动 | **隐藏** | "已自动保存 HH:mm" |
+| DraftRecovery | 草稿标题 | 草稿内容 | 显示 | Snackbar("恢复未保存的草稿？") |
+| SaveFailed | 保留编辑内容 | 保留编辑内容 | disabled(opacity 0.38) | Snackbar("保存失败，请重试"+"重试") |
+| 键盘弹起 | 保留 | 编辑, imePadding() | **收缩为单行**: # / B / - / ... | — |
+
+---
+
+## Token 映射表
+
+### 颜色 Token（M3 默认色板 — 基于 PRD §9.5 + 自建体系）
+
+| 元素 | M3 Token | 浅色值 | 深色值 | 来源 |
+|------|---------|--------|--------|------|
+| 页面背景 | background | #FEFBFF | #1C1B1F | M3 默认 |
+| 卡片背景 | surface | #FEFBFF | #1C1B1F | M3 默认 |
+| 卡片边框 | outlineVariant(1dp) | #CAC4D0 | #49454F | PRD §9.5: 12dp 圆角 |
+| SearchBar 容器(折叠) | surfaceVariant | #E7E0EC | #49454F | M3 SearchBar 默认 |
+| SearchBar 容器(展开) | surface | #FEFBFF | #1C1B1F | M3 SearchBar focused |
+| SearchBar 焦点边框 | primary(2dp) | #1A4FBF | #B0C6FF | PRD §9.5 |
+| placeholder 文字 | onSurfaceVariant | #49454F | #CAC4D0 | PRD §9.5 |
+| 卡片标题 | onSurface | #1C1B1E | #E6E1E5 | M3 默认 |
+| 卡片摘要/时间 | onSurfaceVariant | #49454F | #CAC4D0 | PRD §9.5 |
+| 关键词高亮 | primary Bold + bg | #1A4FBF on rgba(26,79,191,0.18) | #B0C6FF on rgba(176,198,255,0.18) | PRD §9.5 |
+| FAB 背景 | primaryContainer | #DAE2FF | #0040A5 | M3 FAB |
+| FAB 图标色 | onPrimaryContainer | #001849 | #DAE2FF | M3 FAB |
+| FAB disabled | onSurface(38%) | opacity 0.38 | opacity 0.38 | PRD §9.5: 上限禁用 |
+| 删除红 | error | #B81C1C | #FFB4AB | PRD §9.5 |
+| Snackbar 撤销动作 | primary | #1A4FBF | #B0C6FF | PRD §9.5 |
+| 空状态图标 | outline | #79747E | #938F99 | WCAG AA ≥4.5:1 |
+| 加载指示器 | primary | #1A4FBF | #B0C6FF | M3 默认 |
+| 错误图标背景 | errorContainer | #FFDAD6 | #93000A | M3 默认 |
+| 错误图标色 | error | #B81C1C | #FFB4AB | M3 默认 |
+| 代码块背景(浅) | surfaceVariant | #E7E0EC | — | PRD §9.5 |
+| 代码块背景(深) | 加深 surface | — | #2D2D30 | PRD §9.5: 深色用更深 surface |
+| 链接色 | primary | #1A4FBF | #B0C6FF | PRD §9.5 |
+| ripple(pressed) | primary(8%) | rgba(26,79,191,0.08) | rgba(176,198,255,0.08) | M3 标准 |
+| ripple(error) | error(8%) | rgba(184,28,28,0.08) | rgba(255,180,171,0.08) | M3 标准 |
+| disabled(opacity) | onSurface(38%) | opacity 0.38 | opacity 0.38 | M3 标准 |
+| 多选选中背景 | primaryContainer | #DAE2FF | #0040A5 | M3 默认 |
+| 多选 Checkbox(选中) | primary | #1A4FBF | #B0C6FF | M3 Checkbox |
+
+### 字体 Token
+
+| 用途 | M3 Token | 规格 | 来源 |
+|------|---------|------|------|
+| 标题(编辑器只读) | headlineSmall | 24sp, Regular, lineHeight=32sp | PRD §9.5 |
+| 笔记标题 | titleMedium | 16sp, Medium, lineHeight=24sp | PRD §9.5 |
+| 笔记正文 | bodyLarge | 16sp, Regular, lineHeight=24sp | PRD §9.5 |
+| 摘要/引导文案 | bodyMedium | 14sp, Regular, lineHeight=20sp | PRD §9.5 |
+| 时间戳 | labelSmall | 11sp, Regular, lineHeight=16sp | PRD §9.5 |
+| 计数/分类标签 | labelMedium | 12sp, Medium, lineHeight=16sp | PRD §9.5 |
+| 多选标题 | titleLarge | 22sp, Regular, lineHeight=28sp | M3 默认 |
+| 标题输入 | titleMedium | 16sp, Medium, lineHeight=24sp | PRD §9.5 |
+| Placeholder | bodyLarge | 16sp, Regular, lineHeight=24sp, onSurfaceVariant | PRD §9.5 |
+| Snackbar 文本 | bodyMedium | 14sp, Regular, lineHeight=20sp | M3 Snackbar |
+| 代码字体 | — | 14sp, JetBrains Mono, Regular | PRD §9.5 |
+| 自动保存提示 | labelSmall | 11sp, Regular, onSurfaceVariant | PRD §9.5 |
+
+### 形状 Token
+
+| 元素 | 圆角 | 来源 |
+|------|:--:|------|
+| 笔记卡片 | 12dp | PRD §9.5 |
+| FAB | 16dp | PRD §9.5 |
+| 对话框 | 28dp | PRD §9.5 |
+| SearchBar | 28dp | M3 SearchBar |
+| 按钮(Card 内) | 20dp | M3 Button |
+| Checkbox | 4dp | M3 Checkbox |
+| Snackbar | 4dp | M3 Snackbar |
+
+### 间距 Token（8dp 网格）
+
+| 用途 | 值 | 来源 |
+|------|:--:|------|
+| 页面水平 padding | 16dp | PRD §9.5 |
+| SearchBar top margin | 12dp | 与既有 UI_DESIGN 一致的呼吸感 |
+| 卡片内部 padding | 16dp | 8dp 网格 × 2 |
+| 卡片间距 | 12dp | PRD §9.5 |
+| 元素间基础间距 | 8dp | 8dp 网格 |
+| 分组间距 | 24dp | 8dp 网格 × 3 |
+| FAB 距边缘 | 24dp | M3 FAB 规范 |
+| 触控最小尺寸 | 48dp × 48dp | Android 无障碍 |
+
+---
+
+## 交互状态反馈矩阵
+
+| 元素 | Pressed | Focused | Disabled | LongPress |
+|------|:--:|:--:|:--:|:--:|
+| FAB | ripple(primaryContainer 暗化) | — | opacity 0.38 | Toast"已达上限"(disabled) |
+| 笔记卡片 | ripple(primary 8%) | — | — | haptic + 微缩放(0.95→1.0×100ms) |
+| SearchBar 折叠 | ripple(primary 8%) | — | opacity 0.5 | — |
+| SearchBar 展开 | — | primary(2dp 下划线) | — | — |
+| SearchBar Clear(×) | ripple(circular, 48dp) | outline 环(2dp) | — | — |
+| 返回箭头 | ripple(circular, 48dp) | outline 环(2dp) | — | — |
+| 预览切换按钮 | ripple(circular, 48dp) | outline 环(2dp) | opacity 0.38 | — |
+| 工具栏按钮 | ripple(primary 8%, 40dp) | outline 环(2dp) | opacity 0.38 | TooltipBox(500ms, 显示语义) |
+| 删除确认按钮 | ripple(error 8%) | outline 环(2dp) | — | — |
+| Snackbar 撤销 | ripple(primary 8%) | — | — | — |
+| 重试按钮 | ripple(primary 8%) | outline 环(2dp) | — | — |
+| Checkbox | ripple(primary 8%) | outline 环(2dp) | — | — |
+| 全选/✕关闭 | ripple(primary 8%) | outline 环(2dp) | — | — |
+| SwipeToDismissBox | 红色背景 reveal(0→200dp) | — | — | — |
 
 ---
 
@@ -290,276 +522,145 @@ _详细可视化 HTML 见 → `docs/ui-preview/`_
 
 | 已有组件 | 路径 | 复用 | 需修改 | 备注 |
 |---------|------|:--:|:--:|------|
-| CalculatorScreen | ui/calculator/CalculatorScreen.kt | ✅ | 是 | 顶部加 DockedSearchBar, isSearchExpanded 控制 KeypadGrid, BackHandler 互斥 |
-| CalculatorHistorySheet | ui/calculator/CalculatorHistorySheet.kt | ✅ | 是 | 新增 animateScrollToItem(id) + 高亮动画 |
-| CalcHistory | data/model/CalcHistory.kt | ✅ | 否 | id/expression/result/timestamp 直接复用 |
-| CalculatorViewModel | ui/calculator/CalculatorViewModel.kt | ✅ | 是 | 新增 ExpandHistoryAndScroll(id) 事件 |
-| CalculatorUiState | ui/calculator/CalculatorUiState.kt | ✅ | 否 | 无变更 |
-| CalculatorEvent | ui/calculator/CalculatorUiState.kt | ✅ | 是 | 新增 ExpandHistoryAndScroll |
-| DataStoreHistoryStore | data/DataStoreHistoryStore.kt | ✅ | 否 | 间接复用（via SearchSource → CalculatorHistorySearchSource） |
-| NavGraph | navigation/NavGraph.kt | ✅ | 是 | 新增搜索结果→计算器锚点导航 |
-| CalculatorModule | di/CalculatorModule.kt | — | 是 | 新增 SearchModule 绑定 |
-| MyApplication | MyApplication.kt | ✅ | 否 | 无变更 |
+| MainActivity | MainActivity.kt | ✅ | 是 | 添加底部 Tab"记事本"入口 + NavHost 路由 |
+| MyApplication | MyApplication.kt | ✅ | 否 | @HiltAndroidApp 无变更 |
+| LoginViewModel | ui/login/LoginViewModel.kt | ❌ | — | 登录模块，无复用价值 |
+| LoginRepository | data/LoginRepository.kt | ❌ | — | 登录模块，无复用价值 |
 
-## 新增组件清单（校准版·3.5d）
+> **结论**：现有 4 个组件中 2 个为登录模块专用（不复用），MainActivity 和 MyApplication 需小幅修改。记事本功能所有组件为**全新创建**。
+
+## 新增组件清单
 
 | 层级 | 组件 | 复杂度 | 工时 | 备注 |
 |------|------|:--:|:---:|------|
-| **UI** | SearchScreen | 高 | 3.5h | 8态状态机+覆盖层+键盘管理+BackHandler互斥+超时 |
-| UI | SearchViewModel | 高 | 2.5h | debounce+竞态+SearchEvent 13种+SavedStateHandle+SharedFlow导航+超时 |
-| UI | HighlightedText | 低 | 0.5h | AnnotatedString+SpanStyle+coerceIn |
-| UI | SearchHistorySection | 低 | 0.5h | ListItem+长按+ripple+disabled(clickable enabled=false) |
-| UI | SearchResultItem | 中 | 1.0h | 相对时间+Ellipsis+长按DropdownMenu+复制Snackbar+contentDescription(含result) |
-| UI | EmptySearchView | 低 | 0.3h | outline图标+行高定义 |
-| UI | EmptyHistoryGuide | 低 | 0.3h | 引导文案 Composable |
-| UI | ShimmerSearchSkeleton | 低 | 0.5h | placeholder modifier+动态宽度+200ms延迟 |
-| UI | SearchBar(docked) | 低 | 0.5h | M3 SearchBar+contentDescription+ripple+unfocused边框 |
-| **Domain** | SearchSource | 低 | 0.2h | 接口 |
-| Domain | CalculatorHistorySearchSource | 中 | 1.0h | 双字段contains+空格规范化+ignoreCase+highlightRanges+≥5边界case |
-| Domain | SearchResultItem | 低 | 0.2h | data class |
-| **Data** | SearchHistoryStore | 低 | 0.3h | 接口+FIFO淘汰(≤5条/超出移除最旧) |
-| Data | EncryptedSearchHistoryStore | 中 | 1.5h | AES加密+降级(KeyStoreException→空列表+Log) |
-| Data | InMemorySearchHistoryStore | 低 | 0.2h | 测试实现 |
-| Data | SearchRepository | 低 | 0.3h | 接口 |
-| Data | SearchRepositoryImpl | 低 | 0.5h | 实现类 |
-| **DI** | SearchModule | 低 | 0.2h | Hilt 绑定 |
+| **UI** | NoteListScreen | 高 | 3.0h | 7 态状态机 + LazyColumn + SwipeToDismissBox + 搜索 + 多选 + 空状态 |
+| UI | NoteEditScreen | 高 | 3.5h | 双态切换 + SavedStateHandle + 草稿恢复 + 键盘适配 + 工具栏 |
+| UI | NoteListViewModel | 中 | 2.0h | Room Flow 收集 + 搜索过滤 + 防抖 300ms + 多选状态 + 删除逻辑 |
+| UI | NoteEditViewModel | 高 | 2.5h | 草稿三层防护 + 自动保存 + 字段约束 + 自动标题 + Preview 切换 |
+| UI | NoteCard | 低 | 0.5h | ElevatedCard + 标题/摘要/相对时间 + combinedClickable |
+| UI | EmptyNoteState | 低 | 0.3h | 插画(Canvas)+文案+FAB 引导箭头 |
+| UI | SearchEmptyState | 低 | 0.3h | SearchOff 图标+关键词回显+清除按钮 |
+| UI | MultiSelectTopBar | 中 | 0.5h | "已选 N 项"+"全选"+"✕" |
+| UI | NoteMarkdownRenderer | 中 | 1.5h | AnnotatedString 解析器 + M3 深浅双主题 |
+| UI | MarkdownToolbar | 低 | 0.5h | 工具栏 + TooltipBox + 键盘感知收缩 |
+| UI | HighlightedText | 低 | 0.5h | AnnotatedString + SpanStyle(primary Bold + bg) |
+| UI | RelativeTimeFormatter | 低 | 0.3h | 今天/昨天/周X/MM-dd/yyyy-MM-dd |
+| **Domain** | NoteRepository | 低 | 0.3h | 接口定义 |
+| **Data** | NoteDao | 低 | 0.5h | Room DAO: CRUD + Flow 查询 + 搜索过滤 |
+| Data | NoteEntity | 低 | 0.3h | Room Entity: id/title/content/createdAt/updatedAt/isDeleted |
+| Data | NoteRepositoryImpl | 低 | 0.5h | 实现类 + Flow 映射 |
+| Data | DraftRepository | 低 | 0.5h | DataStore 草稿读写 + L2 debounce 500ms |
+| Data | AppDatabase | 低 | 0.3h | Room Database 单例 |
+| **DI** | DatabaseModule | 低 | 0.3h | Hilt @Module: Room + DataStore 绑定 |
+| DI | NoteModule | 低 | 0.2h | NoteViewModel + NoteRepository + DraftRepository |
+| **Navigation** | NavGraph(扩展) | 低 | 0.5h | 添加 `/notes` + `/notes/edit?noteId={noteId}` |
 | | | | | |
-| **新建小计** | **18 组件** | | **14.0h** | |
-| **修改现有** | CalculatorScreen/HistorySheet/ViewModel/Event/NavGraph/Module | 中 | **5.0h** | BackHandler+ExpandHistoryAndScroll+DI+锚点 |
-| **测试+无障碍** | 单元/UI/无障碍/TalkBack | 中 | **6.5h** | SearchVM单测+Compose UI测试+无障碍审计 |
-| **缓冲** | M3 BOM验证/API兼容/BuildFlag/CI集成 | — | **3.0h** | 需确认 ≥ M3 1.3(placeholder) + Compose BOM 2023.01+ |
-| **总计** | | | **28.5h** (≈3.6d) | 对外承诺 4d，内部冲刺 3.5d |
+| **新建小计** | **21 组件** | | **18.8h** | |
+| **修改现有** | MainActivity / MyApplication | 低 | **1.5h** | Tab 入口 + NavHost 集成 |
+| **测试+无障碍** | 单元/UI/无障碍/TalkBack | 中 | **5.0h** | ViewModel 单测 + Compose UI 测试 + 无障碍审计 |
+| **缓冲** | Room Migration 模板/Markdown 库验证/键盘适配测试 | — | **3.0h** | 确认 jeziellago/compose-markdown M3 兼容性 |
+| **总计** | | | **28.3h** (≈3.5d) | 对外承诺 4d，内部冲刺 3.5d |
 
 ---
 
-## 交互状态反馈矩阵（完整·吸收 Pressed/Focused/Disabled 三态）
-
-| 元素 | Pressed | Focused | Disabled | Hover(触控笔) |
-|------|:--:|:--:|:--:|:--:|
-| Docked SearchBar | ripple(primary 8%) | — | — | — |
-| 展开 ArrowBack | ripple(circular, 48dp) | outline 环(2dp) | — | — |
-| 展开 Close(×) | ripple(circular, 48dp) | outline 环(2dp) | — | — |
-| 搜索输入框 | — | primary(2dp 下划线) | — | — |
-| History item | ripple(primary 8%) | — | opacity 0.5 + clickable(enabled=false) | — |
-| Result item | ripple(primary 8%) | — | opacity 0.5 + clickable(enabled=false) | — |
-| 删除按钮(🗑) | ripple(error 8%, 48dp) | outline 环(2dp) | — | — |
-| "清除全部" | ripple(error 8%) | outline 环(2dp) | opacity 0.38(空历史时) | — |
-| Snackbar action | ripple(primary 8%) | — | — | — |
-| AlertDialog button | ripple(primary 8%) | outline 环(2dp) | — | — |
-
----
-
-## 无障碍审计清单（完整·吸收 contentDescription 补 result）
+## 无障碍审计清单
 
 | 元素 | contentDescription | TalkBack 焦点顺序 | 播报时机 |
 |------|-------------------|:--:|------|
-| Docked SearchBar | "搜索计算历史，双击展开搜索" | Tab 1 | 页面加载 |
-| ArrowBack | "收起搜索" | Tab 1(展开时) | 展开时 |
-| 搜索输入框 | "搜索计算历史" | Tab 2 | 获焦时 |
-| Close(×) | "清除搜索内容" | Tab 3 | 有输入时出现 |
-| History 搜索图标 | **null** (装饰性 aria-hidden) | — | — |
-| History 删除按钮 | "删除此搜索记录" | Tab 4 | 有历史时 |
-| "清除全部" | "清除全部搜索历史" | Tab 5 | 有历史时 |
-| Result item | **"{表达式} = {结果}, {相对时间}"** | Tab 4+ | 结果加载后 |
-| Empty SearchOff(icon) | "未找到搜索结果" | Tab 4 | 空结果时 |
-| 结果计数 | — | — | LaunchedEffect(Results) → announceForAccessibility("找到{n}条结果") |
+| FAB | "创建新笔记" | Tab 4(列表)/Tab 2(空状态) | 页面加载 |
+| SearchBar 折叠 | "搜索笔记" | Tab 1 | 页面加载 |
+| SearchBar Clear(×) | "清除搜索内容" | Tab 2 | 有输入时出现 |
+| 笔记卡片 | {标题},{相对时间} | Tab 2+ | 列表可见时 |
+| 左滑删除动作 | "删除操作"（自定义 TalkBack 动作） | 焦点在卡片时可用 | 卡片获焦时 |
+| 多选 Checkbox | "{标题}，已选中/未选中" | Tab 2+ | 多选模式 |
+| 多选 ✕ 关闭 | "退出多选模式" | Tab 1 | 多选模式激活 |
+| 全选按钮 | "全选所有笔记" | Tab 1 右侧 | 多选模式激活 |
+| 删除选中按钮 | "删除选中的{N}条笔记" | Tab 最后 | 有选中项时 |
+| 空状态图标 | "还没有笔记" | Tab 1 | 空状态时 |
+| 搜索无结果图标 | "未找到搜索结果" | Tab 1 | 搜索无结果时 |
+| 编辑器返回 | "返回笔记列表" | Tab 1 | 编辑器 |
+| 编辑器标题 | "笔记标题" | Tab 2 | 编辑器 |
+| 编辑器内容 | "笔记内容" | Tab 3 | 编辑器 |
+| 预览切换 | "切换预览"/"切换编辑" | Tab 2 右侧 | 编辑器 |
+| 工具栏 # | "插入标题" | Tab 4 | 编辑态 |
+| 工具栏 B | "插入粗体" | Tab 5 | 编辑态 |
+| 工具栏 I | "插入斜体" | Tab 6 | 编辑态 |
+| 工具栏 - | "插入列表" | Tab 7 | 编辑态 |
+| 工具栏 🔗 | "插入链接" | Tab 8 | 编辑态 |
+| 工具栏 </> | "插入代码块" | Tab 9 | 编辑态 |
 | Snackbar | 自动播报 Snackbar 文本 | — | 出现时 |
-| AlertDialog | "确定清除全部搜索历史？" | 获焦 | 弹出时 |
-| Loading 态 | — | — | silence(骨架无需播报) |
-| 复制 Snackbar | "已复制到剪贴板" | — | DropdownMenu 复制后 |
-
----
+| AlertDialog | "确定删除{N}条笔记？" | 获焦 | 弹出时 |
+| 搜索结果数 | — | — | announceForAccessibility("找到{N}条匹配笔记") |
+| 多选数量变化 | — | — | announceForAccessibility("已选中{N}条") |
 
 ## 动效规格
 
 | 动效 | 时长 | 曲线 | 触发 |
 |------|:--:|------|------|
-| SearchBar 展开 | 250ms | easeOut | Docked → History |
-| SearchBar 收起 | 250ms | easeIn | History/Results → Docked |
-| 结果淡入 | 300ms | fadeIn | Loading → Results |
-| Shimmer 闪烁 | 1000ms | wave, 200ms延迟 | Loading 态循环 |
-| Snackbar 出现/消失 | 300ms | slideInVertically | 删除/错误/复制 |
-| 键盘弹起同步 | — | WindowInsets.ime | 焦点获取 |
-| ripple | M3 默认 | circular, 150ms | 点击/长按 |
-| 收起时序 | ①clearFocus(0ms)→②键盘收起(系统)→③collapse(250ms) | 顺序执行 | ArrowBack/返回键 |
+| 笔记卡片入场 | 300ms, stagger 50ms | fadeIn + slideInVertically(20dp) | Loading → List |
+| 卡片删除移除 | 200ms | shrinkVertically + fadeOut | 确认删除 |
+| 搜索过滤刷新 | 自然跟随 Flow | — | searchQuery 变更 |
+| 预览/编辑切换 | 200ms | AnimatedContent crossfade | Toggle 按钮 |
+| Snackbar 出现 | 300ms | slideInVertically | 删除/错误/撤销 |
+| Snackbar 消失 | 300ms | slideOutVertically | 超时/用户操作 |
+| FAB 显隐 | 200ms | scaleIn / scaleOut | 多选模式 |
+| 多选模式进入 | 100ms | scale(0.95→1.0) | 长按卡片 |
+| 键盘弹起 | — | WindowInsets.ime | 焦点获取 |
+| ripple | 150ms | circular | 点击/长按 |
+| 首次引导淡出 | 3s → fadeOut(300ms) | easeOut | 进入编辑器 |
 
 ---
 
 ## 适配规格
 
-| 宽度 | 布局 | SearchScreen 表现 |
-|------|------|------|
-| < 600dp (compact) | 全屏展开 | 100vw 覆盖，内容区 padding=16dp |
-| 600-840dp (medium) | 侧边 Sheet | 50vw 右侧 Sheet，CalculatorScreen 50vw 左侧 |
-| ≥ 840dp (expanded) | 常驻展开 | SearchScreen 40vw 右侧常驻，不遮挡计算器 |
+| 宽度 | 布局 | 列表 | 编辑器 |
+|------|------|------|------|
+| < 600dp (compact) | 单列全屏 | 单列卡片 LazyColumn | 全屏编辑 |
+| 600-840dp (medium) | 双列网格 | LazyVerticalGrid(2 columns) | 编辑器居中 maxWidth=720dp |
+| ≥ 840dp (expanded) | 列表+编辑器并排 | LazyColumn 左侧 | 编辑器右侧常驻 |
 
-**横屏**：同 compact，全屏展开，Keyboard 弹出时 LazyColumn 高度适应。
+**横屏**：
+- 列表: LazyVerticalGrid(2 columns)
+- 编辑器: contentMaxWidth=720dp + 居中
+- 键盘弹起: MarkdownToolbar → TopAppBar 溢出菜单
 
 ---
 
 ## 架构协调设计
 
-### BackHandler 互斥策略
+### 草稿保存三层防护
 
 ```
-CalculatorScreen:
-  BackHandler(enabled = !isSearchExpanded) { /* 原有返回逻辑 */ }
+L1 — SavedStateHandle（旋转/配置变更恢复）
+  → onSaveInstanceState { savedStateHandle["title"] = title; ... }
+  → onCreate { title = savedStateHandle["title"] ?: "" }
 
-SearchScreen (overlay):
-  BackHandler(enabled = isSearchExpanded) {
-      focusManager.clearFocus()      // 0ms
-      → 系统键盘收起                  // 系统
-      → AnimatedVisibility.collapse(250ms)
-  }
+L2 — DataStore debounce(500ms)（停止输入后自动写入）
+  → LaunchedEffect(content) { delay(500); draftRepo.save(...) }
+
+L3 — onDispose 最后写入（切后台/杀进程前）
+  → DisposableEffect { onDispose { draftRepo.saveSync(...) } }
 ```
 
-### CalculatorViewModel 事件扩展
+### 搜索防抖（300ms — 与 DECISIONS 统一）
 
-```kotlin
-// 新增事件（UI_DESIGN 明确建模，不在实现阶段猜测）
-data class ExpandHistoryAndScroll(val itemId: String) : CalculatorEvent()
+```
+NoteListViewModel:
+  searchQuery.debounce(300).flatMapLatest { query ->
+      if (query.isBlank()) noteRepo.getAllNotes()
+      else noteRepo.searchNotes(query)
+  }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+```
 
-// CalculatorScreen 响应
-LaunchedEffect(calculatorEvent) {
-    when (event) {
-        is ExpandHistoryAndScroll -> {
-            historySheetState.expand()
-            listState.animateScrollToItem(event.itemId)
-            // 高亮动画：background(primaryContainer) → animateColorAsState → transparent(2s)
-        }
-    }
+### 自动标题生成
+
+```
+fun autoTitle(): String {
+    val now = java.time.LocalTime.now()
+    val time = String.format("%02d:%02d", now.hour, now.minute)
+    return "无标题笔记($time)"
 }
 ```
-
-### Loading 态禁用实现（避免 alpha 陷阱）
-
-```kotlin
-// ❌ 错误: Modifier.alpha(0.5f) 不阻止触摸
-// ✅ 正确: clickable(enabled = !isLoading)
-Modifier
-    .then(if (isLoading) Modifier.alpha(0.5f) else Modifier)
-    .clickable(enabled = !isLoading) { onClick() }
-```
-
-### 搜索历史 FIFO 淘汰
-
-```kotlin
-fun addQuery(query: String) {
-    val trimmed = query.trim().lowercase()
-    val existing = history.indexOfFirst { it.trim().lowercase() == trimmed }
-    if (existing >= 0) {
-        // 去重：更新时间戳移至顶部
-        history[existing] = history[existing].copy(timestamp = System.currentTimeMillis())
-        history = history.sortedByDescending { it.timestamp }
-    } else {
-        // 新增
-        history = (listOf(SearchQuery(trimmed, System.currentTimeMillis())) + history)
-            .take(5)  // FIFO：超过 5 条移除最旧
-    }
-}
-```
-
-### 搜索超时
-
-```kotlin
-// ViewModel 中
-withTimeout(5_000) {
-    searchSource.search(query)
-}.getOrElse { e ->
-    if (e is TimeoutCancellationException) {
-        _uiState.value = SearchUiState.Error("搜索超时，请重试")
-    } else {
-        _uiState.value = SearchUiState.Error(e.message ?: "搜索失败")
-    }
-}
-```
-
----
-
-## 多视角评审记录
-
-### UX 交互评审（Agent C1 · deepseek-v4-flash · 第3轮） ★ 8.3/10
-
-**前两轮全部 P0/P1 验证：47/47 已闭环 ✅**
-
-| # | 问题 | 严重度 | 说明 |
-|---|------|:------:|------|
-| G1 | searchscreen_history_empty.html focus 边框色错误 | P1 ✏️ | `var(--outline)` → `var(--primary)`，与 history.html 不一致。已修订 ✅ |
-| G2 | trim 空→不搜索的 ViewModel 守卫缺失 | P2 | UI_DESIGN 描述了行为但代码示例未体现 `isBlank()` 检查 |
-| G3 | 下滑收起键盘机制不明确 | P2 | 仅 `imePadding()` 不触发收起，需 `nestedScroll`/`flingBehavior` 配合 |
-| G4 | 缺 Loading/Error 态 HTML 预览 | P2 | 5页覆盖 Docked/History/History(空)/Results/Empty，缺独立 Loading/Error |
-| G5 | Snackbar 并发策略未定义 | P2 | Error Snackbar + 复制 Snackbar 可能同时触发 |
-| G6 | 旋转时 Loading 态恢复 | P2 | SavedStateHandle 保留但 VM 未自动重搜 |
-
-### 视觉审美评审（Agent C2 · 第3轮 · 模型未标注） 综合 40/50
-
-> ⚠️ 已知差距：C2 输出未标注模型身份（`grep -i sonnet` 零匹配），无法确认是否使用 claude-sonnet-4-6。评审输入的截图仍为第1轮（18:12），与第3轮更新的 HTML（20:14-20:20）存在版本偏差。
-
-**WCAG 对比度验证（16 对，15/16 通过）**
-
-| 维度 | 分 | 关键评价 |
-|------|:--:|------|
-| 格式塔 | 4/5 | 4×4 grid 分组 + SearchBar 区域明确 |
-| 视觉层级 | 4/5 | 三级文字 + `.hl` 三层高亮强化 |
-| 色彩 | 3/5 | **P0**: 暗色 operator `white on #B0C6FF`=1.70:1 → 已修订 `#001D36`(7.2:1) ✅ |
-| 字体 | 5/5 | Roboto+Noto Sans SC，11-36px 7级字阶 |
-| 空间 | 4/5 | 8dp 栅格统一，Docked margin 12dp 改善呼吸感 |
-| 布局 | 5/5 | 375×812 viewport + flex+grid 混合 |
-| 可操作 | 4/5 | 48dp 触控 + ripple + disabled(0.38) + aria 全覆盖 |
-| 一致性 | 3/5 | **P1**: history_empty CSS 缺 `--primary` Token |
-| 情感 | 4/5 | 空历史示例 "如 '123'、'99+1='" actionable |
-| 平台 | 4/5 | 深色 @media 全6文件 ✅ |
-| **总分** | **40/50** | 修复 P0-1(operator色) + P1-1(focus边框) + P1-2(缺失Token) 后可达 42+/50 |
-
-**剩余问题（修订后）**
-
-| # | 严重度 | 问题 | 状态 |
-|---|:------:|------|:--:|
-| P0-1 | — | 暗色 operator 键对比度 1.70:1 | ✅ 已修订 `#001D36` |
-| P1-1 | — | history_empty focus 边框 outline→primary | ✅ 已修订 |
-| P1-2 | — | history_empty CSS 缺 --primary Token | ✅ 已修订 |
-| P2-1 | P2 | disabled 态未演示 HTML 实例 | 建议编码阶段 |
-| P2-2 | P2 | Docked SearchBar 缺 :focus-visible | 建议编码阶段 |
-| P2-3 | P2 | 空结果 outline 图标 4.44:1（声称 4.5:1） | 可微调 |
-| P2-4 | P2 | 空状态页 padding-top 偏大 | 建议 flex:center |
-
-**审美亮点**
-- Token 体系 100% 对齐 PRD §9.6，深浅双轨
-- ripple 双通道 (primary 8% + error 8%)，0.15s 过渡统一
-- `.hl` 三层高亮 (primary+bold+hilight-bg 18%) 辨识度极高
-- 空历史引导示例 "如 '123'、'99+1='" 人性化
-- 无障碍 aria-label/aria-live/aria-hidden 全覆盖
-
-### 前端实现评审（Agent C3 · deepseek-v4-flash · 第3轮）
-
-| 维度 | 分 | 关键发现 |
-|------|:--:|------|
-| 架构可行性 | 5/5 | 完全兼容 MVVM+Compose+Hilt，BOM 2023.10.01 ≥ 2023.01.00 |
-| 工时合理性 | 4/5 | 28.5h(3.6d) → **建议 31-33h(4d)**，键盘管理 + BackHandler 联调 +1.5h |
-| 架构冲突 | 4/5 | BackHandler 互斥需防快速连按竞态；ExpandHistoryAndScroll 需 SharedFlow 通道 |
-| 无障碍完整度 | 4/5 | 80% 覆盖，缺 DropdownMenu 无障碍 + 焦点顺序验证 + SearchBar `role=Role.Search` |
-| 自动化空间 | 3/5 | 无 Figma 限制；Token 映射/VM 骨架/无障碍注入可半自动化 |
-| **总分** | **4.0/5** | 架构就绪，建议编码前确认 3 项：SharedFlow 通道 + 键盘防抖 + 焦点顺序 |
-
-**组件可行性全绿 ✅**：SearchScreen(高)、SearchViewModel(高)、HighlightedText(低)、EncryptedSearchHistoryStore(中) 等 18 组件均可行。CalcHistory/CalculatorUiState 直接复用。
-
----
-
-## 评审决议（第3轮）
-
-| # | 决议 | 涉及方 | 决议内容 |
-|---|------|--------|----------|
-| UR3-1 | **修订暗色 operator 对比度** | C2 → P0 | `white on #B0C6FF`(1.70:1) → `#001D36 on #B0C6FF`(7.2:1)。已修订 calculatorscreen_docked.html ✅ |
-| UR3-2 | **修订 history_empty focus 边框** | C1+C2 → P1 | `var(--outline)` → `var(--primary)`，补充缺失 `--primary`/`--surface-variant`/`--outline-variant` Token。已修订 ✅ |
-| UR3-3 | **工时校准至 4d** | C3 → P0 | 对外承诺 4d（31-33h），内部冲刺 3.5d。工时表不修订，编码阶段跟踪 |
-| UR3-4 | **SharedFlow 事件通道** | C3 → P1 | ExpandHistoryAndScroll 需 `SharedFlow<CalculatorEvent>` 保证不遗漏 |
-| UR3-5 | **键盘防抖竞态** | C3 → P1 | BackHandler clearFocus→collapse 时序增加 100ms debounce |
-| UR3-6 | **DropdownMenu 无障碍** | C3 → P2 | 长按弹出菜单的 TalkBack 行为留编码阶段补充 |
-| UR3-7 | **SearchBar role=Role.Search** | C3 → P2 | 显式添加语义角色 |
-| UR3-8 | **trim isBlank() 守卫** | C1 → P2 | 编码阶段在 SearchVM.onQueryChange 加 `query.isBlank()` 检查 |
-| UR3-9 | **nestedScroll 键盘收起** | C1 → P2 | LazyColumn 添加 `nestedScroll(scrollBehavior)` 支持下滑收起 |
-| UR3-10 | **Snackbar 排队策略** | C1 → P2 | Error > 复制 > 删除：后加入队列等待而非替换 |
-| UR3-11 | **旋转时自动重搜** | C1 → P2 | SavedStateHandle.restore → if Loading → retry search
 
 ---
 
@@ -567,7 +668,4 @@ withTimeout(5_000) {
 
 | 版本 | 日期 | 变更说明 |
 |------|------|---------|
-| v0.1-draft | 2026-06-01 | AI 初稿生成（基于 PRD §9 UI 设计输入） |
-| v0.2-review | 2026-06-01 R2 | 第二轮：吸收 UR-1~UR-15 + 修正 WCAG 对比度/状态机/交互态/工时 |
-| v0.2-review | 2026-06-01 R3 | **第三轮：吸收全部前两轮决议 UR2-1~UR2-11** — 超时机制/FIFO淘汰/Error→Typing/复制Snackbar/contentDescription补result/SearchBar unfocused边框/引导页独立组件/工时 28.5h/BackHandler互斥/ExpandHistoryAndScroll事件/alpha陷阱/M3版本检查/深色CSS/禁用态HTML |
-| v1.0-confirmed | 2026-06-01 | **人工批准冻结** — 第3轮三视角评审通过，68 项决议闭环 |
+| v0.1-draft | 2026-06-02 | 初稿生成 — 基于 PRD v1.0-confirmed §9 + DECISIONS.md 记事本模块全部决策 |
