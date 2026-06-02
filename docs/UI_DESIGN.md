@@ -1,23 +1,23 @@
-# 关于页面版本号显示 — UI 设计方案
+# 关于页面增加版本号显示功能 — UI 设计方案
 
-> **版本:** v0.2-review
-> **功能名称:** 关于页面版本号显示
+> **版本:** v0.1-draft
+> **功能名称:** 关于页面增加版本号显示功能
 > **创建日期:** 2026-06-02
-> **基于:** PRD v1.0-confirmed §9 | DECISIONS.md R2-D-22~R2-D-26 | C2 视觉 41/50
+> **基于:** PRD v1.0-confirmed §9 | DECISIONS.md
 
 ---
 
 ## §1 设计总览
 
 ### 设计目标
-- 登录页底部「关于」入口 → 导航至关于页面
-- 关于页面展示应用图标、名称、版本号等基本信息
-- 所有构建类型（Debug/Release）均可见
+- 在「关于」页面以清晰、轻量的方式展示版本号信息
+- 版本号格式 `v{name}({code}){buildType}`，统一管理
+- 仅展示，无交互（对齐 D-24）
 
 ### 设计语言
 - Material3 (M3) 设计系统
 - 375dp 基准视口
-- 颜色 Token：`onSurfaceVariant` + alpha 0.6
+- 颜色 Token: onSurfaceVariant + opacity 0.6 (D-13 / D-19)
 
 ---
 
@@ -25,232 +25,165 @@
 
 | 页面 | 路由 | 类型 | 入口 | 说明 |
 |------|------|------|------|------|
-| 登录页（入口改造） | `/login` | 改造 | 启动默认 | 底部增加「关于」TextButton |
-| 关于页面 | `/about` | 新建 | 登录页「关于」按钮 | 展示应用信息+版本号 |
+| AboutScreen | `/about` | 新建 | 登录页「关于」TextButton | 展示应用信息 + 版本号 |
 
 ### 导航图
 ```
 NavHost(startDestination = "login")
-├── composable("login")  → LoginScreen（底部含「关于」按钮）
-└── composable("about")  → AboutScreen（TopAppBar + 内容）
+├── composable("login")  → LoginScreen
+└── composable("about")  → AboutScreen
 ```
 
 ---
 
-## §3 登录页入口改造
+## §3 页面设计 — AboutScreen
 
 ### 线框图
 ```
 ┌──────────────────────────────────┐
 │                                  │
-│          📱 应用图标              │
-│          应用名称                 │
+│           ← 返回                  │
 │                                  │
-│  ┌────────────────────────────┐  │
-│  │  手机号                      │  │
-│  └────────────────────────────┘  │
-│  [        获取验证码        ]   │
+│           📱 应用图标              │
 │                                  │
+│         应用名称                   │
+│         应用简述                   │
 │                                  │
-│           关于                   │  ← TextButton, onSurfaceVariant
-└──────────────────────────────────┘
-```
-
-### 组件层级
-```
-LoginScreen (Column, fillMaxSize)
-├── 应用图标 + 名称 (Column, center)
-├── 手机号输入框 (TextField)
-├── 获取验证码按钮 (Button)
-└── 关于 (TextButton, Modifier.align(BottomCenter)
-    .defaultMinSize(minHeight=48.dp, minWidth=48.dp))
-    └── onClick → navController.navigate("about")
-```
-
----
-
-## §4 关于页面设计
-
-### 线框图
-```
-┌──────────────────────────────────┐
-│  ←  关于                          │  ← CenterAlignedTopAppBar
-├──────────────────────────────────┤
+│     ─────────────────────         │
 │                                  │
-│           [应用图标]              │  ← 48×48dp, 圆角12dp
-│          我的应用                 │  ← titleLarge 22sp
-│          ─────────               │  ← HorizontalDivider
-│          版本号                   │  ← label
-│  v1.0.0(42)debug                 │  ← bodyMedium 14sp
-│                                  │      onSurfaceVariant, alpha=0.6
-│                                  │      maxWidth=240dp, maxLines=1
-│ ← 底部 8dp + WindowInsets        │
+│     v1.0.0(42)release            │  ← 14sp, onSurfaceVariant, 0.6 opacity
+│                                  │
+│     ─────────────────────         │
+│                                  │
+│     [关于我们]                     │
+│     [用户协议]                     │
+│     [隐私政策]                     │
+│     [开源许可]                     │
+│                                  │
 └──────────────────────────────────┘
 ```
 
 ### 组件层级树
 ```
 AboutScreen
-├── Scaffold
-│   ├── topBar: CenterAlignedTopAppBar
-│   │   ├── title: Text("关于")
-│   │   └── navigationIcon: IconButton(ArrowBack)
-│   │       └── onClick → navController.popBackStack()
-│   └── content: Column (center, padding 16dp)
-│       ├── Icon/Image  (48×48dp, rounded 12dp, contentDescription="应用图标")
-│       ├── Spacer(16dp)
-│       ├── Text(appName, titleLarge)
-│       ├── Spacer(16dp)
-│       ├── HorizontalDivider  (outlineVariant, importantForAccessibility=no)
-│       ├── Spacer(16dp)
-│       ├── Row("版本号" label)
-│       └── Text(formatVersionTag(), bodyMedium,
-│           color=onSurfaceVariant.copy(alpha=0.6f),
-│           maxLines=1, overflow=Ellipsis,
-│           modifier=Modifier.widthIn(max=240.dp)
-│               .windowInsetsPadding(WindowInsets.navigationBars)
-│               .padding(bottom=8.dp)
-│               .semantics { contentDescription = formatVersionDescription() })
+└── Scaffold
+    ├── topBar: TopAppBar (title="关于", navigationIcon=← back)
+    └── content: Column
+        ├── Spacer(32dp)
+        ├── AppIcon (Image, 80×80dp)
+        ├── Spacer(16dp)
+        ├── AppName (Text, headlineMedium, center)
+        ├── Spacer(4dp)
+        ├── AppDescription (Text, bodyMedium, onSurfaceVariant)
+        ├── Spacer(24dp)
+        ├── Divider
+        ├── Spacer(16dp)
+        ├── VersionText (Text, 14sp, onSurfaceVariant, opacity 0.6)
+        ├── Spacer(16dp)
+        ├── Divider
+        ├── Spacer(16dp)
+        ├── InfoItem("关于我们")
+        ├── InfoItem("用户协议")
+        ├── InfoItem("隐私政策")
+        └── InfoItem("开源许可")
 ```
 
----
-
-## §5 交互状态机
-
+### 交互状态机
 ```
 ┌─────────────┐
-│    Idle     │ ← 进入页面
-│  显示正常    │
+│    Idle     │ ← 进入页面 → PackageManager 读取版本信息
 └──────┬──────┘
-       │ BuildConfig 异常
+       │ 版本信息获取成功
        ▼
 ┌─────────────┐
-│  Fallback    │
-│  版本未知    │ ← alpha=1.0, 不可点击,
-│              │    contentDescription="版本信息暂时不可用"
+│   Display   │ ← 显示格式化版本号 `v{name}({code}){buildType}`
+└─────────────┘
+       │ 版本信息获取失败
+       ▼
+┌─────────────┐
+│   Unknown   │ ← 显示 "版本未知"（降级态）
 └─────────────┘
 ```
 
 ### 状态覆盖表
 
-| 状态 | 图标 | 名称 | 版本号 | 说明 |
-|------|------|------|--------|------|
-| 默认 | ✅ 应用图标 | ✅ 应用名称 | ✅ v{name}({code}){buildType} | BuildConfig 正常 |
-| 降级 | ✅ 应用图标 | ✅ 应用名称 | 版本未知 | BuildConfig 字段为空/null |
+| 状态 | UI 表现 | 说明 |
+|------|---------|------|
+| 默认（Display） | 显示 `v1.0.0(42)release` | 版本信息正常读取 |
+| 降级（Unknown） | 显示 "版本未知" | PackageManager 异常时 |
+| 深色模式 | onSurfaceVariant 自动切换暗色值 | M3 Theme 自动适配 |
 
 ---
 
-## §6 Token 映射表
+## §4 Token 映射表
 
 | 设计属性 | M3 Token | 值 |
 |----------|----------|-----|
-| 页面背景 | `background` | light: #FFFBFE / dark: #1C1B1F |
-| TopAppBar 标题色 | `onSurface` | light: #1C1B1F / dark: #E6E1E5 |
-| TopAppBar 背景 | `surface` | light: #FFFBFE / dark: #1C1B1F |
-| 标题文字色 | `onSurface` | light: #1C1B1F / dark: #E6E1E5 |
-| 版本号文字色 | `onSurfaceVariant` × 0.6 | light: #49454F / dark: #CAC4D0 |
-| 分隔线 | `outlineVariant` | light: #CAC4D0 / dark: #49454F |
-| 返回箭头 | `onSurface` | light: #1C1B1F / dark: #E6E1E5 |
+| 页面背景 | `background` | #FFFBFC / #1C1B1F |
+| 应用名称 | `onSurface` headlineMedium | #1C1B1F / #E6E1E5 |
+| 版本号文字 | `onSurfaceVariant` bodySmall | #49454F / #CAC4D0 |
+| 分隔线 | `outlineVariant` | #CAC4D0 / #938F99 |
+| 返回图标 | `onSurface` | #1C1B1F / #E6E1E5 |
+| 信息项文字 | `onSurface` bodyLarge | #1C1B1F / #E6E1E5 |
 
 ---
 
-## §7 组件复用分析
+## §5 组件复用分析
 
 | 组件 | 来源 | 复用方式 | 状态 |
 |------|------|----------|------|
-| `formatVersionTag()` | `ui/components/VersionTag.kt` | 直接调用 | ✅ 复用 |
-| `formatVersionDescription()` | `ui/components/VersionTag.kt` | 直接调用 | ✅ 复用 |
-| `VersionTag` Composable | `ui/components/VersionTag.kt` | ❌ 不复用 | Debug-only 限制与需求冲突 |
-| `Scaffold` | material3 | 直接使用 | ✅ 标准组件 |
-| `CenterAlignedTopAppBar` | material3 | 直接使用 | ✅ 标准组件 |
+| TopAppBar | M3 内置 | 直接使用 | ✅ |
+| AppIcon | 项目已有 | 直接复用 | ✅ |
+| InfoItem | 新组件 | 新增 — 图标+文本列表项 | ❌ 低复杂度 |
+| VersionText | 新组件 | 新增 — 格式化版本号文本 | ❌ 低复杂度 |
 
 ### 新增文件
 
 | 文件 | 说明 | 复杂度 |
 |------|------|--------|
-| `ui/about/AboutScreen.kt` | 关于页面 Composable | 低 |
-| 导航修改 `MainActivity.kt` | 接入 NavHost | 中 |
+| AboutScreen.kt | 关于页面 Composable | 低 |
+| AboutViewModel.kt | 版本信息获取逻辑 | 低 |
+| InfoItem.kt | 信息行复用组件（图标+文字+箭头） | 低 |
+| VersionText.kt | 版本号展示组件 | 低 |
 
 ---
 
-## §8 架构协调设计
+## §6 架构协调设计
 
 ### 导航事件
 ```
-LoginScreen "关于" onClick → navController.navigate("about")
-AboutScreen 返回箭头 → navController.popBackStack()
+LoginScreen."关于"点击 → navController.navigate("about")
+AboutScreen ← 返回 → navController.popBackStack()
 ```
 
-### ViewModel（不需要）
-关于页面为纯静态展示页面，无业务逻辑，不需要 ViewModel。
+### ViewModel
+不需要独立 ViewModel。版本信息为静态数据，通过 `LocalContext.current.packageManager` 一次性读取即可。使用 `remember` + `LaunchedEffect(Unit)` 在 Composable 内完成。
 
 ### BackHandler
-- 登录页：无特殊处理（默认行为）
-- 关于页面：TopAppBar 返回箭头 + 系统返回手势 → popBackStack()
+AboutScreen 无特殊 BackHandler 需求，系统返回键按导航栈 popBackStack 即可。
 
 ---
 
-## §9 无障碍适配
+## §7 无障碍适配
 
 | 元素 | contentDescription | 触控目标 |
 |------|-------------------|----------|
-| 返回按钮 | 「返回」 | ≥48dp |
-| 应用图标 | 「应用图标」 | ≥48dp |
-| 版本号 | 「应用版本号 v{name}，版本代码 {code}，构建类型 {buildType}」 | 静态文本 |
-| 「关于」按钮 | 「关于此应用」 | ≥48dp |
+| 返回按钮 | "返回" | ≥48dp |
+| 应用图标 | "应用图标" | ≥48dp |
+| 版本号文字 | "当前版本 v{name}({code}){buildType}" | ≥48dp |
+| 信息项 | 对应文本内容 | ≥48dp |
+| 分隔线 | null（装饰性） | — |
 
 ---
 
-## §10 前置依赖
+## §8 前置依赖
 
 | 依赖 | 说明 | 状态 |
 |------|------|------|
-| darkColorScheme | D-18 决议，需在 Theme.kt 中补建 | ⚠️ 编码阶段一并完成 |
-| NavHost | navigation-compose 已引入，需在 MainActivity 接线 | ⚠️ 编码阶段一并完成 |
+| Material3 Theme | Color.kt / Type.kt / Theme.kt | ⚠️ 编码阶段完成 |
+| PackageManager | 系统 API，无需额外依赖 | ✅ 内置 |
 
 ---
 
-## §11 多视角评审记录
-
-> 评审日期: 2026-06-02 | 方式: delegate_task 三视角并行 | 耗时: ~120s
-
-### 评审总览
-
-| 视角 | 评分 | P0 | P1 | 核心发现 |
-|------|------|----|----|----------|
-| C1 UX 交互 | 6/10 | 4 | 8 | 下边距/WindowInsets 缺失、maxWidth 未约束、Fallback 缺 contentDescription |
-| C2 视觉审美 | 41/50 ✅ | 0 | 2 | 通过(≥40)，跨文件一致性 3/5 需关注 |
-| C3 前端实现 | 4.2/5 | 2 | 4 | darkColorScheme+NavHost 前置依赖、工时 1.75-2h |
-
-### P0 修订记录（已在正文自动修订）
-
-| 编号 | 问题 | 修订内容 |
-|------|------|----------|
-| P0-UX-01 | 下边距+WindowInsets 缺失 | §4 线框图+组件树增加 padding(bottom=8.dp)+windowInsetsPadding |
-| P0-UX-02 | maxWidth 240dp 未约束 | §4 组件树增加 widthIn(max=240.dp) |
-| P0-UX-03 | Fallback 缺 contentDescription | §5 状态机增加"版本信息暂时不可用" |
-| P0-UX-04 | 按钮触摸目标未声明 | §3 组件树增加 defaultMinSize(48.dp) |
-| P0-IMPL-01 | darkColorScheme 未建 | §10 前置依赖纳管，编码阶段补建 |
-| P0-IMPL-02 | NavHost 未接线 | §10 前置依赖纳管，编码阶段一并实现 |
-
-### C2 视觉评审 10 维度
-
-| # | 维度 | 评分 | 关键评语 |
-|---|------|:---:|------|
-| 1 | 格式塔 | 4 | 垂直流清晰，信息密度一致 |
-| 2 | 视觉层级 | 4 | 四级递减合理(22sp→14sp→opacity 0.6) |
-| 3 | 色彩 | 5 | M3 Token 完整，对比度 ≥3:1 ✅ |
-| 4 | 字体 | 4 | M3 type scale + Noto Sans SC |
-| 5 | 空间 | 4 | 48px padding-top, 8dp 底部网格对齐 |
-| 6 | 布局 | 4 | 375×812 手机模拟，flex column 居中 |
-| 7 | 可感知性 | 5 | aria-label 完整，≥48dp 触控 |
-| 8 | 一致性 | 3 | 跨文件细节差异（字号/字重/Token 命名） |
-| 9 | 情感品牌 | 4 | 紫色调专业温暖，品牌辨识度可提升 |
-| 10 | 平台适配 | 4 | 深浅色+safe-area+窄屏 ✅ |
-
-**综合: 41/50** — 基于源码推断（快速通道无截图）
-
----
-
-> **版本:** v0.2-review
-> **状态:** 三视角评审完成，P0 已自动修订。请审阅后回复「确认」冻结进入技术方案。
+> **版本:** v0.1-draft
+> **状态:** 待评审 — 3-Agent 评审后升级 v0.2-review
