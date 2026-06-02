@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=375, initial-scale=1">
+<style>
+:root { --bg: #FFFBFE; --surface: #FFFBFE; --onSurface: #1C1B1F; --onSurfaceVariant: #49454F; --primary: #6750A4; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #1C1B1F; --surface: #1C1B1F; --onSurface: #E6E1E5; --onSurfaceVariant: #CAC4D0; --primary: #D0BCFF; }
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Roboto', sans-serif; background: var(--bg); color: var(--onSurface); width: 375px; min-height: 812px; display: flex; flex-direction: column; }
+.header { padding: 16px; background: var(--surface); border-bottom: 1px solid rgba(0,0,0,.08); }
+.header h1 { font-size: 22px; font-weight: 500; }
+.content { flex: 1; padding: 24px 16px; }
+.content p { color: var(--onSurfaceVariant); font-size: 14px; margin-bottom: 16px; }
+.footer { padding: 16px; text-align: center; border-top: 1px solid rgba(0,0,0,.08); }
+.version { font-size: 12px; color: var(--onSurfaceVariant); padding-bottom: 8px; }
+.nav { display: flex; justify-content: space-around; padding: 8px 0; }
+.nav-item { color: var(--onSurfaceVariant); font-size: 12px; }
+</style>
+</head>
+<body>
+  <div class="header"><h1>我的应用</h1></div>
+  <div class="content"><p>主界面内容区域</p></div>
+  <div class="footer">
+    <div class="nav"><span class="nav-item">首页</span><span class="nav-item">发现</span><span class="nav-item">我的</span></div>
+    <div class="version">v1.0.0</div>
+  </div>
+</body>
+</html>
