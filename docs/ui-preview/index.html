@@ -3,43 +3,53 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>UI 原型预览 — 主界面底部版本号显示</title>
+<title>UI 原型预览 — 关于页面版本号显示</title>
 <style>
+:root {
+  --primary: #6750A4;
+  --surface: #FFFBFE;
+  --onSurface: #1C1B1F;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary: #D0BCFF;
+    --surface: #1C1B1F;
+    --onSurface: #E6E1E5;
+  }
+}
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
-  background: #F5F5F5; font-family: 'Roboto', 'Noto Sans SC', sans-serif;
-  display: flex; justify-content: center; padding: 40px 16px;
+  font-family: 'Roboto', -apple-system, sans-serif;
+  background: #f0f0f0; min-height: 100vh;
+  display: flex; justify-content: center; align-items: center;
 }
-.container { max-width: 600px; width: 100%; }
-h1 { font-size: 24px; margin-bottom: 8px; color: #1C1B1F; }
-.subtitle { font-size: 14px; color: #79747E; margin-bottom: 32px; }
+.container {
+  max-width: 500px; width: 100%;
+  padding: 32px 16px;
+}
+h1 { font-size: 20px; color: var(--onSurface); margin-bottom: 8px; }
+.subtitle { font-size: 14px; color: #666; margin-bottom: 24px; }
 .page-card {
-  background: white; border-radius: 16px; padding: 20px;
-  margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  display: block; padding: 16px 20px;
+  background: var(--surface); border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  margin-bottom: 12px; text-decoration: none;
+  transition: box-shadow 0.2s;
 }
-.page-card h2 { font-size: 18px; margin-bottom: 8px; }
-.page-card p { font-size: 14px; color: #49454F; margin-bottom: 16px; }
-.links { display: flex; flex-wrap: wrap; gap: 8px; }
-.links a {
-  display: inline-block; padding: 8px 16px; border-radius: 8px;
-  font-size: 14px; text-decoration: none;
-}
-.link-primary { background: #6750A4; color: white; }
-.link-primary:hover { background: #7A66B5; }
+.page-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+.page-card h2 { font-size: 16px; color: var(--primary); margin-bottom: 4px; }
+.page-card p { font-size: 13px; color: #666; }
 </style>
 </head>
 <body>
 <div class="container">
-  <h1>📱 主界面底部版本号显示</h1>
-  <p class="subtitle">UI 原型预览 — v0.1-draft</p>
+  <h1>关于页面版本号显示</h1>
+  <p class="subtitle">UI 原型预览 · 375×812 手机模拟</p>
 
-  <div class="page-card">
-    <h2>P1 — 主界面</h2>
-    <p>在现有主界面底部 NavigationBar 下方追加版本号文字 v1.0.0，使用 onSurfaceVariant 颜色，12sp，支持深色模式自动适配。</p>
-    <div class="links">
-      <a href="p1_default.html" class="link-primary">默认态（含深色模式）</a>
-    </div>
-  </div>
+  <a class="page-card" href="about_default.html">
+    <h2>关于页面 · 默认态</h2>
+    <p>TopAppBar ← 关于 | 应用图标 | 应用名称 | 版本号 v1.0.0(42)debug</p>
+  </a>
 </div>
 </body>
 </html>

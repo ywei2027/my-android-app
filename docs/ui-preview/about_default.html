@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>关于页面 — 默认态</title>
+<style>
+:root {
+  --primary: #6750A4;
+  --onPrimary: #FFFFFF;
+  --surface: #FFFBFE;
+  --onSurface: #1C1B1F;
+  --surfaceVariant: #E7E0EC;
+  --onSurfaceVariant: #49454F;
+  --outlineVariant: #CAC4D0;
+  --background: #FFFBFE;
+  --font-headline: 22px;
+  --font-body: 14px;
+  --font-label: 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary: #D0BCFF;
+    --onPrimary: #381E72;
+    --surface: #1C1B1F;
+    --onSurface: #E6E1E5;
+    --surfaceVariant: #49454F;
+    --onSurfaceVariant: #CAC4D0;
+    --outlineVariant: #49454F;
+    --background: #1C1B1F;
+  }
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  display: flex; justify-content: center; align-items: center;
+  min-height: 100vh; background: #f0f0f0;
+  font-family: 'Roboto', -apple-system, sans-serif;
+}
+
+.phone-frame {
+  width: 375px; height: 812px;
+  background: var(--surface);
+  border-radius: 44px;
+  box-shadow: 0 0 0 3px #333, 0 0 0 6px #222, 0 20px 60px rgba(0,0,0,0.3);
+  overflow: hidden;
+  display: flex; flex-direction: column;
+}
+
+/* TopAppBar */
+.top-bar {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--outlineVariant);
+}
+
+.back-btn {
+  width: 48px; height: 48px;
+  display: flex; align-items: center; justify-content: center;
+  border: none; background: none; cursor: pointer;
+  border-radius: 50%; color: var(--onSurface);
+  aria-label: "返回";
+}
+.back-btn:hover { background: rgba(103,80,164,0.08); }
+.back-btn svg { width: 24px; height: 24px; }
+
+.top-title {
+  flex: 1; text-align: center;
+  font-size: 18px; font-weight: 500;
+  color: var(--onSurface);
+  margin-right: 48px; /* balance with back-btn width */
+}
+
+/* Content */
+.content {
+  flex: 1;
+  display: flex; flex-direction: column;
+  align-items: center;
+  padding: 48px 16px 0;
+}
+
+.app-icon {
+  width: 48px; height: 48px;
+  background: var(--primary);
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--onPrimary);
+  font-size: 24px; font-weight: 700;
+  aria-label: "应用图标";
+}
+
+.app-name {
+  margin-top: 16px;
+  font-size: var(--font-headline);
+  font-weight: 500;
+  color: var(--onSurface);
+}
+
+.divider {
+  width: 100%; height: 1px;
+  background: var(--outlineVariant);
+  margin: 16px 0;
+}
+
+.info-row {
+  display: flex; justify-content: space-between;
+  width: 100%; padding: 0 8px;
+}
+
+.info-label {
+  font-size: var(--font-body);
+  color: var(--onSurface);
+  font-weight: 400;
+}
+
+.info-value {
+  font-size: var(--font-body);
+  color: var(--onSurfaceVariant);
+  opacity: 0.6;
+  max-width: 240px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  aria-label: "应用版本号 v1.0.0，版本代码 42，构建类型 debug";
+}
+</style>
+</head>
+<body>
+<div class="phone-frame">
+  <!-- TopAppBar -->
+  <div class="top-bar">
+    <button class="back-btn" aria-label="返回">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+    </button>
+    <span class="top-title">关于</span>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+    <div class="app-icon" aria-label="应用图标">M</div>
+    <div class="app-name">我的应用</div>
+    <div class="divider"></div>
+    <div class="info-row">
+      <span class="info-label">版本号</span>
+      <span class="info-value" aria-label="应用版本号 v1.0.0，版本代码 42，构建类型 debug">v1.0.0(42)debug</span>
+    </div>
+  </div>
+</div>
+</body>
+</html>
