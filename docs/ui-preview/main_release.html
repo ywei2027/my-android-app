@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>版本号显示 — Debug 构建</title>
+  <title>版本号显示 — Release 构建</title>
   <style>
     :root {
       --primary: #1A4FBF;
@@ -11,10 +11,8 @@
       --surface-variant: #E7E0EC;
       --on-surface: #1C1B1E;
       --on-surface-variant: #49454F;
-      --error: #B81C1C;
       --outline: #79747E;
       --outline-variant: #CAC4D0;
-      --ripple: rgba(26, 79, 191, 0.08);
     }
     @media (prefers-color-scheme: dark) {
       :root {
@@ -23,7 +21,6 @@
         --on-surface: #E6E1E5;
         --on-surface-variant: #CAC4D0;
         --primary: #B0C6FF;
-        --error: #FFB4AB;
         --outline: #938F99;
         --outline-variant: #49454F;
       }
@@ -76,9 +73,7 @@
       color: var(--on-surface-variant);
       border-top: 1px solid var(--surface-variant);
     }
-    .nav-bar {
-      height: 28px; background: transparent;
-    }
+    .nav-bar { height: 28px; background: transparent; }
   </style>
 </head>
 <body>
@@ -89,7 +84,7 @@
     <div class="text-field" contenteditable="false">手机号</div>
     <button class="btn">获取验证码</button>
   </div>
-  <div class="version-tag" aria-label="应用版本号 v1.0">v1.0(1)debug</div>
+  <div class="version-tag" aria-label="应用版本号 v1.0">v1.0</div>
   <div class="nav-bar"></div>
 </div>
 </body>

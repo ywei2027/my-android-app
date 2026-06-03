@@ -1,224 +1,197 @@
 # 启动页面版本号显示 — UI 设计方案
 
-> **版本:** v0.2-review
-> **功能名称:** 启动页面增加版本号显示功能
+> **版本:** v0.1-draft
+> **功能名称:** 启动页面版本号显示
 > **创建日期:** 2026-06-03
-> **来源PRD:** docs/PRD.md (v1.0-confirmed, §9)
-> **模式:** 快速通道（工作流验证）
+> **基于:** PRD v1.0-confirmed §9 | DECISIONS.md D-01~D-04
 
 ---
 
-## 1. 页面清单
+## §1 设计总览
 
-| 页面 | 路由/Activity | 说明 | 变更范围 |
-|------|---------------|------|----------|
-| 主页面 | MainActivity | 现有登录页面，Box 底部已有 VersionTag 组件 | 仅修改 VersionTag 行为 |
+### 设计目标
+- 在 MainActivity 底部持久显示应用版本号
+- Debug 构建：完整格式 `v{name}({code}){buildType}`
+- Release 构建：简洁格式 `v{name}`（无 buildType 后缀）
 
-## 2. 线框图
+### 设计语言
+- Material3 (M3) 设计系统
+- 375dp 基准视口
+- 颜色 Token: onSurfaceVariant
 
+---
+
+## §2 页面清单与导航
+
+| 页面 | 路由 | 类型 | 入口 | 说明 |
+|------|------|------|------|------|
+| 版本号浮层 | 无路由 (overlay) | 改造 | MainActivity | Box 底部 Alignment.BottomCenter |
+
+### 导航图
 ```
-┌─────────────────────────────────┐ 375dp
-│  Status Bar                     │
-├─────────────────────────────────┤
-│                                 │
-│         ┌──────────┐            │
-│         │   Logo   │ (现有)     │
-│         └──────────┘            │
-│                                 │
-│       ┌─────────────────┐       │
-│       │   登录  (headline)│      │
-│       └─────────────────┘       │
-│                                 │
-│    ┌──────────────────────┐     │
-│    │  手机号输入框          │     │
-│    └──────────────────────┘     │
-│    ┌──────────────────────┐     │
-│    │   获取验证码 (Button)  │     │
-│    └──────────────────────┘     │
-│                                 │
-│                                 │
-│         v1.0.0(42)              │ ← 版本号
-│         ^^^^^^^^                │    onSurfaceVariant
-│    (8dp + navBars inset)        │    12sp, 单行, ellipsis
-├─────────────────────────────────┤
-│  Navigation Bar                 │
-└─────────────────────────────────┘
+MainActivity
+└── Box (fillMaxSize)
+    ├── LoginScreen (填充)
+    └── VersionTag (Alignment.BottomCenter)
 ```
 
-## 3. 组件层级树
+---
 
+## §3 页面设计 — 版本号浮层
+
+### 线框图
+```
+┌─────────── 375dp ────────────┐
+│                               │
+│          LoginScreen          │
+│         (内容区域)            │
+│                               │
+│   ┌─────────────────────┐     │
+│   │  v1.0(1)debug        │     │  ← VersionTag
+│   └─────────────────────┘     │     12sp, onSurfaceVariant
+│   ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ │     ← NavigationBars 安全区
+└───────────────────────────────┘
+```
+
+### 组件层级树
 ```
 MainActivity
 └── MaterialTheme
-    └── Surface(fillMaxSize)
-        └── Box(fillMaxSize)
-            ├── LoginScreen(fillMaxSize)          ← 现有
-            │   └── Column(padding=16dp)
+    └── Surface (fillMaxSize)
+        └── Box (fillMaxSize)
+            ├── LoginScreen (fillMaxSize)
+            │   └── Column
             │       ├── Text("登录", headlineMedium)
             │       ├── TextField(手机号)
             │       └── Button("获取验证码")
-            └── VersionTag(BottomCenter)          ← 修改
+            └── VersionTag (Alignment.BottomCenter)
                 └── Text(
-                        text = formatVersionTag(),
-                        fontSize = 12.sp,
-                        color = onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = Ellipsis
+                      text = formatVersionTag() / formatVersionName(),
+                      fontSize = 12.sp,
+                      color = onSurfaceVariant,
+                      maxLines = 1, overflow = Ellipsis,
+                      modifier = windowInsetsPadding(navigationBars) + padding(bottom = 8.dp)
+                       + semantics { contentDescription = "应用版本号 v1.0" }
                     )
 ```
 
-## 4. 交互状态机
-
+### 交互状态机
 ```
-                     ┌──────────────────────────────┐
-                     │          Default              │
-                     │  静态展示版本号文本             │
-                     │  (无交互)                     │
-                     └──────────────────────────────┘
-                              │ 构建变体分支
-              ┌───────────────┴───────────────┐
-              ▼                               ▼
-     ┌────────────────┐              ┌────────────────┐
-     │  Debug 构建     │              │  Release 构建   │
-     │ v1.0.0(42)debug│              │ v1.0.0(42)     │
-     │ 含 buildType    │              │ 省略 buildType  │
-     └────────────────┘              └────────────────┘
+┌─────────────┐
+│   Visible    │ ← 进入 Activity 即显示，无交互
+│  (静态渲染)  │
+└─────────────┘
+      ↓ (构建类型决定内容)
+┌──────────────┐    ┌──────────────┐
+│ Debug 构建    │    │ Release 构建  │
+│ v{name}({c}) │    │ v{name}      │
+│  + buildType │    │ (无后缀)     │
+└──────────────┘    └──────────────┘
 ```
 
-> **说明**：VersionTag 为纯展示组件，无交互状态切换。唯一的行为差异由编译时常量 `BuildConfig.DEBUG` 决定。
+### 状态覆盖表
 
-## 5. 状态覆盖表
-
-| 状态 | Debug 输出 | Release 输出 | 说明 |
-|------|-----------|-------------|------|
-| 正常 | `v1.0.0(42)debug` | `v1.0.0(42)` | 编译期分支 |
-| 长版本名 | `v1.2.3-alpha.rc1(12345)debug` → ellipsis 截断 | `v1.2.3-alpha.rc1(12345)` → ellipsis 截断 | 单行截断 |
-| 深色主题 | 颜色自动适配 `onSurfaceVariant` | 同左 | M3 token 自动处理 |
-| 浅色主题 | 颜色自动适配 `onSurfaceVariant` | 同左 | M3 token 自动处理 |
-| 空 versionName | `v(42)debug` | `v(42)` | BuildConfig 保障非空 |
-
-## 6. Token 映射表
-
-| Token | PRD §9 值 | Compose 实现 | 备注 |
-|-------|----------|-------------|------|
-| 字体大小 | 12sp | `12.sp` | 保持现有 |
-| 字体颜色 | `onSurfaceVariant` | `MaterialTheme.colorScheme.onSurfaceVariant` | M3 自适应深浅色 |
-| 对齐 | 水平居中 | `Alignment.BottomCenter` | Box 布局 |
-| 行数 | 单行 | `maxLines = 1` | 保持现有 |
-| 溢出 | ellipsis | `TextOverflow.Ellipsis` | 保持现有 |
-| 底部内边距 | 8dp | `.padding(bottom = 8.dp)` | 保持现有 |
-| 系统栏适配 | navigationBars | `windowInsetsPadding(WindowInsets.navigationBars)` | 保持现有 |
-| 无障碍 | `"应用版本号 v{name}"` | `semantics { contentDescription = formatVersionDescription() }` | 保持现有 |
-| 键盘适配 | 软键盘弹出时上移 | `Modifier.imePadding()` | 新增（P0修复） |
-
-## 7. 组件复用分析
-
-| 组件 | 文件 | 类型 | 说明 |
-|------|------|------|------|
-| VersionTag | `ui/components/VersionTag.kt` | 修改 | 移除 `if (!BuildConfig.DEBUG) return` |
-| formatVersionTag() | `ui/components/VersionTag.kt` | 修改 | 增加 Debug/Release 分支 |
-| formatVersionDescription() | `ui/components/VersionTag.kt` | 复用 | 不变 |
-
-**复用率：1/3 直接复用，2/3 需修改。新增组件：0。**
-
-## 8. 新增组件清单
-
-无。仅修改现有组件，无需新增文件。
-
-## 9. 架构协调设计
-
-- **无跨 Screen 通信**：VersionTag 位于 MainActivity 底部，独立运行
-- **无 BackHandler 冲突**：VersionTag 无交互，不消费返回事件
-- **软键盘适配**：LoginScreen 含 TextField，键盘弹出时 VersionTag 可能重叠。方案：给 VersionTag 追加 `Modifier.imePadding()`，确保键盘弹出时随内容上移（或在 Box 中通过 `Modifier.offset` 动态调整）
-- **编译期安全**：`BuildConfig.DEBUG` 为编译时常量，R8/ProGuard 在 Release 构建时自动消除 dead code 分支
-- **设计-代码一致性**：当前代码 `if (!BuildConfig.DEBUG) return` 在 Release 完全不渲染。方案已明确：移除该守卫 + `formatVersionTag()` 内部通过 `if (DEBUG) buildType else ""` 控制后缀，Release 渲染但省略 buildType
+| 状态 | 可见 | 显示内容 | 说明 |
+|------|------|----------|------|
+| Debug 构建 | ✅ | `v1.0(1)debug` | 完整格式，含 versionCode + buildType |
+| Release 构建 | ✅ | `v1.0` | 仅 versionName，无后缀 |
+| 版本名为空 | ✅ | 防御性空文本 | BuildConfig 异常兜底 |
 
 ---
 
-## 10. 变更记录
+## §4 Token 映射表
 
-| 版本 | 日期 | 变更 |
+| 设计属性 | M3 Token | 值 |
+|----------|----------|-----|
+| 文字颜色 | `onSurfaceVariant` | 项目主题默认值 |
+| 字体大小 | `labelSmall` 覆盖 | 12sp |
+| 行数限制 | — | 1 (TextOverflow.Ellipsis) |
+| 底部间距 | — | 8dp |
+| 导航栏适配 | `WindowInsets.navigationBars` | 平台默认 |
+
+---
+
+## §5 组件复用分析
+
+| 组件 | 来源 | 复用方式 | 状态 |
+|------|------|----------|------|
+| `VersionTag` | `ui/components/VersionTag.kt` | 需改造 | ⚠️ 移除 `if (!DEBUG) return` |
+| `formatVersionTag()` | 同上 | 直接复用 | ✅ Debug 格式 |
+| `formatVersionDescription()` | 同上 | 直接复用 | ✅ TalkBack |
+| `LoginScreen` | `MainActivity.kt` | 不动 | ✅ 无变更 |
+
+### 新增文件
+
+无新增文件 — 仅修改现有 `VersionTag.kt`（移除 Debug-only 门控）。
+
+---
+
+## §6 架构协调设计
+
+### 导航事件
+无 — VersionTag 是 MainActivity 内静态 overlay，不参与导航。
+
+### ViewModel
+不需要 — VersionTag 无状态，纯静态文本从 BuildConfig 读取。
+
+### BackHandler
+不需要 — 无交互，不消费返回事件。
+
+---
+
+## §7 无障碍适配
+
+| 元素 | contentDescription | 触控目标 | TalkBack 焦点 |
+|------|-------------------|----------|--------------|
+| 版本号文本 | "应用版本号 v{versionName}" | N/A (无交互) | 装饰性辅助 |
+
+---
+
+## §8 前置依赖
+
+| 依赖 | 说明 | 状态 |
 |------|------|------|
-| v0.1-draft | 2026-06-03 | 初始生成（快速通道） |
-| v0.2-review | 2026-06-03 | 三视角评审完成，P0 自动修订（软键盘适配 + 设计-代码一致声明） |
+| `buildConfig = true` | build.gradle.kts 已启用 | ✅ 已满足 |
+| `versionName` 已配置 | build.gradle.kts: `versionName = "1.0"` | ✅ 已满足 |
 
 ---
 
-## 11. 多视角评审记录
+## §9 多视角评审记录
 
-> 评审日期: 2026-06-03
-> 评审方式: 3-Agent 并行自评审（delegate_task）
-> 模式: 快速通道（纯文本视觉评审，无 Playwright 截图）
+> 评审日期: 2026-06-03 | 方式: delegate_task 三视角并行 | 耗时: ~120s
 
-### 11.1 评审总览
+### 评审总览
 
-| 视角 | 评分 | P0 项 | P1 项 | 结论 |
-|------|------|-------|-------|------|
-| C1 UX 交互 | 5/10 | 2 | 5 | 骨架正确但关键细节缺失 |
-| C2 视觉审美 | 36.5/50 | 2 | 6 | 有条件通过（≥30），Token 体系成熟 |
-| C3 前端实现 | 8/10 | 0 | 1 | 可行，2 处代码改动 |
+| 视角 | 评分 | P0 | P1 | 核心发现 |
+|------|------|----|----|----------|
+| C1 UX 交互 | | | | |
+| C2 视觉审美 | | | | |
+| C3 前端实现 | | | | |
 
-### 11.2 C1 UX 交互评审
+### P0 修订记录（已在正文自动修订）
 
-| 编号 | 严重度 | 问题 | 修订状态 |
-|------|--------|------|----------|
-| P0-1 | 致命 | 设计-代码不一致：当前 `if (!BuildConfig.DEBUG) return` 在 Release 完全不渲染 | ✅ 已修订 §9 |
-| P0-2 | 致命 | 软键盘遮挡：TextField 弹出时 VersionTag 可能重叠 | ✅ 已修订 §6/§9（追加 imePadding） |
-| P1-1 | 重要 | 字体缩放未防御（200% 缩放 12sp→24sp 溢出） | 📋 记录 |
-| P1-2 | 重要 | RTL 未覆盖 | 📋 记录 |
-| P1-3 | 重要 | TalkBack 描述缺少 versionCode | 📋 记录 |
-| P1-4 | 重要 | 12sp 低于可读性建议 | 📋 记录 |
-| P1-5 | 重要 | 横屏/分屏/折叠屏未验证 | 📋 记录 |
+| 编号 | 问题 | 修订内容 |
+|------|------|----------|
+| | | |
 
-### 11.3 C2 视觉审美评审
+### C2 视觉评审 10 维度
 
-⚠️ 基于 HTML 源码纯文本推断，非截图验证。
+| # | 维度 | 评分 | 关键评语 |
+|---|------|:---:|------|
+| 1 | 格式塔 | | |
+| 2 | 视觉层级 | | |
+| 3 | 色彩 | | |
+| 4 | 字体 | | |
+| 5 | 空间 | | |
+| 6 | 布局 | | |
+| 7 | 可感知性 | | |
+| 8 | 一致性 | | |
+| 9 | 情感品牌 | | |
+| 10 | 平台适配 | | |
 
-| 评分维度 | 得分 |
-|----------|:---:|
-| 格式塔感知 | 4/5 |
-| 视觉层级 | 4/5 |
-| 色彩系统 | 5/5 |
-| 字体排版 | 3/5 |
-| 空间与网格 | 3/5 |
-| 布局与比例 | 3/5 |
-| 可感知可操作 | 4/5 |
-| 一致性 | 4/5 |
-| 情感与品牌 | 3/5 |
-| 平台与适配 | 3.5/5 |
-| **综合** | **36.5/50** |
-
-| 严重度 | 问题 | 说明 |
-|:---:|------|------|
-| 🔴高 | 字体排版 | 仅声明字号，无字重/行高/letter-spacing |
-| 🔴高 | 空间与网格 | 各组块间距、水平 padding 未定义 |
-| 🟡中 | 布局比例 | logo 80dp 可能过小 |
-| 🟡中 | 色彩系统 | #6750A4 非标准 M3 purple |
-| 🟡中 | 品牌 | 纯色圆形无差异化 |
-| 🟢低 | 响应式 | 仅 375dp 单断点 |
-
-**审美亮点**：Token 体系成熟（明暗双模+ripple alpha 适配）、版本号定位考究（absolute 底部居中 + onSurfaceVariant）、手机框 375×812 模拟真实。
-
-### 11.4 C3 前端实现评审
-
-| 严重度 | 问题 | 说明 |
-|------|------|------|
-| P1 | formatVersionTag() R8 分支 | `if(DEBUG)` 编译时常量，R8 自动消除死分支，无运行时开销 |
-
-**组件可行性**：✅ 简单（1 个 Text + 纯函数格式化器），低复杂度，零额外性能开销。
-**架构适配**：Box 底部 8dp+navBars 提供 ≥48dp 安全区。无跨 Screen 通信/BH 冲突。
+**综合: X/50**
 
 ---
 
-## 12. 评审决议
-
-| 决议编号 | 决议内容 | 来源 | 状态 |
-|----------|----------|------|------|
-| UR-01 | VersionTag 追加 `Modifier.imePadding()` 防止键盘弹出时重叠 | C1 P0-2 | ✅ 已修订 §6/§9 |
-| UR-02 | §9 增加设计-代码一致性声明（当前 Release 不渲染 → 需移除守卫） | C1 P0-1 | ✅ 已修订 §9 |
-| UR-03 | HTML 预览补充字重/行高/间距声明（下一迭代） | C2 P0 | 📋 记录 |
-| UR-04 | 字体缩放防御方案（下一迭代评估） | C1 P1-1 | 📋 记录 |
-
----
-
+> **版本:** v0.2-review
 > **状态:** 三视角评审完成，P0 已自动修订。请审阅后回复「确认」冻结进入技术方案。

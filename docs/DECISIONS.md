@@ -1,32 +1,23 @@
-# DECISIONS.md
+# DECISIONS.md — 架构决策记录
 
-> 启动页面增加版本号显示功能 — 架构决策记录
-> 创建日期: 2026-06-03
+> 项目: my-android-app
+> 最后更新: 2026-06-03
+
+---
+
+## 决策列表
+
+| 编号 | 日期 | 决策内容 | 来源阶段 | 状态 |
+|------|------|----------|----------|------|
+| D-01 | 2026-06-03 | Release 构建需显示版本号，格式 `v{versionName}`（无 buildType 后缀）；Debug 保持完整格式 | STAGE_PRD | 待确认 |
+| D-02 | 2026-06-03 | 不可直接复用 VersionTag（Debug-only 硬编码），需新建无条件组件或重构 | STAGE_PRD | 待实现 |
+| D-03 | 2026-06-03 | 底部间距 8dp（对齐现有代码），非 24dp | STAGE_PRD | 已应用 |
+| D-04 | 2026-06-03 | VersionTag 新增/修改：移除 `if (!DEBUG) return`，通过 formatVersionTag() 参数控制 Debug/Release 格式差异 | STAGE_PRD | 待确认 |
+
+---
 
 ## 变更历史
 
 | 日期 | 变更 |
 |------|------|
-| 2026-06-03 | Stage 3 UI 设计 — 三视角评审完成，P0 自动修订（imePadding + 设计-代码一致性） |
-
-## 决策列表
-
-| 编号 | 日期 | 决策内容 | 状态 |
-|------|------|----------|------|
-| R-01 | 2026-06-03 | formatVersionTag() 增加 Debug/Release 分支：`val suffix = if (BuildConfig.DEBUG) buildType else ""`，输出 `"v$name($code)$suffix"` | 已确认 |
-| R-02 | 2026-06-03 | VersionTag 底部 48dp 安全区约束，避免与交互控件（FAB/按钮/表单域）z-order 碰撞 | 已确认 |
-| R-03 | 2026-06-03 | Release 不可逆变更：接受发版回滚成本，上线前通过 Release APK 截图验证 | 已确认 |
-| D-12 | 2026-06-03 | Release 构建显示版本号，省略 buildType 后缀（覆盖旧决策 "Release 不显示"） | 已确认 |
-| D-13 | — | 版本号颜色使用 `MaterialTheme.colorScheme.onSurfaceVariant` | 保持 |
-| D-15 | — | 格式 `v{name}({code}){buildType}`，Release 省略 buildType | 更新 |
-| D-16 | — | `windowInsetsPadding(WindowInsets.navigationBars)` 适配手势导航 | 保持 |
-| D-17 | — | TalkBack `contentDescription = "应用版本号 v{name}"` | 保持（R-07 建议追加 versionCode，待确认） |
-| D-20 | — | 底部内边距 8dp | 保持 |
-| UR-01 | 2026-06-03 | VersionTag 追加 `Modifier.imePadding()` 防止键盘弹出时文本重叠 | 已确认 |
-| UR-02 | 2026-06-03 | §9 增加设计-代码一致性声明：Release 不渲染 → 移除守卫 + 内部分支 | 已确认 |
-| UR-03 | 2026-06-03 | HTML 预览补充字重/行高/间距声明（下一迭代） | 待确认 |
-| UR-04 | 2026-06-03 | 字体缩放防御方案（下一迭代评估） | 待确认 |
-| D-AD-01 | 2026-06-03 | CI 双变体覆盖 `testDebugUnitTest testReleaseUnitTest`（Release 精确排除 Compose 测试） | 已确认 |
-| D-AD-02 | 2026-06-03 | `imePadding()` 作用于 MainActivity Box 父容器层（非 VersionTag 单一 Text） | 已确认 |
-| D-AD-03 | 2026-06-03 | `VersionTag` 接受可选参数 `versionText`/`contentDesc` 支持测试注入 | 已确认 |
-| D-AD-04 | 2026-06-03 | 删除 `assertTrue(true)` 永真断言 + 替换为实际验证 | 已确认 |
+| 2026-06-03 | 初始创建：启动页面版本号显示 PRD 评审产出 D-01~D-04 |
