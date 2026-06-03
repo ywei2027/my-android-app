@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MainActivity with VersionTag - 默认态</title>
+<style>
+:root {
+  --primary: #6750A4;
+  --onPrimary: #FFFFFF;
+  --primaryContainer: #EADDFF;
+  --onPrimaryContainer: #21005D;
+  --secondary: #625B71;
+  --onSecondary: #FFFFFF;
+  --secondaryContainer: #E8DEF8;
+  --onSecondaryContainer: #1D192B;
+  --tertiary: #7D5260;
+  --onTertiary: #FFFFFF;
+  --background: #FFFBFE;
+  --onBackground: #1C1B1F;
+  --surface: #FFFBFE;
+  --onSurface: #1C1B1F;
+  --surfaceVariant: #E7E0EC;
+  --onSurfaceVariant: #49454F;
+  --outline: #79747E;
+  --error: #B3261E;
+  --onError: #FFFFFF;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary: #D0BCFF;
+    --onPrimary: #381E72;
+    --primaryContainer: #4F378B;
+    --onPrimaryContainer: #EADDFF;
+    --secondary: #CCC2DC;
+    --onSecondary: #332D41;
+    --secondaryContainer: #4A4458;
+    --onSecondaryContainer: #E8DEF8;
+    --background: #1C1B1F;
+    --onBackground: #E6E1E5;
+    --surface: #1C1B1F;
+    --onSurface: #E6E1E5;
+    --surfaceVariant: #49454F;
+    --onSurfaceVariant: #CAC4D0;
+    --outline: #938F99;
+    --error: #F2B8B5;
+    --onError: #601410;
+  }
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  display: flex; justify-content: center; align-items: center;
+  min-height: 100vh; background: #e8e8e8;
+  font-family: 'Roboto', 'Segoe UI', system-ui, sans-serif;
+}
+.phone-frame {
+  width: 375px; height: 812px;
+  background: var(--background);
+  border-radius: 44px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3), 0 0 0 2px #333;
+  overflow: hidden;
+  position: relative;
+  display: flex; flex-direction: column;
+}
+
+.status-bar {
+  height: 44px; background: var(--surface);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px; font-size: 12px; color: var(--onSurface);
+}
+
+.main-content {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 24px;
+}
+
+.logo-area {
+  width: 80px; height: 80px;
+  background: var(--primaryContainer);
+  border-radius: 20px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 24px;
+}
+.logo-icon {
+  font-size: 36px; color: var(--onPrimaryContainer);
+}
+
+.welcome-text {
+  font-size: 24px; color: var(--onSurface);
+  margin-bottom: 32px; font-weight: 500;
+}
+
+.input-field {
+  width: 100%; padding: 14px 16px; border-radius: 8px;
+  border: 1px solid var(--outline); background: var(--surface);
+  margin-bottom: 12px; font-size: 14px; color: var(--onSurface);
+}
+.input-field::placeholder { color: var(--onSurfaceVariant); }
+
+.login-btn {
+  width: 100%; padding: 14px; border-radius: 100px;
+  border: none; background: var(--primary); color: var(--onPrimary);
+  font-size: 16px; font-weight: 600; cursor: pointer;
+  margin-top: 8px; margin-bottom: 16px;
+}
+.login-btn:hover { opacity: 0.9; }
+
+.about-link {
+  color: var(--primary); font-size: 13px;
+  text-decoration: none; cursor: pointer;
+}
+
+.nav-bar {
+  height: 34px; background: transparent;
+}
+
+.version-tag {
+  text-align: center; padding: 0 16px 8px 16px;
+  font-size: 12px; color: var(--onSurfaceVariant);
+  opacity: 0.6; font-family: monospace;
+}
+</style>
+</head>
+<body>
+<div class="phone-frame">
+  <div class="status-bar">
+    <span>9:41</span>
+    <span>📶 🔋</span>
+  </div>
+  <div class="main-content">
+    <div class="logo-area">
+      <span class="logo-icon">📱</span>
+    </div>
+    <div class="welcome-text">欢迎回来</div>
+    <input class="input-field" type="text" placeholder="用户名" aria-label="用户名输入框">
+    <input class="input-field" type="password" placeholder="密码" aria-label="密码输入框">
+    <button class="login-btn" aria-label="登录按钮">登 录</button>
+    <span class="about-link" role="button" tabindex="0" aria-label="关于本应用">关于本应用</span>
+  </div>
+  <div class="nav-bar"></div>
+  <div class="version-tag" aria-label="应用版本号 v1.0">v1.0(1)debug</div>
+</div>
+</body>
+</html>

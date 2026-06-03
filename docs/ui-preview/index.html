@@ -3,35 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>关于页面 — 交互原型</title>
+<title>UI Preview Index - 启动页面版本号</title>
 <style>
-  :root { --primary: #6750A4; --on-primary: #FFFFFF; --surface: #FFFBFC; --on-surface: #1C1B1F; --on-surface-variant: #49454F; }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: -apple-system, 'Noto Sans SC', 'Roboto', sans-serif; background: #E8E6E2; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 40px 20px; color: var(--on-surface); }
-  h1 { font-size: 24px; font-weight: 500; margin-bottom: 8px; }
-  p { color: var(--on-surface-variant); margin-bottom: 24px; font-size: 14px; }
-  .card-grid { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; }
-  .card { width: 375px; background: var(--surface); border-radius: 44px; box-shadow: 0 10px 40px rgba(0,0,0,0.12); overflow: hidden; }
-  .card iframe { width: 100%; height: 812px; border: none; }
-  .card-label { text-align: center; padding: 12px 0; font-size: 14px; color: var(--primary); font-weight: 500; }
+body { font-family: system-ui, sans-serif; max-width: 600px; margin: 40px auto; padding: 0 20px; }
+h1 { color: #6750A4; }
+a { display: block; padding: 12px 16px; background: #f5f0ff; border-radius: 8px; margin: 8px 0; color: #6750A4; text-decoration: none; }
+a:hover { background: #e8ddff; }
 </style>
 </head>
 <body>
-<h1>📱 关于页面 — 交互原型</h1>
-<p>基于 PRD §9 · 375×812 视口 · M3 设计系统</p>
-<div class="card-grid">
-  <div>
-    <div class="card-label">✅ 默认态</div>
-    <div class="card">
-      <iframe src="about_default.html" title="关于页面默认态" aria-label="关于页面默认态预览"></iframe>
-    </div>
-  </div>
-  <div>
-    <div class="card-label">⚠️ 降级态（版本未知）</div>
-    <div class="card">
-      <iframe src="about_unknown.html" title="关于页面降级态" aria-label="关于页面降级态预览"></iframe>
-    </div>
-  </div>
-</div>
+<h1>🎨 UI Preview - 启动页面版本号</h1>
+<p>功能: 启动页面增加版本号显示功能 | PRD v1.0-confirmed</p>
+<h2>页面列表</h2>
+<a href="main_default.html">MainActivity 主界面（默认态）— LoginScreen + VersionTag</a>
+<p style="color: #666; font-size: 14px; margin-top: 40px;">
+  手机模拟框 375×812 | Material3 设计语言 | 全 Token CSS 变量
+</p>
 </body>
 </html>
