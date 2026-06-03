@@ -26,26 +26,38 @@ internal fun formatVersionTag(
 ): String = "v$versionName($versionCode)$buildType"
 
 /**
- * 格式化无障碍描述为 "应用版本号 v{name}"。
+ * 格式化无障碍描述为 "应用版本号 v{name}({code})"。
+ * D-22: contentDescription 与可见文本保持一致。
  */
-internal fun formatVersionDescription(versionName: String = BuildConfig.VERSION_NAME): String =
-    "应用版本号 v$versionName"
+internal fun formatVersionDescription(
+    versionName: String = BuildConfig.VERSION_NAME,
+    versionCode: Int = BuildConfig.VERSION_CODE
+): String =
+    "应用版本号 v$versionName($versionCode)"
 
 /**
  * 主界面底部版本号标签。
  *
  * Debug 构建显示 "v{VERSION_NAME}({VERSION_CODE}){BUILD_TYPE}"，
- * Release 构建不渲染任何内容。
+ * Release 构建显示 "v{VERSION_NAME}({VERSION_CODE})"（D-21: buildType="" 去掉后缀）。
  *
  * @param modifier 外部传入的 Modifier
  */
 @Composable
 fun VersionTag(modifier: Modifier = Modifier) {
-    // D-12: Release 构建不显示
-    if (!BuildConfig.DEBUG) return
+    // D-21: Release 构建去掉 buildType 后缀，函数签名保持不变
+    val versionText = if (BuildConfig.DEBUG) {
+        formatVersionTag()
+    } else {
+        formatVersionTag(buildType = "")
+    }
 
-    // D-15: v{name}({code}){buildType}
-    val versionText = formatVersionTag()
+    // D-22: contentDescription 与可见文本一致（含 versionCode）
+    val description = if (BuildConfig.DEBUG) {
+        formatVersionDescription()
+    } else {
+        formatVersionDescription()
+    }
 
     Text(
         text = versionText,
@@ -58,7 +70,7 @@ fun VersionTag(modifier: Modifier = Modifier) {
             .padding(bottom = 8.dp) // D-20
             .semantics {
                 // D-17: TalkBack contentDescription
-                contentDescription = formatVersionDescription()
+                contentDescription = description
             }
     )
 }

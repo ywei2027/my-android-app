@@ -10,8 +10,8 @@ import org.junit.Test
  * DESIGN.md §5 测试策略 — 纯 JUnit 实现
  *
  * T1: Debug 渲染 — 版本号文本格式 v{VERSION_NAME}({VERSION_CODE}){BUILD_TYPE}
- * T2: Release 不渲染 — BuildConfig.DEBUG 在 release 变体为 false
- * T3: Semantics — contentDescription "应用版本号 v{VERSION_NAME}"
+ * T2: Release 也渲染 — 格式 v{VERSION_NAME}({VERSION_CODE})，去掉 buildType 后缀（D-21）
+ * T3: Semantics — contentDescription "应用版本号 v{VERSION_NAME}({VERSION_CODE})"（D-22）
  * T4: 布局 — 由 Compose 框架保证，编译期验证
  * T5: WindowInsets — 由 Compose 框架保证，编译期验证
  */
@@ -37,12 +37,9 @@ class VersionTagTest {
         assertEquals(expected, actual)
     }
 
-    // ── T2: Release 不渲染 (编译时验证) ─────────────────────────────
+    // ── T2: Release 也渲染 (D-21: buildType="" 去掉后缀) ──────────
     @Test
     fun `T2 BuildConfig DEBUG 标记正确`() {
-        // Debug 变体: DEBUG=true  → VersionTag 渲染
-        // Release 变体: DEBUG=false → VersionTag return (树为空)
-        // 双变体 CI: ./gradlew testDebugUnitTest testReleaseUnitTest
         if (BuildConfig.DEBUG) {
             assertTrue("Debug 变体下 BuildConfig.DEBUG 应为 true", true)
         } else {
@@ -51,44 +48,34 @@ class VersionTagTest {
     }
 
     @Test
-    fun `T2 VersionTag 在 Release 不调用渲染逻辑`() {
-        if (!BuildConfig.DEBUG) {
-            // Release: 确认格式化函数存在但 Compose 函数不渲染
-            // formatVersionTag 在 Release 编译中可达但 VersionTag 提前 return
-            val tag = formatVersionTag()
-            assertEquals("v${BuildConfig.VERSION_NAME}(${BuildConfig.VERSION_CODE})release", tag)
-        }
+    fun `T2 Release 构建调用 formatVersionTag 去后缀`() {
+        // D-21: Release 去掉 buildType 后缀，函数签名不变
+        val result = formatVersionTag(versionName = "1.0", versionCode = 1, buildType = "")
+        assertEquals("v1.0(1)", result)
     }
 
-    // ── T3: contentDescription ─────────────────────────────────────
+    // ── T3: contentDescription (D-22: 含 versionCode) ────────────
     @Test
     fun `T3 formatVersionDescription 格式正确`() {
-        val result = formatVersionDescription("1.0")
-        assertEquals("应用版本号 v1.0", result)
+        val result = formatVersionDescription("1.0", 1)
+        assertEquals("应用版本号 v1.0(1)", result)
     }
 
     @Test
     fun `T3 formatVersionDescription 多段版本号`() {
-        val result = formatVersionDescription("3.14.159")
-        assertEquals("应用版本号 v3.14.159", result)
+        val result = formatVersionDescription("3.14.159", 42)
+        assertEquals("应用版本号 v3.14.159(42)", result)
     }
 
     @Test
     fun `T3 formatVersionDescription 与 BuildConfig 一致`() {
-        val expected = "应用版本号 v${BuildConfig.VERSION_NAME}"
+        val expected = "应用版本号 v${BuildConfig.VERSION_NAME}(${BuildConfig.VERSION_CODE})"
         assertEquals(expected, formatVersionDescription())
     }
 
     // ── T4+T5: 布局验证 ────────────────────────────────────────────
-    // BottomCenter 对齐 + WindowInsets + 8dp padding 由 Design
-    // Token 保证，编译通过即验证通过。
     @Test
     fun `T4+T5 布局 Token 编译验证通过`() {
-        // DESIGN.md §2.1 定义了:
-        //   Modifier.align(Alignment.BottomCenter)     — T4
-        //   .windowInsetsPadding(WindowInsets.navigationBars) — T5
-        //   .padding(bottom = 8.dp)                    — T5
-        // 以上由 Kotlin 编译器 + Compose 编译器验证，编译成功=通过
         assertTrue("编译通过即布局验证通过", true)
     }
 }
