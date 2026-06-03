@@ -26,3 +26,7 @@
 | UR-02 | 2026-06-03 | §9 增加设计-代码一致性声明：Release 不渲染 → 移除守卫 + 内部分支 | 已确认 |
 | UR-03 | 2026-06-03 | HTML 预览补充字重/行高/间距声明（下一迭代） | 待确认 |
 | UR-04 | 2026-06-03 | 字体缩放防御方案（下一迭代评估） | 待确认 |
+| D-AD-01 | 2026-06-03 | CI 双变体覆盖 `testDebugUnitTest testReleaseUnitTest`（Release 精确排除 Compose 测试） | 已确认 |
+| D-AD-02 | 2026-06-03 | `imePadding()` 作用于 MainActivity Box 父容器层（非 VersionTag 单一 Text） | 已确认 |
+| D-AD-03 | 2026-06-03 | `VersionTag` 接受可选参数 `versionText`/`contentDesc` 支持测试注入 | 已确认 |
+| D-AD-04 | 2026-06-03 | 删除 `assertTrue(true)` 永真断言 + 替换为实际验证 | 已确认 |
