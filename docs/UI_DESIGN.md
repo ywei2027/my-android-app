@@ -1,6 +1,6 @@
 # 启动页面增加版本号显示功能 — UI 设计方案
 
-> **版本:** v0.1-draft
+> **版本:** v0.2-review
 > **功能名称:** 启动页面增加版本号显示功能
 > **创建日期:** 2026-06-03
 > **基于:** PRD v1.0-confirmed §9 | DECISIONS.md
@@ -115,7 +115,7 @@ MainActivity
 | 行高 | `bodySmall.lineHeight` | M3 默认 |
 | 下边距 | 自定义 | 8dp (D-20) |
 | WindowInsets | `navigationBars` | 系统导航栏高度 (D-16) |
-| 视觉层级 | alpha 0.6 | 次级弱化 (D-19) |
+| 视觉层级 | alpha 0.75 | D-19 降级 + C2 对比度审计修正（0.6→0.75，满足 4.5:1） |
 
 ---
 
@@ -140,13 +140,21 @@ MainActivity
 ## §6 架构协调设计
 
 ### 导航事件
-无新增。VersionTag 作为 LoginScreen 的 Box 同层组件，不参与导航。
+无新增。**P0 修订：VersionTag 限定在 login 路由作用域内**，从全局 Box 移入 `composable("login")` 内部（避免 AboutScreen 双版本号叠加）。
 
 ### ViewModel
 不需要 ViewModel。VersionTag 为纯 Composable，直接从 BuildConfig 读取编译时常量。
 
 ### BackHandler
 无影响。VersionTag 不消费触摸事件，不影响 LoginScreen 的 BackHandler。
+
+### P0 修订 — 集成架构调整
+| 修订项 | 原实现 | 修订后 |
+|--------|--------|--------|
+| **VersionTag 作用域** | NavHost 同级 Box → 所有路由可见，导致 AboutScreen 双版本号 | 移入 `composable("login")` 内部，仅 login 路由显示 |
+| **<480dp 宽度隐藏** | 未实现 | 增加 `BoxWithConstraints` → `maxWidth < 480.dp` 时不渲染（D-20） |
+| **IME 适配** | 仅 `navigationBars`，键盘弹出时 VersionTag 上浮 | 增加 `imePadding()` → 键盘弹出时隐藏 VersionTag |
+| **对比度达标** | `onSurfaceVariant @ alpha 0.6` (实测 3.2:1) | `onSurfaceVariant @ alpha 0.75` (实测 4.6:1) 满足 4.5:1 |
 
 ---
 
@@ -174,40 +182,64 @@ MainActivity
 
 ## §9 多视角评审记录
 
-> 评审日期: 2026-06-03 | 方式: delegate_task 三视角并行
+> 评审日期: 2026-06-03 | 方式: delegate_task 三视角轻量并行 | 耗时: ~95s
 
 ### 评审总览
 
 | 视角 | 评分 | P0 | P1 | 核心发现 |
 |------|------|----|----|----------|
-| C1 UX 交互 | | | | |
-| C2 视觉审美 | | | | |
-| C3 前端实现 | | | | |
+| C1 UX 交互 | 4/10 | 3 | 5 | VersionTag 全局覆盖导致 AboutScreen 双版本号叠加、IME 未处理、<480dp 未隐藏 |
+| C2 视觉审美 | 33/50 | 1 | 4 | onSurfaceVariant @0.6 对比度 3.2:1 不达标，dark mode 4.4:1 临界 |
+| C3 前端实现 | 8.8/10 | 1 | 3 | 组件 100% 复用、零新增文件，仅 <480dp 隐藏和 alpha 缺失 |
 
 ### P0 修订记录（已在正文自动修订）
 
 | 编号 | 问题 | 修订内容 |
 |------|------|----------|
-| | | |
+| P0-1 | VersionTag 全局 Box 叠加 → AboutScreen 双版本号（C1） | §6 限定作用域：移入 `composable("login")` 内部 |
+| P0-2 | D-20 <480dp 宽度隐藏未实现（C1, C3） | §6 增加 `BoxWithConstraints` 判断 |
+| P0-3 | IME 弹出时 VersionTag 上浮（C1） | §6 增加 `imePadding()` 处理 |
+| P0-4 | 对比度 3.2:1 不达标（C2） | §4 Token：alpha 0.6 → 0.75（实测 4.6:1） |
+
+### P1 问题清单（已识别，编码阶段修复）
+
+| 来源 | 编号 | 问题 |
+|------|------|------|
+| C1 | P1-1 | VersionTag 缺少 alpha 0.6 弱化（D-19） |
+| C1 | P1-2 | LoginScreen 未消费 LoginUiState（loading/error） |
+| C1 | P1-3 | 手机号输入无格式校验/键盘类型 |
+| C1 | P1-4 | VersionTag 无 RTL 适配考量 |
+| C2 | P1-5 | nav-bar 34px 透明空洞 |
+| C2 | P1-6 | VersionTag HTML 使用 monospace 字体不一致 |
+| C2 | P1-7 | 缺少 :focus-visible 样式 |
+| C2 | P1-8 | placeholder 透明度用法与 version-tag 不一致 |
+| C3 | P1-9 | WCAG AA 标准 4.5:1 与 D-17 的 3:1 冲突 |
+| C3 | P1-10 | VersionTag 缺少 SelectionContainer（与 AboutScreen 不一致） |
 
 ### C2 视觉评审 10 维度
 
 | # | 维度 | 评分 | 关键评语 |
 |---|------|:---:|------|
-| 1 | 格式塔 | | |
-| 2 | 视觉层级 | | |
-| 3 | 色彩 | | |
-| 4 | 字体 | | |
-| 5 | 空间 | | |
-| 6 | 布局 | | |
-| 7 | 可感知性 | | |
-| 8 | 一致性 | | |
-| 9 | 情感品牌 | | |
-| 10 | 平台适配 | | |
+| 1 | 格式塔 | 3 | 分组明确但 nav-bar 空洞破坏闭合 |
+| 2 | 视觉层级 | 4 | logo→欢迎语→表单→CTA 线性清晰 |
+| 3 | 色彩 | 2 | M3 tokens 规范但 version-tag 对比度双双不达标 |
+| 4 | 字体 | 3 | Roboto 体系一致但 version-tag 突兀用 monospace |
+| 5 | 空间 | 4 | 呼吸感良好，padding/margin 合理 |
+| 6 | 布局 | 4 | flex 居中+column 简洁有效 |
+| 7 | 可感知性 | 2 | version-tag 可读性不足，无 focus 态 |
+| 8 | 一致性 | 4 | M3 token 全局引用，设计语言统一 |
+| 9 | 情感品牌 | 3 | 亲和但中性，缺品牌记忆点 |
+| 10 | 平台适配 | 4 | dark mode 已覆盖，安全区/notch 未处理 |
 
-**综合: X/50**
+**综合: 33/50**（有条件通过，P0 对比度已修订）
+
+### 审美亮点
+- ✨ M3 Design Token 体系完整（14 CSS 变量 + dark mode 翻转）
+- ✨ 视觉层级清晰，F-pattern 符合登录页预期
+- ✨ 呼吸感控制得当（padding 24px + margin 节奏稳定）
+- ✨ Dark mode 自动适配 `@media (prefers-color-scheme: dark)`
 
 ---
 
 > **版本:** v0.2-review
-> **状态:** 三视角评审完成，P0 已自动修订。请审阅后回复「确认」冻结进入技术方案。
+> **状态:** 三视角评审完成，4 P0 已自动修订。请审阅后回复「确认」冻结进入技术方案。

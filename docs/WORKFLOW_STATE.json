@@ -1,18 +1,7 @@
 {
-  "current_stage": "STAGE_CODE",
-  "feature_name": "关于页面增加版本号显示功能",
+  "current_stage": "STAGE_UI_DESIGN",
+  "feature_name": "启动页面增加版本号显示功能",
   "prd_version": "v1.0-confirmed",
-  "ui_design_version": "v1.0-confirmed",
-  "design_version": "v1.0-confirmed",
-  "issues": [35, 36, 37, 38],
-  "issue_urls": {
-    "35": "https://github.com/ywei2027/my-android-app/issues/35",
-    "36": "https://github.com/ywei2027/my-android-app/issues/36",
-    "37": "https://github.com/ywei2027/my-android-app/issues/37",
-    "38": "https://github.com/ywei2027/my-android-app/issues/38"
-  },
-  "feishu_doc_url": "https://bytedance.feishu.cn/docx/RZ3sdPKRAoMu9vxQd3xcGe8hn0b",
-  "ui_design_doc_url": "https://bytedance.feishu.cn/docx/CGqFdpQ24oNkeIx6NH1cnpEjnCe",
-  "design_doc_url": "https://bytedance.feishu.cn/docx/Fsqvd93r7o1WUuxgUtLcXBolnje",
-  "updated": "2026-06-02T23:49:00+08:00"
+  "feishu_doc_url": "https://bytedance.feishu.cn/docx/H0WsdfDmDomPhnx6mL2csqxsnzc",
+  "updated": "2026-06-03T00:12:00+08:00"
 }

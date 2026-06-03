@@ -37,6 +37,8 @@
 | R3-D-27 | 2026-06-02 | PRD 轻量 3-Agent 评审: AC-01 格式对齐 D-15，交互对齐 D-24，minSdk 修正为 API 26，新增 AC-04 无障碍验收 — 7 P0 已自动修订 | 待确认 |
 | R3-D-28 | 2026-06-02 | UI 设计 3-Agent 轻量评审: C2 视觉 37/50 条件通过，版本号方案统一为 BuildConfig(对齐 VersionTag.kt)，textIsSelectable 放行(原生选中≠自定义交互)，降级态增加视觉差异化 | 待确认 |
 | R3-D-29 | 2026-06-02 | 技术方案 3-Agent 评审: B1 8.5/10 通过 / B2 安全零风险 / B3 测试策略加强。VersionText 复用 formatVersionTag()、SelectionContainer 替代 textIsSelectable、新增 T5-T7 测试用例 — 3 P0 已自动修订 | 待确认 |
+| R4-D-30 | 2026-06-03 | 启动页面版本号 PRD 轻量 3-Agent 评审: 产品4/10 技术4/10 UX4/10，共识 P0(格式冲突D-15、Debug/Release策略D-12、Splash概念修正、间距D-20)已自动修订，6项决议(R-01~R-06)已执行 | 待确认 |
+| R4-D-31 | 2026-06-03 | UI 设计 3-Agent 轻量评审: C1 4/10 C2 33/50 C3 8.8/10。4 P0 已修订(VersionTag作用域限定login路由、<480dp隐藏、IME适配、对比度alpha 0.6→0.75) | 待确认 |
 
 ---
 
@@ -48,3 +50,5 @@
 | 2026-06-02 | 技术方案三视角评审 (B1/B2/B3): 7 P0 → 5 项自动修订，新增 D-21 | delegate_task 并行评审 |
 | 2026-06-02 | UI 设计三视角评审 (C1/C2/C3): 4 P0 / 8 P1 / C2 综合 37/50，新增 3 项决议 (D-18~D-20) | delegate_task 并行评审 |
 | 2026-06-02 | PRD 轻量 3-Agent 评审: 5 项共识 P0 自动修订，新增 R3-D-27 | delegate_task 轻量并行评审 |
+| 2026-06-03 | 启动页面版本号 PRD 轻量 3-Agent 评审: 产品/技术/UX 均 4/10，共识 P0(格式D-15、Debug/Release D-12、Splash概念修正、间距D-20)已自动修订，新增 R4-D-30 | delegate_task 轻量并行评审 |
+| 2026-06-03 | 启动页面版本号 UI 设计 3-Agent 轻量评审: C1 4/10 C2 33/50 C3 8.8/10，4 P0 已修订(作用域/宽度/IME/对比度)，新增 R4-D-31 | delegate_task 轻量并行评审 |
