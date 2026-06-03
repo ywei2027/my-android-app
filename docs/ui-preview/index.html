@@ -1,66 +1,70 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>启动页面版本号显示 — UI 原型</title>
-  <style>
-    :root {
-      --primary: #1A4FBF;
-      --primary-light: #B0C6FF;
-      --surface: #FEFBFF;
-      --surface-variant: #E7E0EC;
-      --on-surface: #1C1B1E;
-      --on-surface-variant: #49454F;
-      --error: #B81C1C;
-      --outline: #79747E;
-      --outline-variant: #CAC4D0;
-      --ripple: rgba(26, 79, 191, 0.08);
-    }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --surface: #1C1B1F;
-        --surface-variant: #49454F;
-        --on-surface: #E6E1E5;
-        --on-surface-variant: #CAC4D0;
-        --primary: #B0C6FF;
-        --primary-light: #1A4FBF;
-        --error: #FFB4AB;
-        --outline: #938F99;
-        --outline-variant: #49454F;
-      }
-    }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      background: #e8e8e8;
-      display: flex; justify-content: center; align-items: center;
-      min-height: 100vh;
-      font-family: 'Roboto', 'Noto Sans SC', sans-serif;
-    }
-    .container { max-width: 600px; padding: 24px; }
-    h1 { font-size: 22px; color: var(--on-surface); margin-bottom: 6px; }
-    .subtitle { font-size: 13px; color: var(--on-surface-variant); margin-bottom: 20px; }
-    .page-card {
-      background: var(--surface);
-      border: 1px solid var(--outline-variant);
-      border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 16px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    }
-    .page-card h2 { font-size: 16px; color: var(--on-surface); margin-bottom: 6px; }
-    .page-card p { font-size: 13px; color: var(--on-surface-variant); margin-bottom: 12px; }
-    .links { display: flex; gap: 8px; flex-wrap: wrap; }
-    .link-primary, .link-second {
-      display: inline-block; padding: 8px 16px;
-      border-radius: 8px; font-size: 13px; text-decoration: none;
-      transition: background 0.15s;
-    }
-    .link-primary { background: var(--primary); color: white; }
-    .link-primary:hover { opacity: 0.9; }
-    .link-second { background: var(--surface-variant); color: var(--on-surface-variant); }
-    .link-second:hover { background: var(--outline-variant); }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>启动页面版本号 — UI 原型</title>
+<style>
+:root {
+  --primary: #1A4FBF;
+  --primary-light: #B0C6FF;
+  --surface: #FEFBFF;
+  --surface-variant: #E7E0EC;
+  --on-surface: #1C1B1E;
+  --on-surface-variant: #49454F;
+  --on-primary: #FFFFFF;
+  --error: #B81C1C;
+  --outline: #79747E;
+  --outline-variant: #CAC4D0;
+  --ripple: rgba(26, 79, 191, 0.08);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: #1C1B1F;
+    --surface-variant: #49454F;
+    --on-surface: #E6E1E5;
+    --on-surface-variant: #CAC4D0;
+    --primary: #B0C6FF;
+    --primary-light: #1A4FBF;
+    --on-primary: #001D36;
+    --error: #FFB4AB;
+    --outline: #938F99;
+    --outline-variant: #49454F;
+    --ripple: rgba(176, 198, 255, 0.08);
+  }
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #e8e8e8;
+  display: flex; justify-content: center; align-items: center;
+  min-height: 100vh;
+  font-family: 'Roboto', 'Noto Sans SC', sans-serif;
+}
+.container { max-width: 420px; padding: 24px; text-align: center; }
+h1 { font-size: 24px; color: var(--on-surface); margin-bottom: 4px; }
+.subtitle { font-size: 14px; color: var(--on-surface-variant); margin-bottom: 24px; }
+.page-card {
+  background: var(--surface);
+  border: 1px solid var(--outline-variant);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+  text-align: left;
+}
+.page-card h2 { font-size: 18px; color: var(--on-surface); margin-bottom: 4px; }
+.page-card p { font-size: 13px; color: var(--on-surface-variant); margin-bottom: 12px; }
+.links { display: flex; gap: 8px; flex-wrap: wrap; }
+.links a {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 20px;
+  text-decoration: none;
+  font-size: 13px;
+  transition: background 0.15s;
+}
+.link-primary { background: var(--primary); color: var(--on-primary); }
+.link-primary:hover { opacity: 0.9; }
+</style>
 </head>
 <body>
 <div class="container">
@@ -68,11 +72,10 @@
   <p class="subtitle">UI 原型预览 — v0.1-draft</p>
 
   <div class="page-card">
-    <h2>📱 主界面 (MainActivity)</h2>
-    <p>底部版本号浮层叠加在 LoginScreen 之上</p>
+    <h2>🚀 启动页面</h2>
+    <p>MainActivity → LoginScreen + VersionTag 叠加，键盘弹出时版本号自动隐藏</p>
     <div class="links">
-      <a href="main_default.html" class="link-primary">默认态</a>
-      <a href="main_release.html" class="link-second">Release 态</a>
+      <a href="startup_default.html" class="link-primary">默认态（版本号可见）</a>
     </div>
   </div>
 </div>

@@ -3,21 +3,21 @@
 > **版本:** v0.1-draft
 > **功能名称:** 启动页面版本号显示
 > **创建日期:** 2026-06-03
-> **基于:** PRD v1.0-confirmed §9 | DECISIONS.md D-01~D-04
+> **基于:** PRD v1.0-confirmed §9 | DECISIONS.md
 
 ---
 
 ## §1 设计总览
 
 ### 设计目标
-- 在 MainActivity 底部持久显示应用版本号
-- Debug 构建：完整格式 `v{name}({code}){buildType}`
-- Release 构建：简洁格式 `v{name}`（无 buildType 后缀）
+- 在启动页面底部显示版本号，Debug/Release 自适应格式
+- 键盘弹出时版本号自动隐藏，避免遮挡或漂移
+- 无障碍 contentDescription 与可见文本一致
 
 ### 设计语言
 - Material3 (M3) 设计系统
 - 375dp 基准视口
-- 颜色 Token: onSurfaceVariant
+- 颜色 Token 体系：onSurfaceVariant 文字，无背景容器
 
 ---
 
@@ -25,89 +25,91 @@
 
 | 页面 | 路由 | 类型 | 入口 | 说明 |
 |------|------|------|------|------|
-| 版本号浮层 | 无路由 (overlay) | 改造 | MainActivity | Box 底部 Alignment.BottomCenter |
+| 启动页面 | /startup (MainActivity) | 改造 | App 冷启动 | LoginScreen + VersionTag 叠加于 Box |
 
 ### 导航图
 ```
 MainActivity
-└── Box (fillMaxSize)
-    ├── LoginScreen (填充)
-    └── VersionTag (Alignment.BottomCenter)
+└── Box(fillMaxSize)
+    ├── LoginScreen          (全屏，填充)
+    └── VersionTag           (底部居中叠加，imePadding 隐藏)
 ```
 
 ---
 
-## §3 页面设计 — 版本号浮层
+## §3 页面设计 — 启动页面
 
 ### 线框图
 ```
-┌─────────── 375dp ────────────┐
-│                               │
-│          LoginScreen          │
-│         (内容区域)            │
-│                               │
-│   ┌─────────────────────┐     │
-│   │  v1.0(1)debug        │     │  ← VersionTag
-│   └─────────────────────┘     │     12sp, onSurfaceVariant
-│   ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ │     ← NavigationBars 安全区
-└───────────────────────────────┘
+┌───── iPhone X 375×812 ─────┐
+│ ██████ Status Bar █████████ │
+│                             │
+│        登录                 │  ← headlineMedium
+│   ┌─────────────────────┐   │
+│   │ 手机号              │   │  ← TextField
+│   └─────────────────────┘   │
+│   ┌─────────────────────┐   │
+│   │     获取验证码       │   │  ← Button
+│   └─────────────────────┘   │
+│                             │
+│                             │
+│      v1.0(1)debug           │  ← 12sp, onSurfaceVariant
+│   ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓   │  ← Navigation Bar (系统)
+└─────────────────────────────┘
 ```
 
 ### 组件层级树
 ```
-MainActivity
+MainActivity (setContent)
 └── MaterialTheme
-    └── Surface (fillMaxSize)
-        └── Box (fillMaxSize)
-            ├── LoginScreen (fillMaxSize)
-            │   └── Column
-            │       ├── Text("登录", headlineMedium)
-            │       ├── TextField(手机号)
-            │       └── Button("获取验证码")
-            └── VersionTag (Alignment.BottomCenter)
-                └── Text(
-                      text = formatVersionTag() / formatVersionName(),
-                      fontSize = 12.sp,
-                      color = onSurfaceVariant,
-                      maxLines = 1, overflow = Ellipsis,
-                      modifier = windowInsetsPadding(navigationBars) + padding(bottom = 8.dp)
-                       + semantics { contentDescription = "应用版本号 v1.0" }
-                    )
+    └── Surface(Modifier.fillMaxSize())
+        └── Box(Modifier.fillMaxSize().imePadding())
+            ├── LoginScreen(Modifier.fillMaxSize())
+            │   ├── Column(16dp padding)
+            │   │   ├── Text("登录", headlineMedium)
+            │   │   ├── TextField(手机号)
+            │   │   └── Button("获取验证码")
+            └── AnimatedVisibility(isImeClosed)
+                └── VersionTag(Modifier.align(BottomCenter))
+                    └── Text(versionText, 12sp, onSurfaceVariant)
 ```
 
 ### 交互状态机
 ```
-┌─────────────┐
-│   Visible    │ ← 进入 Activity 即显示，无交互
-│  (静态渲染)  │
-└─────────────┘
-      ↓ (构建类型决定内容)
-┌──────────────┐    ┌──────────────┐
-│ Debug 构建    │    │ Release 构建  │
-│ v{name}({c}) │    │ v{name}      │
-│  + buildType │    │ (无后缀)     │
-└──────────────┘    └──────────────┘
+┌──────────┐  键盘收起    ┌──────────┐
+│  Default  │ ←────────── │  Typing   │
+│ (显示版本)│ ──────────→ │ (隐藏版本) │
+└──────────┘  键盘弹出    └──────────┘
+     │                         │
+     │ 仅展示，无交互           │ 输完手机号
+     │                         │ → 键盘收起
+     ▼                         ▼
+  版本号可见              版本号淡入重现
 ```
 
 ### 状态覆盖表
 
-| 状态 | 可见 | 显示内容 | 说明 |
-|------|------|----------|------|
-| Debug 构建 | ✅ | `v1.0(1)debug` | 完整格式，含 versionCode + buildType |
-| Release 构建 | ✅ | `v1.0` | 仅 versionName，无后缀 |
-| 版本名为空 | ✅ | 防御性空文本 | BuildConfig 异常兜底 |
+| 状态 | UI 表现 | 说明 |
+|------|---------|------|
+| 默认（键盘收起） | VersionTag 底部居中可见 | `AnimatedVisibility(visible=true)` |
+| 输入中（键盘弹出） | VersionTag 淡出隐藏 | `AnimatedVisibility(visible=false)` |
+| Debug 构建 | 显示 `v1.0(1)debug` | formatVersionTag() 含 buildType |
+| Release 构建 | 显示 `v1.0(1)` | formatVersionTag(buildType="") |
+| 深色模式 | onSurfaceVariant 自动适配 | M3 系统 Token |
+| 导航栏有/无 | navigationBarsPadding 自适应 | 8dp 底部额外 padding |
 
 ---
 
 ## §4 Token 映射表
 
-| 设计属性 | M3 Token | 值 |
-|----------|----------|-----|
-| 文字颜色 | `onSurfaceVariant` | 项目主题默认值 |
-| 字体大小 | `labelSmall` 覆盖 | 12sp |
-| 行数限制 | — | 1 (TextOverflow.Ellipsis) |
-| 底部间距 | — | 8dp |
-| 导航栏适配 | `WindowInsets.navigationBars` | 平台默认 |
+| 设计属性 | M3 Token | 值 | 说明 |
+|----------|----------|-----|------|
+| 页面背景 | `surface` | #FEFBFF (light) / #1C1B1F (dark) | Surface 现有 |
+| 版本号文字色 | `onSurfaceVariant` | #49454F (light) / #CAC4D0 (dark) | 现有 |
+| 版本号字体 | `12.sp` 硬编码 | 12sp | 待评估替换为 labelSmall |
+| 底部间距 | 硬编码 | 8.dp | 现有 |
+| 导航栏避让 | `WindowInsets.navigationBars` | 系统值 | 现有 |
+| IME 避让 | `WindowInsets.ime` | 系统值 | 新增 |
 
 ---
 
@@ -115,35 +117,34 @@ MainActivity
 
 | 组件 | 来源 | 复用方式 | 状态 |
 |------|------|----------|------|
-| `VersionTag` | `ui/components/VersionTag.kt` | 需改造 | ⚠️ 移除 `if (!DEBUG) return` |
-| `formatVersionTag()` | 同上 | 直接复用 | ✅ Debug 格式 |
-| `formatVersionDescription()` | 同上 | 直接复用 | ✅ TalkBack |
-| `LoginScreen` | `MainActivity.kt` | 不动 | ✅ 无变更 |
+| VersionTag | ui/components/VersionTag.kt | 改造（移除 Debug-only 条件，加 imePadding） | 🔧 修改 |
+| LoginScreen | MainActivity.kt 内联 | 直接复用 | ✅ |
+| MainActivity Box | MainActivity.kt | 改造（加 imePadding + AnimatedVisibility） | 🔧 修改 |
 
 ### 新增文件
-
-无新增文件 — 仅修改现有 `VersionTag.kt`（移除 Debug-only 门控）。
+无新增文件——仅修改 2 个已有文件。
 
 ---
 
 ## §6 架构协调设计
 
-### 导航事件
-无 — VersionTag 是 MainActivity 内静态 overlay，不参与导航。
-
 ### ViewModel
-不需要 — VersionTag 无状态，纯静态文本从 BuildConfig 读取。
+无需新增 ViewModel。版本号是纯展示，无状态管理需求。IME 可见性通过 `WindowInsets.isImeVisible` 获取。
 
 ### BackHandler
-不需要 — 无交互，不消费返回事件。
+无冲突。MainActivity 无 BackHandler 逻辑。
+
+### 事件通道
+无需跨 Screen 通信。仅 MainActivity 内部 `Box` 层级的键盘事件。
 
 ---
 
 ## §7 无障碍适配
 
-| 元素 | contentDescription | 触控目标 | TalkBack 焦点 |
-|------|-------------------|----------|--------------|
-| 版本号文本 | "应用版本号 v{versionName}" | N/A (无交互) | 装饰性辅助 |
+| 元素 | contentDescription | 触控目标 | 说明 |
+|------|-------------------|----------|------|
+| VersionTag Text | Debug: `应用版本号 v1.0 debug 构建` / Release: `应用版本号 v1.0` | N/A (纯展示) | 与可见文本一致（D-22 决议） |
+| 键盘隐藏时 | — | — | AnimatedVisibility fadeIn/Out 过渡 |
 
 ---
 
@@ -151,8 +152,10 @@ MainActivity
 
 | 依赖 | 说明 | 状态 |
 |------|------|------|
-| `buildConfig = true` | build.gradle.kts 已启用 | ✅ 已满足 |
-| `versionName` 已配置 | build.gradle.kts: `versionName = "1.0"` | ✅ 已满足 |
+| formatVersionTag | 已有函数，Release 调用 `buildType=""` | ✅ 已有 |
+| formatVersionDescription | TalkBack 描述文本 | ✅ 已有 |
+| AnimatedVisibility | Compose Foundation | ✅ 已有 |
+| WindowInsets.isImeVisible | Compose Foundation 1.5+ | ✅ 已有 |
 
 ---
 
@@ -193,5 +196,5 @@ MainActivity
 
 ---
 
-> **版本:** v0.2-review
-> **状态:** 三视角评审完成，P0 已自动修订。请审阅后回复「确认」冻结进入技术方案。
+> **版本:** v0.1-draft
+> **状态:** 待评审。请审阅后回复「确认」冻结进入技术方案。
