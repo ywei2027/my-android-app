@@ -1,10 +1,13 @@
 {
   "current_stage": "STAGE_UI_DESIGN",
-  "feature_name": "关于页面版本号显示",
+  "feature_name": "启动页面增加版本号显示功能",
   "prd_version": "v1.0-confirmed",
-  "ui_design_version": "v0.2-review",
+  "ui_design_version": "",
   "design_version": "",
+  "feishu_doc_url": "https://bytedance.feishu.cn/docx/UuBqdmbypoQQ9VxRoFEcJvWingh",
+  "ui_design_doc_url": "",
+  "design_doc_url": "",
   "issues": [],
-  "issue_urls": {},
-  "updated": "2026-06-02T22:55:00+08:00"
+  "pr_url": "",
+  "updated": "2026-06-03T00:36:00+08:00"
 }
