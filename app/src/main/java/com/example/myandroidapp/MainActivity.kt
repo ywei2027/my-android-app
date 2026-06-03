@@ -11,6 +11,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -20,8 +21,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.example.myandroidapp.ui.components.VersionTag
 import com.example.myandroidapp.ui.login.LoginViewModel
+import com.example.myandroidapp.ui.screen.about.AboutScreen
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -33,7 +38,22 @@ class MainActivity : ComponentActivity() {
             MaterialTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     Box(modifier = Modifier.fillMaxSize()) {
-                        LoginScreen(modifier = Modifier.fillMaxSize())
+                        val navController = rememberNavController()
+                        NavHost(
+                            navController = navController,
+                            startDestination = "login",
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            composable("login") {
+                                LoginScreen(
+                                    modifier = Modifier.fillMaxSize(),
+                                    onAboutClick = { navController.navigate("about") }
+                                )
+                            }
+                            composable("about") {
+                                AboutScreen(onBack = { navController.popBackStack() })
+                            }
+                        }
                         VersionTag(
                             modifier = Modifier.align(Alignment.BottomCenter)
                         )
@@ -47,7 +67,8 @@ class MainActivity : ComponentActivity() {
 @androidx.compose.runtime.Composable
 fun LoginScreen(
     modifier: Modifier = Modifier,
-    viewModel: LoginViewModel = hiltViewModel()
+    viewModel: LoginViewModel = hiltViewModel(),
+    onAboutClick: () -> Unit = {}
 ) {
     var phone by remember { mutableStateOf("") }
 
@@ -67,6 +88,12 @@ fun LoginScreen(
             modifier = Modifier.padding(top = 16.dp)
         ) {
             Text("获取验证码")
+        }
+        TextButton(
+            onClick = onAboutClick,
+            modifier = Modifier.padding(top = 8.dp)
+        ) {
+            Text("关于")
         }
     }
 }
