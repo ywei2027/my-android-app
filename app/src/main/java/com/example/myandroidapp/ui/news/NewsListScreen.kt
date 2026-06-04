@@ -1,6 +1,5 @@
 package com.example.myandroidapp.ui.news
 
-import android.app.Activity
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,6 +9,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SearchOff
@@ -19,24 +20,24 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -47,9 +48,6 @@ import com.example.myandroidapp.ui.components.ErrorState
 import com.example.myandroidapp.ui.components.NewsCard
 import com.example.myandroidapp.ui.components.NewsDimens
 import com.example.myandroidapp.ui.components.ShimmerCard
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.distinctUntilChanged
 import androidx.compose.runtime.derivedStateOf
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -65,9 +63,18 @@ fun NewsListScreen(
     val searchResults by viewModel.searchResults.collectAsStateWithLifecycle()
 
     val focusManager = LocalFocusManager.current
-    val context = LocalContext.current
     val listState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // 下拉刷新状态
+    val pullToRefreshState = rememberPullToRefreshState()
+
+    if (pullToRefreshState.isRefreshing) {
+        LaunchedEffect(true) {
+            viewModel.loadNews(selectedTab, isRefresh = true)
+            pullToRefreshState.endRefresh()
+        }
+    }
 
     // 收集 Snackbar 事件
     LaunchedEffect(Unit) {
@@ -94,69 +101,81 @@ fun NewsListScreen(
             )
         }
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = NewsDimens.CardPadding)
+                .nestedScroll(pullToRefreshState.nestedScrollConnection)
         ) {
-            // Search Bar
-            TextField(
-                value = searchQuery,
-                onValueChange = { viewModel.onSearchQueryChanged(it) },
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("searchBar"),
-                placeholder = { Text("搜索新闻标题或描述...") },
-                singleLine = true,
-                colors = TextFieldDefaults.colors(
-                    focusedIndicatorColor = MaterialTheme.colorScheme.primary,
-                    unfocusedIndicatorColor = MaterialTheme.colorScheme.outline
-                ),
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                trailingIcon = {
-                    if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { viewModel.clearSearch() }) {
-                            Icon(Icons.Default.SearchOff, contentDescription = "清除搜索")
+                    .fillMaxSize()
+                    .padding(horizontal = NewsDimens.CardPadding)
+            ) {
+                // 搜索栏 — PRD §9: OutlinedTextField, imeAction=Search
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { viewModel.onSearchQueryChanged(it) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("searchBar"),
+                    placeholder = { Text("搜索新闻标题或描述...") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(
+                        onSearch = { focusManager.clearFocus() }
+                    ),
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { viewModel.clearSearch() }) {
+                                Icon(Icons.Default.SearchOff, contentDescription = "清除搜索")
+                            }
+                        }
+                    }
+                )
+
+                // Tab 栏
+                if (!isSearchActive) {
+                    androidx.compose.material3.ScrollableTabRow(
+                        selectedTabIndex = NewsCategory.entries.indexOf(selectedTab),
+                        modifier = Modifier.testTag("categoryTabRow"),
+                        edgePadding = 0.dp
+                    ) {
+                        NewsCategory.entries.forEach { category ->
+                            androidx.compose.material3.Tab(
+                                selected = selectedTab == category,
+                                onClick = { viewModel.loadNews(category) },
+                                text = { Text(category.displayName) }
+                            )
                         }
                     }
                 }
-            )
 
-            // Tab Row
-            if (!isSearchActive) {
-                androidx.compose.material3.ScrollableTabRow(
-                    selectedTabIndex = NewsCategory.entries.indexOf(selectedTab),
-                    modifier = Modifier.testTag("categoryTabRow"),
-                    edgePadding = 0.dp
-                ) {
-                    NewsCategory.entries.forEach { category ->
-                        androidx.compose.material3.Tab(
-                            selected = selectedTab == category,
-                            onClick = { viewModel.loadNews(category) },
-                            text = { Text(category.displayName) }
+                // 内容区
+                Box(modifier = Modifier.weight(1f)) {
+                    when {
+                        isSearchActive -> SearchResultsView(
+                            results = searchResults,
+                            query = searchQuery,
+                            onArticleClick = onArticleClick
+                        )
+                        else -> ContentView(
+                            uiState = uiState,
+                            onArticleClick = onArticleClick,
+                            onRetry = { viewModel.loadNews(selectedTab) },
+                            onLoadMore = { viewModel.loadMore() },
+                            listState = listState
                         )
                     }
                 }
             }
 
-            // Content
-            Box(modifier = Modifier.weight(1f)) {
-                when {
-                    isSearchActive -> SearchResultsView(
-                        results = searchResults,
-                        query = searchQuery,
-                        onArticleClick = onArticleClick
-                    )
-                    else -> ContentView(
-                        uiState = uiState,
-                        onArticleClick = onArticleClick,
-                        onRetry = { viewModel.loadNews(selectedTab) },
-                        onLoadMore = { viewModel.loadMore() },
-                        listState = listState
-                    )
-                }
-            }
+            // 下拉刷新指示器
+            PullToRefreshContainer(
+                state = pullToRefreshState,
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
         }
     }
 }
@@ -180,9 +199,7 @@ private fun SearchResultsView(
             testTag = "searchEmptyState"
         )
     } else {
-        LazyColumn(
-            modifier = Modifier.testTag("searchOverlay")
-        ) {
+        LazyColumn(modifier = Modifier.testTag("searchOverlay")) {
             items(results, key = { it.url }) { article ->
                 NewsCard(
                     article = article,
@@ -251,8 +268,8 @@ private fun ContentView(
 }
 
 /**
- * B1-P0-2 修复：使用 snapshotFlow 监听滚动位置触发分页，替代 LaunchedEffect(Unit) 无限循环。
- * 当末项可见且距底部 ≤3 项时，debounce(300ms) 后触发 loadMore。
+ * 无限滚动文章列表。
+ * 使用 derivedStateOf 检测滚动到底部（距底 ≤3 项）自动触发分页。
  */
 @Composable
 private fun ArticleList(
@@ -289,7 +306,6 @@ private fun ArticleList(
         }
     }
 
-    // B1-P0-2 修复：滚动到底部时触发分页（derivedStateOf 检测末项可见）
     val shouldLoadMore by remember {
         derivedStateOf {
             val layoutInfo = listState.layoutInfo

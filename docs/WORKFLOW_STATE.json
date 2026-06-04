@@ -1,14 +1,21 @@
 {
-  "current_stage": "STAGE_UI_DESIGN",
-  "feature_name": "启动页面版本号显示",
+  "current_stage": "STAGE_CODE",
+  "feature_name": "小型新闻App",
   "prd_version": "v1.0-confirmed",
-  "ui_design_version": "v0.2-review",
-  "design_version": "",
-  "issues": [],
-  "issue_urls": {},
-  "feishu": {
-    "prd_doc_url": "https://bytedance.feishu.cn/docx/B7C0d0DOyoHGsixqlQUcx67jnig",
-    "ui_design_doc_url": ""
+  "ui_design_version": "v1.0-confirmed",
+  "design_version": "v1.0-confirmed",
+  "design_doc_url": "https://bytedance.feishu.cn/docx/HE6Qdwon3oW0vFxEbEjcK1mvnrR",
+  "pr_url": "https://github.com/ywei2027/my-android-app/pull/58",
+  "issues": [50, 51, 52, 53, 54, 55, 56, 57],
+  "issue_urls": {
+    "50": "https://github.com/ywei2027/my-android-app/issues/50",
+    "51": "https://github.com/ywei2027/my-android-app/issues/51",
+    "52": "https://github.com/ywei2027/my-android-app/issues/52",
+    "53": "https://github.com/ywei2027/my-android-app/issues/53",
+    "54": "https://github.com/ywei2027/my-android-app/issues/54",
+    "55": "https://github.com/ywei2027/my-android-app/issues/55",
+    "56": "https://github.com/ywei2027/my-android-app/issues/56",
+    "57": "https://github.com/ywei2027/my-android-app/issues/57"
   },
-  "updated": "2026-06-03T14:30:00+08:00"
+  "updated": "2026-06-04T11:45:00+08:00"
 }

@@ -1,5 +1,6 @@
 package com.example.myandroidapp.di
 
+import com.example.myandroidapp.data.remote.MockNewsInterceptor
 import com.example.myandroidapp.data.remote.NewsApiService
 import com.example.myandroidapp.BuildConfig
 import dagger.Module
@@ -27,6 +28,12 @@ object NetworkModule {
                     .addQueryParameter("apiKey", BuildConfig.NEWS_API_KEY)
                     .build()
                 chain.proceed(request.newBuilder().url(newUrl).build())
+            }
+            .apply {
+                // Debug: API Key 为空时注入 Mock 数据，确保 UI 有数据可展示
+                if (BuildConfig.NEWS_API_KEY.isBlank()) {
+                    addInterceptor(MockNewsInterceptor())
+                }
             }
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)
