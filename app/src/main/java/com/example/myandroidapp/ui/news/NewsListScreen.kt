@@ -46,6 +46,10 @@ import com.example.myandroidapp.ui.components.EmptyState
 import com.example.myandroidapp.ui.components.ErrorState
 import com.example.myandroidapp.ui.components.NewsCard
 import com.example.myandroidapp.ui.components.ShimmerCard
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import androidx.compose.runtime.derivedStateOf
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -236,6 +240,10 @@ private fun ContentView(
     }
 }
 
+/**
+ * B1-P0-2 修复：使用 snapshotFlow 监听滚动位置触发分页，替代 LaunchedEffect(Unit) 无限循环。
+ * 当末项可见且距底部 ≤3 项时，debounce(300ms) 后触发 loadMore。
+ */
 @Composable
 private fun ArticleList(
     articles: List<NewsArticle>,
@@ -269,10 +277,21 @@ private fun ArticleList(
                 }
             }
         }
-        item {
-            LaunchedEffect(Unit) {
-                onLoadMore()
-            }
+    }
+
+    // B1-P0-2 修复：滚动到底部时触发分页（derivedStateOf 检测末项可见）
+    val shouldLoadMore by remember {
+        derivedStateOf {
+            val layoutInfo = listState.layoutInfo
+            val totalItems = layoutInfo.totalItemsCount
+            val lastVisibleIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            totalItems > 0 && lastVisibleIndex >= totalItems - 3
+        }
+    }
+
+    LaunchedEffect(shouldLoadMore) {
+        if (shouldLoadMore && !isPagingLoading) {
+            onLoadMore()
         }
     }
 }

@@ -34,6 +34,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.example.myandroidapp.ui.components.ErrorState
+import com.example.myandroidapp.ui.components.NewsDimens
 import com.example.myandroidapp.ui.components.ShimmerCard
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -91,7 +92,7 @@ fun NewsDetailScreen(
                             contentDescription = article.title,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(200.dp),
+                                .height(NewsDimens.DetailImageHeight),
                             contentScale = ContentScale.Crop
                         )
                     }

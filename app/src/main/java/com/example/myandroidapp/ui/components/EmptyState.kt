@@ -17,7 +17,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 
 @Composable
 fun EmptyState(
@@ -29,7 +28,7 @@ fun EmptyState(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(32.dp)
+            .padding(NewsDimens.StatePadding)
             .testTag(testTag),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -37,17 +36,17 @@ fun EmptyState(
         Icon(
             imageVector = Icons.Default.Inbox,
             contentDescription = null,
-            modifier = Modifier.size(64.dp),
+            modifier = Modifier.size(NewsDimens.StateIconSize),
             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(NewsDimens.CardPadding))
         Text(
             text = title,
             style = MaterialTheme.typography.titleMedium,
             textAlign = TextAlign.Center
         )
         if (subtitle.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(NewsDimens.CardGap))
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodyMedium,

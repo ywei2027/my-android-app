@@ -4,13 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myandroidapp.data.repository.NewsRepository
 import com.example.myandroidapp.domain.model.NewsArticle
-import com.example.myandroidapp.domain.model.NewsCategory
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeout
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -28,36 +26,23 @@ class NewsDetailViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<DetailUiState>(DetailUiState.Loading)
     val uiState: StateFlow<DetailUiState> = _uiState.asStateFlow()
 
+    /**
+     * B1-P0-1 修复：从 Room 缓存按 URL 查询文章，而非 API 盲搜 pageSize=1。
+     * Room 之前已通过列表页的 getTopHeadlines 异步缓存了各分类数据。
+     */
     fun loadDetail(articleId: String) {
         viewModelScope.launch {
             _uiState.value = DetailUiState.Loading
             Timber.d("loadDetail articleId=$articleId")
-            try {
-                withTimeout(30_000L) {
-                    // 获取第一页数据（任意分类）然后按 URL 过滤
-                    val result = newsRepository.getTopHeadlines(
-                        category = NewsCategory.RECOMMENDED,
-                        page = 1,
-                        pageSize = 1
-                    )
-                    result.onSuccess { articles ->
-                        val article = articles.find { it.url == articleId }
-                        if (article != null) {
-                            _uiState.value = DetailUiState.Success(article)
-                            Timber.d("loadDetail SUCCESS: ${article.title}")
-                        } else {
-                            _uiState.value = DetailUiState.Error("文章未找到")
-                            Timber.w("loadDetail article not found: $articleId")
-                        }
-                    }.onFailure { e ->
-                        _uiState.value = DetailUiState.Error("加载失败，请检查网络")
-                        Timber.e(e, "loadDetail FAILED")
-                    }
+            newsRepository.getArticleByUrl(articleId)
+                .onSuccess { article ->
+                    _uiState.value = DetailUiState.Success(article)
+                    Timber.d("loadDetail SUCCESS: ${article.title}")
                 }
-            } catch (e: Exception) {
-                _uiState.value = DetailUiState.Error("请求超时，请重试")
-                Timber.e(e, "loadDetail TIMEOUT")
-            }
+                .onFailure { e ->
+                    Timber.w(e, "loadDetail not found in cache: $articleId")
+                    _uiState.value = DetailUiState.Error("文章未找到，请返回重试")
+                }
         }
     }
 }

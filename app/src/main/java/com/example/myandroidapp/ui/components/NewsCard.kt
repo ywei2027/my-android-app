@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.myandroidapp.domain.model.NewsArticle
 
+// Requires Compose BOM ≥ 2023.10.01（Card onClick overload）
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewsCard(
@@ -33,14 +34,14 @@ fun NewsCard(
         shape = MaterialTheme.shapes.medium,
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(NewsDimens.CardPadding)) {
             if (!article.urlToImage.isNullOrBlank()) {
                 AsyncImage(
                     model = article.urlToImage,
                     contentDescription = article.title,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(180.dp),
+                        .height(NewsDimens.CardImageHeight),
                     contentScale = ContentScale.Crop
                 )
             }
@@ -49,13 +50,15 @@ fun NewsCard(
                 style = MaterialTheme.typography.titleMedium,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(top = if (article.urlToImage.isNullOrBlank()) 0.dp else 8.dp)
+                modifier = Modifier.padding(
+                    top = if (article.urlToImage.isNullOrBlank()) 0.dp else NewsDimens.CardGap
+                )
             )
             Text(
                 text = "${article.sourceName} · ${article.publishedAt}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp)
+                modifier = Modifier.padding(top = NewsDimens.CardSpacing)
             )
             if (!article.description.isNullOrBlank()) {
                 Text(
@@ -64,7 +67,7 @@ fun NewsCard(
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp)
+                    modifier = Modifier.padding(top = NewsDimens.CardSpacing)
                 )
             }
         }

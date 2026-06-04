@@ -124,8 +124,9 @@ dependencies {
 }
 
 // Compose UI 测试仅在 Debug 变体可运行（Release merged manifest 不含 ComponentActivity）
+// B3-P1-2 修复：排除所有 Compose 测试（Release merged manifest 不含 ComponentActivity）
 afterEvaluate {
     tasks.named<Test>("testReleaseUnitTest").configure {
-        filter.excludeTestsMatching("*VersionTagComposeTest*")
+        filter.excludeTestsMatching("*ComposeTest*")
     }
 }

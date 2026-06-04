@@ -57,32 +57,32 @@ fun ShimmerCard(
         shape = MaterialTheme.shapes.medium,
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(NewsDimens.CardPadding)) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp)
+                    .height(NewsDimens.CardImageHeight)
                     .background(shimmerBrush)
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(NewsDimens.CardGap))
             Box(
                 modifier = Modifier
                     .fillMaxWidth(0.8f)
-                    .height(20.dp)
+                    .height(NewsDimens.ShimmerTitleHeight)
                     .background(shimmerBrush)
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(NewsDimens.CardSpacing))
             Box(
                 modifier = Modifier
                     .fillMaxWidth(0.4f)
-                    .height(14.dp)
+                    .height(NewsDimens.ShimmerSubtitleHeight)
                     .background(shimmerBrush)
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(NewsDimens.CardSpacing))
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(40.dp)
+                    .height(NewsDimens.ShimmerBodyHeight)
                     .background(shimmerBrush)
             )
         }

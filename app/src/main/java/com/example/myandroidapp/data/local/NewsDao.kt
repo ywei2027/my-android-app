@@ -10,6 +10,9 @@ interface NewsDao {
     @Query("SELECT * FROM news_articles WHERE category = :category ORDER BY publishedAt DESC")
     suspend fun getByCategory(category: String): List<NewsArticleEntity>
 
+    @Query("SELECT * FROM news_articles WHERE url = :url LIMIT 1")
+    suspend fun getByUrl(url: String): NewsArticleEntity?
+
     @Query("""
         SELECT * FROM news_articles
         WHERE title LIKE :query OR description LIKE :query
