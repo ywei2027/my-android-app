@@ -37,4 +37,10 @@ object NewsDimens {
 
     /** 状态页内边距 */
     val StatePadding: Dp = 32.dp
+
+    /** 卡片阴影高度 */
+    val CardElevation: Dp = 2.dp
+
+    /** 详情页底部留白（阅读原文按钮上方） */
+    val DetailBottomSpacing: Dp = 24.dp
 }

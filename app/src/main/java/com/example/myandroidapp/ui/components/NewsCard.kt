@@ -32,7 +32,7 @@ fun NewsCard(
             .fillMaxWidth()
             .testTag("newsCard"),
         shape = MaterialTheme.shapes.medium,
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = NewsDimens.CardElevation)
     ) {
         Column(modifier = Modifier.padding(NewsDimens.CardPadding)) {
             if (!article.urlToImage.isNullOrBlank()) {

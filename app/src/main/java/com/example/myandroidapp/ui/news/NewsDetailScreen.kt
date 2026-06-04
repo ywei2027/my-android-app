@@ -29,7 +29,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
@@ -73,7 +72,7 @@ fun NewsDetailScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(padding)
-                        .padding(16.dp)
+                        .padding(NewsDimens.CardPadding)
                 ) {
                     ShimmerCard(testTag = "shimmerDetail")
                 }
@@ -96,36 +95,36 @@ fun NewsDetailScreen(
                             contentScale = ContentScale.Crop
                         )
                     }
-                    Column(modifier = Modifier.padding(16.dp)) {
+                    Column(modifier = Modifier.padding(NewsDimens.CardPadding)) {
                         Text(
                             text = article.title,
                             style = MaterialTheme.typography.headlineSmall
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(NewsDimens.CardGap))
                         Row {
                             Text(
                                 text = article.sourceName,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(NewsDimens.CardGap))
                             Text(text = "·", style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(NewsDimens.CardGap))
                             Text(
                                 text = article.publishedAt,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(NewsDimens.CardPadding))
                         if (!article.description.isNullOrBlank()) {
                             Text(
                                 text = article.description,
                                 style = MaterialTheme.typography.bodyLarge
                             )
                         }
-                        Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(NewsDimens.DetailBottomSpacing))
                         FilledTonalButton(
                             onClick = {
                                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse(article.url))

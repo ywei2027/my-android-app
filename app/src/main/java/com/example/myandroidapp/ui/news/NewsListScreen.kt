@@ -45,6 +45,7 @@ import com.example.myandroidapp.domain.model.NewsCategory
 import com.example.myandroidapp.ui.components.EmptyState
 import com.example.myandroidapp.ui.components.ErrorState
 import com.example.myandroidapp.ui.components.NewsCard
+import com.example.myandroidapp.ui.components.NewsDimens
 import com.example.myandroidapp.ui.components.ShimmerCard
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
@@ -66,6 +67,14 @@ fun NewsListScreen(
     val focusManager = LocalFocusManager.current
     val context = LocalContext.current
     val listState = rememberLazyListState()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // 收集 Snackbar 事件
+    LaunchedEffect(Unit) {
+        viewModel.snackbarEvent.collect { message ->
+            snackbarHostState.showSnackbar(message)
+        }
+    }
 
     BackHandler(enabled = isSearchActive) {
         viewModel.clearSearch()
@@ -73,6 +82,7 @@ fun NewsListScreen(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("新闻") },
@@ -88,7 +98,7 @@ fun NewsListScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = NewsDimens.CardPadding)
         ) {
             // Search Bar
             TextField(
@@ -177,7 +187,7 @@ private fun SearchResultsView(
                 NewsCard(
                     article = article,
                     onClick = { onArticleClick(article.url) },
-                    modifier = Modifier.padding(vertical = 4.dp)
+                    modifier = Modifier.padding(vertical = NewsDimens.CardSpacing)
                 )
             }
         }
@@ -197,7 +207,7 @@ private fun ContentView(
             LazyColumn(modifier = Modifier.testTag("newsCardList")) {
                 items(3) { index ->
                     ShimmerCard(
-                        modifier = Modifier.padding(vertical = 4.dp),
+                        modifier = Modifier.padding(vertical = NewsDimens.CardSpacing),
                         testTag = "shimmerCard_$index"
                     )
                 }
@@ -260,7 +270,7 @@ private fun ArticleList(
             NewsCard(
                 article = article,
                 onClick = { onArticleClick(article.url) },
-                modifier = Modifier.padding(vertical = 4.dp)
+                modifier = Modifier.padding(vertical = NewsDimens.CardSpacing)
             )
         }
         if (isPagingLoading) {
@@ -268,7 +278,7 @@ private fun ArticleList(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .padding(NewsDimens.CardPadding),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(

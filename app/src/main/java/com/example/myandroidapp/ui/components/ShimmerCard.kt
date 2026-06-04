@@ -55,7 +55,7 @@ fun ShimmerCard(
             .fillMaxWidth()
             .testTag(testTag),
         shape = MaterialTheme.shapes.medium,
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = NewsDimens.CardElevation)
     ) {
         Column(modifier = Modifier.padding(NewsDimens.CardPadding)) {
             Box(

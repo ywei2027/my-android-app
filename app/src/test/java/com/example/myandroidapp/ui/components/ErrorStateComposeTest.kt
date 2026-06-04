@@ -5,7 +5,10 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import io.mockk.mockk
+import io.mockk.verify
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -77,18 +80,28 @@ class ErrorStateComposeTest {
 
     @Test
     fun errorState_retryButtonIsClickable() {
+        // B3-P0-4 修复：使用 performClick + mockk verify 替代恒真 assertIsDisplayed
+        val onRetry: () -> Unit = mockk(relaxed = true)
+
         composeTestRule.setContent {
             MaterialTheme {
                 ErrorState(
                     message = "请重试",
-                    onRetry = {}
+                    onRetry = onRetry
                 )
             }
         }
 
-        // 按钮存在且可点击
+        // 按钮存在
         composeTestRule
             .onNodeWithTag("errorRetryButton")
             .assertIsDisplayed()
+
+        // 执行点击并验证回调
+        composeTestRule
+            .onNodeWithTag("errorRetryButton")
+            .performClick()
+
+        verify(exactly = 1) { onRetry() }
     }
 }

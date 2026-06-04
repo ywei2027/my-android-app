@@ -5,9 +5,12 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.myandroidapp.domain.model.NewsArticle
 import com.example.myandroidapp.domain.model.NewsCategory
+import io.mockk.mockk
+import io.mockk.verify
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -106,17 +109,22 @@ class NewsCardComposeTest {
 
     @Test
     fun newsCard_clickInvokesCallback() {
+        // B3-P0-3 修复：使用 performClick + mockk verify 替代恒真 assertIsDisplayed
+        val onClick: () -> Unit = mockk(relaxed = true)
+
         composeTestRule.setContent {
             MaterialTheme {
                 NewsCard(
                     article = sampleArticle,
-                    onClick = {}
+                    onClick = onClick
                 )
             }
         }
 
         composeTestRule
             .onNodeWithTag("newsCard")
-            .assertIsDisplayed()
+            .performClick()
+
+        verify(exactly = 1) { onClick() }
     }
 }

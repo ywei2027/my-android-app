@@ -11,8 +11,11 @@ import com.example.myandroidapp.domain.model.NewsCategory
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
@@ -52,6 +55,9 @@ class NewsListViewModel @Inject constructor(
 
     private val _searchResults = MutableStateFlow<List<NewsArticle>>(emptyList())
     val searchResults: StateFlow<List<NewsArticle>> = _searchResults.asStateFlow()
+
+    private val _snackbarEvent = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val snackbarEvent: SharedFlow<String> = _snackbarEvent.asSharedFlow()
 
     private var loadJob: Job? = null
     private var currentPage = 1
@@ -113,6 +119,7 @@ class NewsListViewModel @Inject constructor(
                 .onFailure {
                     // 保留已加载数据
                     _uiState.value = NewsListUiState.Success(oldData)
+                    _snackbarEvent.tryEmit("加载失败，请检查网络")
                     Timber.e("loadMore FAILED, keeping ${oldData.size} items")
                 }
         }

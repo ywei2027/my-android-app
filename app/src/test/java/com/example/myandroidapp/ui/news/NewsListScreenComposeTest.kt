@@ -9,6 +9,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.myandroidapp.domain.model.NewsCategory
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Rule
 import org.junit.Test
@@ -30,6 +31,7 @@ class NewsListScreenComposeTest {
         every { mockViewModel.isSearchActive } returns MutableStateFlow(false)
         every { mockViewModel.selectedTab } returns MutableStateFlow(NewsCategory.RECOMMENDED)
         every { mockViewModel.searchResults } returns MutableStateFlow(emptyList())
+        every { mockViewModel.snackbarEvent } returns MutableSharedFlow()
 
         composeTestRule.setContent {
             MaterialTheme {
@@ -59,6 +61,7 @@ class NewsListScreenComposeTest {
         every { mockViewModel.isSearchActive } returns MutableStateFlow(false)
         every { mockViewModel.selectedTab } returns MutableStateFlow(NewsCategory.RECOMMENDED)
         every { mockViewModel.searchResults } returns MutableStateFlow(emptyList())
+        every { mockViewModel.snackbarEvent } returns MutableSharedFlow()
 
         composeTestRule.setContent {
             MaterialTheme {
@@ -92,6 +95,7 @@ class NewsListScreenComposeTest {
         every { mockViewModel.isSearchActive } returns MutableStateFlow(false)
         every { mockViewModel.selectedTab } returns MutableStateFlow(NewsCategory.RECOMMENDED)
         every { mockViewModel.searchResults } returns MutableStateFlow(emptyList())
+        every { mockViewModel.snackbarEvent } returns MutableSharedFlow()
 
         composeTestRule.setContent {
             MaterialTheme {
@@ -124,6 +128,7 @@ class NewsListScreenComposeTest {
         every { mockViewModel.isSearchActive } returns MutableStateFlow(false)
         every { mockViewModel.selectedTab } returns MutableStateFlow(NewsCategory.RECOMMENDED)
         every { mockViewModel.searchResults } returns MutableStateFlow(emptyList())
+        every { mockViewModel.snackbarEvent } returns MutableSharedFlow()
 
         composeTestRule.setContent {
             MaterialTheme {
