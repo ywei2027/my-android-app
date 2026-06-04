@@ -3,81 +3,79 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>启动页面版本号 — UI 原型</title>
+<title>新闻App — 原型导航</title>
 <style>
 :root {
   --primary: #1A4FBF;
-  --primary-light: #B0C6FF;
+  --primary-container: #D8E2FF;
   --surface: #FEFBFF;
   --surface-variant: #E7E0EC;
   --on-surface: #1C1B1E;
   --on-surface-variant: #49454F;
-  --on-primary: #FFFFFF;
   --error: #B81C1C;
   --outline: #79747E;
-  --outline-variant: #CAC4D0;
-  --ripple: rgba(26, 79, 191, 0.08);
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --surface: #1C1B1F;
-    --surface-variant: #49454F;
-    --on-surface: #E6E1E5;
-    --on-surface-variant: #CAC4D0;
-    --primary: #B0C6FF;
-    --primary-light: #1A4FBF;
-    --on-primary: #001D36;
-    --error: #FFB4AB;
-    --outline: #938F99;
-    --outline-variant: #49454F;
-    --ripple: rgba(176, 198, 255, 0.08);
-  }
-}
-* { margin: 0; padding: 0; box-sizing: border-box; }
 body {
   background: #e8e8e8;
   display: flex; justify-content: center; align-items: center;
   min-height: 100vh;
   font-family: 'Roboto', 'Noto Sans SC', sans-serif;
 }
-.container { max-width: 420px; padding: 24px; text-align: center; }
-h1 { font-size: 24px; color: var(--on-surface); margin-bottom: 4px; }
-.subtitle { font-size: 14px; color: var(--on-surface-variant); margin-bottom: 24px; }
-.page-card {
+.container {
   background: var(--surface);
-  border: 1px solid var(--outline-variant);
-  border-radius: 16px;
-  padding: 20px;
-  margin-bottom: 16px;
-  text-align: left;
+  border-radius: 44px;
+  width: 375px; min-height: 812px;
+  padding: 32px 24px;
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+  box-sizing: border-box;
 }
-.page-card h2 { font-size: 18px; color: var(--on-surface); margin-bottom: 4px; }
-.page-card p { font-size: 13px; color: var(--on-surface-variant); margin-bottom: 12px; }
-.links { display: flex; gap: 8px; flex-wrap: wrap; }
-.links a {
-  display: inline-block;
-  padding: 6px 14px;
-  border-radius: 20px;
-  text-decoration: none;
-  font-size: 13px;
-  transition: background 0.15s;
-}
-.link-primary { background: var(--primary); color: var(--on-primary); }
-.link-primary:hover { opacity: 0.9; }
+h1 { font-size: 24px; font-weight: 700; color: var(--on-surface); margin: 0 0 8px 0; }
+.subtitle { font-size: 14px; color: var(--on-surface-variant); margin: 0 0 24px 0; }
+.section { margin-bottom: 24px; }
+.section h2 { font-size: 16px; color: var(--on-surface); margin: 0 0 12px 0; display: flex; align-items: center; gap: 8px; }
+.links { display: flex; flex-wrap: wrap; gap: 8px; }
+.link { display: inline-block; padding: 8px 16px; border-radius: 20px; text-decoration: none; font-size: 13px; font-weight: 500; transition: background 0.15s; }
+.link-primary { background: var(--primary); color: #fff; }
+.link-primary:hover { opacity: 0.88; }
+.link-second { background: var(--surface-variant); color: var(--on-surface-variant); }
+.link-second:hover { background: #d8d2de; }
+.link-outline { border: 1px solid var(--outline); color: var(--primary); }
 </style>
 </head>
 <body>
 <div class="container">
-  <h1>📱 启动页面版本号显示</h1>
+  <h1>📰 小型新闻App</h1>
   <p class="subtitle">UI 原型预览 — v0.1-draft</p>
 
-  <div class="page-card">
-    <h2>🚀 启动页面</h2>
-    <p>MainActivity → LoginScreen + VersionTag 叠加，键盘弹出时版本号自动隐藏</p>
+  <div class="section">
+    <h2>📱 新闻列表页</h2>
     <div class="links">
-      <a href="startup_default.html" class="link-primary">默认态（版本号可见）</a>
+      <a href="news_list_default.html" class="link-primary">默认态（有数据）</a>
+      <a href="news_list_loading.html" class="link-second">首次加载态</a>
+      <a href="news_list_error.html" class="link-second">错误态</a>
+      <a href="news_list_empty.html" class="link-second">空分类态</a>
     </div>
   </div>
+
+  <div class="section">
+    <h2>📄 新闻详情页</h2>
+    <div class="links">
+      <a href="news_detail_success.html" class="link-primary">成功态</a>
+      <a href="news_detail_loading.html" class="link-second">加载态</a>
+      <a href="news_detail_error.html" class="link-second">错误态</a>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>🔍 搜索态</h2>
+    <div class="links">
+      <a href="news_list_search_empty.html" class="link-second">搜索无结果</a>
+    </div>
+  </div>
+
+  <p style="font-size:12px; color:var(--outline); margin-top:24px; text-align:center;">
+    Android 新闻App · Material3 设计 · 375×812 iPhone X 视口
+  </p>
 </div>
 </body>
 </html>

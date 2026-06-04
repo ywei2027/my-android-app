@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>新闻详情 — 加载态</title>
+<style>
+:root {
+  --surface: #FEFBFF; --surface-variant: #E7E0EC;
+  --on-surface: #1C1B1E; --outline-variant: #CAC4D0;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --surface: #1C1B1F; --surface-variant: #49454F; --on-surface: #E6E1E5; }
+}
+body { background:#e8e8e8; display:flex; justify-content:center; align-items:center; min-height:100vh; font-family:'Roboto','Noto Sans SC',sans-serif; margin:0; }
+.phone { width:375px; height:812px; background:var(--surface); border-radius:44px; overflow:hidden; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); display:flex; flex-direction:column; }
+.status-bar { height:44px; background:var(--surface); display:flex; align-items:center; justify-content:space-between; padding:0 24px; font-size:12px; color:var(--on-surface); flex-shrink:0; }
+.top-bar { height:48px; display:flex; align-items:center; padding:0 8px; border-bottom:1px solid var(--outline-variant); flex-shrink:0; }
+.back-btn { width:48px; height:48px; display:flex; align-items:center; justify-content:center; font-size:20px; cursor:pointer; color:var(--on-surface); }
+@keyframes shimmer { 0% { background-position:-200px 0; } 100% { background-position:200px 0; } }
+.shimmer-box {
+  background: linear-gradient(90deg, var(--surface-variant) 25%, rgba(255,255,255,0.3) 50%, var(--surface-variant) 75%);
+  background-size: 400px 100%; animation: shimmer 1.5s infinite; border-radius:4px;
+}
+.scroll-area { flex:1; padding:16px; overflow-y:auto; }
+.header-shimmer { width:100%; height:200px; border-radius:0; margin-bottom:16px; }
+.title-shimmer { height:24px; width:90%; margin-bottom:8px; }
+.title-shimmer2 { height:24px; width:65%; margin-bottom:16px; }
+.meta-shimmer { height:14px; width:40%; margin-bottom:24px; }
+.body-shimmer { height:16px; width:95%; margin-bottom:8px; }
+.body-shimmer2 { height:16px; width:85%; margin-bottom:8px; }
+.body-shimmer3 { height:16px; width:70%; margin-bottom:8px; }
+.body-shimmer4 { height:16px; width:60%; margin-bottom:24px; }
+.btn-shimmer { height:48px; width:100%; border-radius:20px; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="status-bar">09:41 <span>📶 🔋</span></div>
+  <div class="top-bar">
+    <div class="back-btn" aria-label="返回新闻列表">←</div>
+  </div>
+  <div class="shimmer-box header-shimmer"></div>
+  <div class="scroll-area">
+    <div class="shimmer-box title-shimmer"></div>
+    <div class="shimmer-box title-shimmer2"></div>
+    <div class="shimmer-box meta-shimmer"></div>
+    <div class="shimmer-box body-shimmer"></div>
+    <div class="shimmer-box body-shimmer2"></div>
+    <div class="shimmer-box body-shimmer3"></div>
+    <div class="shimmer-box body-shimmer4"></div>
+    <div class="shimmer-box btn-shimmer"></div>
+  </div>
+</div>
+</body>
+</html>

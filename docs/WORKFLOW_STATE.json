@@ -1,14 +1,18 @@
 {
-  "current_stage": "STAGE_UI_DESIGN",
+  "current_stage": "STAGE_CODE",
   "feature_name": "启动页面版本号显示",
   "prd_version": "v1.0-confirmed",
-  "ui_design_version": "v0.2-review",
-  "design_version": "",
-  "issues": [],
-  "issue_urls": {},
-  "feishu": {
-    "prd_doc_url": "https://bytedance.feishu.cn/docx/B7C0d0DOyoHGsixqlQUcx67jnig",
-    "ui_design_doc_url": ""
+  "ui_design_version": "v1.0-confirmed",
+  "design_version": "v1.0-confirmed",
+  "issues": [
+    {"id": "47", "title": "MainActivity Box层添加IME感知VersionTag叠加", "layer": "ui"},
+    {"id": "48", "title": "VersionTag组件改造 移除Debug-only条件支持Release构建", "layer": "ui"},
+    {"id": "49", "title": "启动页面版本号IME显隐交互测试", "layer": "test"}
+  ],
+  "issue_urls": {
+    "47": "https://github.com/ywei2027/my-android-app/issues/47",
+    "48": "https://github.com/ywei2027/my-android-app/issues/48",
+    "49": "https://github.com/ywei2027/my-android-app/issues/49"
   },
-  "updated": "2026-06-03T14:30:00+08:00"
+  "updated": "2026-06-03T20:30:00+08:00"
 }

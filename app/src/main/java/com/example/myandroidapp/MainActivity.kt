@@ -3,9 +3,11 @@ package com.example.myandroidapp
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -22,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.myandroidapp.ui.components.VersionTag
 import com.example.myandroidapp.ui.login.LoginViewModel
+import com.example.myandroidapp.ui.util.isKeyboardVisible
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -32,11 +35,19 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    Box(modifier = Modifier.fillMaxSize()) {
+                    val keyboardVisible = isKeyboardVisible()
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .imePadding() // §4: IME 避让，键盘弹出时内容自动收起
+                    ) {
                         LoginScreen(modifier = Modifier.fillMaxSize())
-                        VersionTag(
-                            modifier = Modifier.align(Alignment.BottomCenter)
-                        )
+                        // §3 交互状态机: 键盘弹出 → 隐藏版本号，键盘收起 → 淡入显示
+                        AnimatedVisibility(visible = !keyboardVisible) {
+                            VersionTag(
+                                modifier = Modifier.align(Alignment.BottomCenter)
+                            )
+                        }
                     }
                 }
             }
