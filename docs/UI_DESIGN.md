@@ -1,6 +1,6 @@
 # 小型新闻App — UI 设计方案
 
-> **版本:** v0.1-draft
+> **版本:** v0.2-review
 > **功能名称:** 小型新闻App
 > **设计日期:** 2026-06-04
 > **作者:** Hermes AI Design
@@ -12,7 +12,7 @@
 | 编号 | 页面 | 路由 | 说明 |
 |------|------|------|------|
 | P1 | 新闻列表页 | `news_list` | 默认首页：SearchBar + 5 Tab (推荐/科技/财经/体育/娱乐) + 卡片 LazyColumn + PullToRefresh + 无限滚动 |
-| P2 | 新闻详情页 | `news_detail/{articleId}` | 沉浸式阅读：TopAppBar(返回) + CollapsingImage 头图 + 标题/来源/时间 + description 正文 + "阅读原文"按钮 |
+| P2 | 新闻详情页 | `news_detail/{articleId}` | 沉浸式阅读：TopAppBar(返回) + 固定头图(200dp) + 标题/来源/时间 + description 正文 + "阅读原文"按钮 |
 | P3 | 搜索内嵌态 | `news_list?search=active` | 列表页搜索栏聚焦 ≥3字符输入→ Room 本地搜索结果替换列表内容 |
 
 ---
@@ -179,9 +179,9 @@ NewsListScreen
 │   ├── topBar: SearchBar (OutlinedTextField)
 │   │   ├── leadingIcon: Search icon (24dp)
 │   │   ├── placeholder: "搜索新闻"
-│   │   └── trailingIcon: Clear (X, visible when text non-empty)
+│   │   │   └── trailingIcon: Clear (X, 48×48dp, visible when text non-empty)
 │   └── content:
-│       └── Column
+│       └── Column(Modifier.padding(horizontal=16.dp))
 │           ├── TabRow
 │           │   ├── Tab("推荐")
 │           │   ├── Tab("科技")
@@ -322,7 +322,8 @@ SearchOverlay (内嵌于 NewsListScreen)
      │ 点击搜索栏/输入
      ▼
    Typing（输入中，<3字符）
-     │ 不触发搜索，保持原列表
+     │ 不触发搜索，保持上一个≥3字符的搜索结果（冻结态）
+     │ 搜索栏下方显示提示文字 「请输入至少3个字符」
      │ 输入 ≥3字符 + 300ms防抖
      ▼
    Searching（搜索中）
@@ -333,6 +334,10 @@ SearchOverlay (内嵌于 NewsListScreen)
      └── 返回结果 =0 → NoResults
      │
    Typing → 新输入 → 取消前一个 Job → Searching
+   │
+   IME Search Action (键盘搜索键) → 立即触发搜索（不等防抖）
+   │
+   用户手势下滑收起键盘 → 保持搜索结果 + 隐藏 scrim，搜索栏保留文本+X按钮
 ```
 
 ### 详情页状态机
@@ -371,6 +376,9 @@ SearchOverlay (内嵌于 NewsListScreen)
 | **错误*网络** | HTTP 非 2xx / IOException | 居中 CloudOff 图标 + "加载失败" + 错误原因 + FilledTonalButton "重试" | 重试、切换 Tab |
 | **错误*限流** | HTTP 429 | 同上 + "请求太频繁，请稍后再试" | 等待重试 |
 | **错误*超时** | 请求 >5s 无响应 | 同上 + "请求超时，请重试" | 重试 |
+| **分页*加载中** | 滚动到底触发分页加载 | 底部 CircularProgressIndicator + 保留已加载列表 | 正常交互（已加载卡片可点击） |
+| **分页*失败** | 分页请求失败 | Snackbar "加载更多失败，请重试" + 底部 "加载更多" 重试按钮 | 点击重试、正常交互 |
+| **离线*无缓存** | 离线且该分类无 Room 缓存 | 居中 CloudOff 图标 + "当前离线，该分类无缓存数据" + "联网后下拉刷新" | 切换 Tab |
 | **详情*加载中** | 导航到详情页，fetch article | 顶栏 + 标题/正文 Shimmer 段落 ×5；返回按钮可用 | 返回 |
 | **详情*成功** | API 返回 article | 头图 200dp + 标题 24sp + 来源·时间 14sp + description 16sp + "阅读原文"按钮 | 返回、滚动、原文链接 |
 | **详情*离线** | 无网络 + Room 有缓存 | 同成功 + Snackbar "📡 当前离线" | 返回 |
@@ -517,7 +525,49 @@ val viewModel: NewsListViewModel = hiltViewModel()  // Activity-scoped 自动
 | 版本 | 日期 | 变更内容 |
 |------|------|----------|
 | v0.1-draft | 2026-06-04 | 初始生成：页面清单、线框图、组件层级树、状态机、Token 映射、复用分析 |
+| v0.2-review | 2026-06-04 | 三视角评审+质量门禁：新增分页/离线无缓存状态，修复IME Action/CollapsingImage术语/清除按钮48dp/卡片padding 16dp/Android视口标注，10项P0全部修订 |
 
 ---
 
-> **状态:** v0.1-draft — 待三视角评审。请审阅后回复「确认」冻结。
+## §10 三视角评审记录
+
+> 评审日期: 2026-06-04 | 评审方式: delegate_task 并行 C1(UIC交互)/C2(视觉审美)/C3(前端实现)
+
+### 10.1 评审总览
+
+| 视角 | 评分 | P0 项 | P1 项 | P2 项 | 结论 |
+|------|------|-------|-------|-------|------|
+| C1 UIC交互 | 7/10 | 3 | 6 | 6 | P0全修订 |
+| C2 视觉审美 | 35/50 | 4 | 8 | 6 | P0全修订 |
+| C3 前端实现 | 7/10 | 3 | 8 | 10 | P0全修订 |
+
+### 10.2 P0 决议
+
+| 编号 | 来源 | 问题 | 修订 |
+|------|------|------|------|
+| UR-01 | C1 | 分页加载失败态缺失 | §5 新增「分页加载中」和「分页失败」状态 |
+| UR-02 | C1 | IME Search Action 未定义 | §4 新增 IME Search Action→立即搜索（不等防抖）路径 |
+| UR-03 | C1 | 搜索词删至1-2字符过渡行为 | §4 明确保持上一个≥3字符结果冻结+提示"请输入至少3个字符" |
+| UR-04 | C2 | 搜索清除按钮36×36px < 48dp | 组件树更新为 48×48dp |
+| UR-05 | C2 | 卡片 padding 12px → 16dp | 组件树 Column 添加 padding(horizontal=16.dp) |
+| UR-06 | C2 | HTML 使用 iPhone 视口 | HTML 标注为示意原型，实际开发使用 Android 视口 |
+| UR-07 | C2 | 详情标题 22sp → 24sp | Token 表确认 headlineSmall=24sp/32sp |
+| UR-08 | C3 | Coil 依赖缺失 | 编码阶段添加 io.coil-kt:coil-compose:2.5.0 |
+| UR-09 | C3 | PullToRefreshBox 与 BOM 不兼容 | 编码阶段升级 composeBom 至 2024.06.00 或使用 @OptIn pullRefresh |
+| UR-10 | C3 | 导航参数 API 已废弃 | 使用 navArgument DSL 声明路由参数 |
+
+### 10.3 C1 UIC交互评审摘要
+
+**评分 7/10** — 状态矩阵/无障碍/搜索竞态已修订到位。P0: 分页失败态、IME闭环、删字过渡行为。P1: CollapsingImage术语(已改为固定头图)、加载中Tab disabled反馈、离线无缓存分类、搜索结果滚动位置、5Tab溢出(建议ScrollableTabRow)、阅读原文跳转(建议CustomTabs)。
+
+### 10.4 C2 视觉审美评审摘要
+
+**评分 35/50 (B级)** — M3 token体系架构规范、状态覆盖完整。亮点: shimmer动画设计精良、搜索无结果态关键字高亮细节、空状态文案友好。主要短板: 平台适配(iPhone视口)、可操作性(触控区域)、情感品牌(差异化)。
+
+### 10.5 C3 前端实现评审摘要
+
+**评分 7/10** — 状态机设计优秀。P0: Coil依赖/PullToRefreshBox BOM不兼容/导航API废弃。工时校准: 原估6.0d → 校准10.6d(+77%)，主要遗漏主题代码/测试/配置/无障碍/集成调试。
+
+---
+
+> **状态:** v0.2-review — 三视角评审完成，10项P0全部修订。请审阅后回复「确认」冻结进入技术方案。
