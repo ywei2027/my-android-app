@@ -62,3 +62,45 @@
 **否决**：首版包含自动补全（原因：增加开发周期，且无数据支撑优先级判断）
 **影响范围**：搜索功能范围边界
 **关联**：PRD.md#讨论决议#3
+
+---
+
+## 小型新闻App — 技术方案评审阶段（2026-06-04）
+
+### 评审概况
+| 轮次 | 日期 | 方式 | 评审结论 |
+|------|------|------|----------|
+| R1 | 2026-06-04 | 3-Agent 并行 (B1工程/B2安全/B3测试) | 11 P0 已修订 ✅，14 P1 编码阶段消化 |
+
+### 11 项 P0 致命决议（已修订 ✅）
+| # | 决议 | 来源 | 修订状态 |
+|----|------|------|----------|
+| D-40 | Room 不使用 FTS4，坦诚使用 LIKE 查询（100条规模够用） | B1 | ✅ 已修订 |
+| D-41 | NewsListViewModel 通过 `hiltViewModel(activity)` 获取 Activity scope | B1 | ✅ 已修订 |
+| D-42 | NewsRepository 捕获 HttpException + Exception 全覆盖，不单靠 IOException | B2 | ✅ 已修订 |
+| D-43 | loadMore 添加 MAX_CACHED_ARTICLES=200 客户端分页上限防 OOM | B2 | ✅ 已修订 |
+| D-44 | Tab 切换前 loadJob?.cancel() 取消前一个加载协程 | B2 | ✅ 已修订 |
+| D-45 | SearchRepository 添加 try/catch 兜底，DB异常返回空列表不崩溃 | B2 | ✅ 已修订 |
+| D-46 | 所有 UI 组件添加 testTag/semantics 标记 | B3 | ✅ 已修订 |
+| D-47 | 新增 NavigationTest 覆盖 NavHost 路由 | B3 | ✅ 已修订 |
+| D-48 | 添加 Timber 日志框架 + §9 可观测性规范 | B3 | ✅ 已修订 |
+| D-49 | AnimatedVisibility 动画测试用 mainClock.autoAdvance=false | B3 | ✅ 已修订 |
+| D-50 | API Key 通过 OkHttp Interceptor 注入，不出现在接口签名 | B2 | ✅ 已修订 |
+
+### 14 项 P1 重要决议（编码阶段消化）
+| # | 决议 | 来源 |
+|----|------|------|
+| D-51 | 4 StateFlow v1 保留，v1.1 统一为单一 UiState | B1 |
+| D-52 | 不升级 BOM，使用 @OptIn pullRefresh（kotlinCompilerExtension 兼容性） | B1 |
+| D-53 | LazyColumn 编码时添加 `items(articles, key = { it.url })` | B1 |
+| D-54 | insertAll 改为异步 fire-and-forget（CoroutineScope.launch） | B1 |
+| D-55 | 搜索统一使用 collectLatest 取消前一个，移除冗余 searchJob | B1 |
+| D-56 | 所有 Repository 方法添加 withTimeout 超时保护 | B2 |
+| D-57 | loadMore 失败通过 SharedFlow 发送 Snackbar 事件 | B2 |
+| D-58 | onCleared() 显式声明清理 loadJob/searchJob | B2 |
+| D-59 | savedStateHandle 持久化 selectedTab + currentPage | B2 |
+| D-60 | 编码时补充 6+ 边界条件测试 | B3 |
+| D-61 | 新 Composable 各写独立 preview test | B3 |
+| D-62 | 新增 room-testing:2.6.1 依赖 | B3 |
+| D-63 | 搜索 query 限 100 字符上限 | B2 |
+| D-64 | OkHttp 补全 writeTimeout + callTimeout | B2 |

@@ -16,6 +16,10 @@ android {
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // NewsAPI Key: 在 local.properties 中设置 news.api.key=YOUR_KEY
+        val newsApiKey = project.findProperty("news.api.key") as? String ?: ""
+        buildConfigField("String", "NEWS_API_KEY", "\"$newsApiKey\"")
     }
 
     buildTypes {
