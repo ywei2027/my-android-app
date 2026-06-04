@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>新闻列表 — 错误态</title>
+<style>
+:root {
+  --primary: #1A4FBF; --surface: #FEFBFF; --surface-variant: #E7E0EC;
+  --on-surface: #1C1B1E; --on-surface-variant: #49454F;
+  --error: #B81C1C; --outline: #79747E; --outline-variant: #CAC4D0;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: #1C1B1F; --surface-variant: #49454F;
+    --on-surface: #E6E1E5; --on-surface-variant: #CAC4D0;
+    --primary: #B0C6FF; --error: #FFB4AB; --outline: #938F99;
+  }
+}
+body { background:#e8e8e8; display:flex; justify-content:center; align-items:center; min-height:100vh; font-family:'Roboto','Noto Sans SC',sans-serif; margin:0; }
+.phone { width:375px; height:812px; background:var(--surface); border-radius:44px; overflow:hidden; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); display:flex; flex-direction:column; }
+.status-bar { height:44px; background:var(--surface); display:flex; align-items:center; justify-content:space-between; padding:0 24px; font-size:12px; color:var(--on-surface); }
+.search-bar { margin:8px 16px; height:48px; border:1px solid var(--outline); border-radius:24px; display:flex; align-items:center; padding:0 16px; gap:8px; background:var(--surface-variant); }
+.search-bar .icon { color:var(--on-surface-variant); font-size:20px; }
+.search-bar .placeholder { color:var(--on-surface-variant); font-size:16px; }
+.tab-row { display:flex; height:44px; border-bottom:1px solid var(--outline-variant); }
+.tab { flex:1; display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--on-surface-variant); min-height:48px; }
+.tab.active { color:var(--primary); font-weight:600; }
+.tab.active::after { content:''; position:absolute; bottom:0; left:16px; right:16px; height:3px; background:var(--primary); border-radius:3px 3px 0 0; }
+.scroll-area { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:32px; text-align:center; }
+.error-icon { font-size:64px; color:var(--outline); margin-bottom:16px; }
+.error-title { font-size:22px; font-weight:600; color:var(--on-surface); margin-bottom:8px; }
+.error-desc { font-size:14px; color:var(--on-surface-variant); margin-bottom:24px; line-height:1.5; }
+.retry-btn { background:var(--primary); color:#fff; border:none; padding:10px 24px; border-radius:20px; font-size:14px; font-weight:500; cursor:pointer; min-width:48px; min-height:48px; transition:opacity 0.15s; }
+.retry-btn:hover { opacity:0.88; }
+.retry-btn:active { opacity:0.76; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="status-bar">09:41 <span>📶 🔋</span></div>
+  <div class="search-bar">
+    <span class="icon">🔍</span>
+    <span class="placeholder">搜索新闻</span>
+  </div>
+  <div class="tab-row">
+    <div class="tab active">推荐</div><div class="tab">科技</div><div class="tab">财经</div><div class="tab">体育</div><div class="tab">娱乐</div>
+  </div>
+  <div class="scroll-area">
+    <div class="error-icon" aria-hidden="true">☁️</div>
+    <div class="error-title">加载失败</div>
+    <div class="error-desc">请检查网络连接后重试</div>
+    <button class="retry-btn" aria-label="重试加载">重试加载</button>
+  </div>
+</div>
+</body>
+</html>

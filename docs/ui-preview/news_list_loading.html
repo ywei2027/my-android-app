@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>新闻列表 — 首次加载</title>
+<style>
+:root {
+  --primary: #1A4FBF; --surface: #FEFBFF; --surface-variant: #E7E0EC;
+  --on-surface: #1C1B1E; --on-surface-variant: #49454F;
+  --outline: #79747E; --outline-variant: #CAC4D0;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: #1C1B1F; --surface-variant: #49454F;
+    --on-surface: #E6E1E5; --on-surface-variant: #CAC4D0;
+    --outline: #938F99;
+  }
+}
+body { background:#e8e8e8; display:flex; justify-content:center; align-items:center; min-height:100vh; font-family:'Roboto','Noto Sans SC',sans-serif; margin:0; }
+.phone { width:375px; height:812px; background:var(--surface); border-radius:44px; overflow:hidden; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); display:flex; flex-direction:column; }
+.status-bar { height:44px; background:var(--surface); display:flex; align-items:center; justify-content:space-between; padding:0 24px; font-size:12px; color:var(--on-surface); }
+.search-bar { margin:8px 16px; height:48px; border:1px solid var(--outline); border-radius:24px; display:flex; align-items:center; padding:0 16px; gap:8px; background:var(--surface-variant); opacity:0.38; }
+.search-bar .icon { color:var(--on-surface-variant); font-size:20px; }
+.search-bar .placeholder { color:var(--on-surface-variant); font-size:16px; }
+.tab-row { display:flex; height:44px; border-bottom:1px solid var(--outline-variant); opacity:0.38; }
+.tab { flex:1; display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--on-surface-variant); min-height:48px; }
+.tab.active { color:var(--primary); font-weight:600; }
+.scroll-area { flex:1; overflow-y:auto; padding:8px 16px; }
+@keyframes shimmer { 0% { background-position:-200px 0; } 100% { background-position:200px 0; } }
+.shimmer-box {
+  background: linear-gradient(90deg, var(--surface-variant) 25%, rgba(255,255,255,0.3) 50%, var(--surface-variant) 75%);
+  background-size:400px 100%; animation: shimmer 1.5s infinite;
+  border-radius:4px;
+}
+.card { border-radius:12px; background:var(--surface); box-shadow:0 1px 3px rgba(0,0,0,0.1); margin-bottom:12px; padding:12px; display:flex; gap:12px; }
+.thumb-shimmer { width:80px; height:60px; border-radius:8px; }
+.content { flex:1; display:flex; flex-direction:column; gap:8px; }
+.title-shimmer { height:16px; width:85%; }
+.title-shimmer2 { height:16px; width:60%; }
+.meta-shimmer { height:12px; width:40%; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="status-bar">09:41 <span>📶 🔋</span></div>
+  <div class="search-bar" aria-label="搜索新闻（加载中不可用）">
+    <span class="icon">🔍</span>
+    <span class="placeholder">搜索新闻</span>
+  </div>
+  <div class="tab-row">
+    <div class="tab active">推荐</div><div class="tab">科技</div><div class="tab">财经</div><div class="tab">体育</div><div class="tab">娱乐</div>
+  </div>
+  <div class="scroll-area">
+    <div class="card">
+      <div class="shimmer-box thumb-shimmer"></div>
+      <div class="content">
+        <div class="shimmer-box title-shimmer"></div>
+        <div class="shimmer-box title-shimmer2"></div>
+        <div class="shimmer-box meta-shimmer"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="shimmer-box thumb-shimmer"></div>
+      <div class="content">
+        <div class="shimmer-box title-shimmer"></div>
+        <div class="shimmer-box title-shimmer2"></div>
+        <div class="shimmer-box meta-shimmer"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="shimmer-box thumb-shimmer"></div>
+      <div class="content">
+        <div class="shimmer-box title-shimmer"></div>
+        <div class="shimmer-box title-shimmer2"></div>
+        <div class="shimmer-box meta-shimmer"></div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
