@@ -3,25 +3,18 @@ package com.example.myandroidapp
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.myandroidapp.ui.components.VersionTag
-import com.example.myandroidapp.ui.login.LoginViewModel
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.example.myandroidapp.ui.news.NewsDetailScreen
+import com.example.myandroidapp.ui.news.NewsListScreen
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -32,41 +25,37 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        LoginScreen(modifier = Modifier.fillMaxSize())
-                        VersionTag(
-                            modifier = Modifier.align(Alignment.BottomCenter)
-                        )
-                    }
+                    NewsAppNavHost()
                 }
             }
         }
     }
 }
 
-@androidx.compose.runtime.Composable
-fun LoginScreen(
-    modifier: Modifier = Modifier,
-    viewModel: LoginViewModel = hiltViewModel()
-) {
-    var phone by remember { mutableStateOf("") }
+@Composable
+fun NewsAppNavHost() {
+    val navController = rememberNavController()
 
-    Column(modifier = modifier.padding(16.dp)) {
-        Text(
-            text = "登录",
-            style = MaterialTheme.typography.headlineMedium
-        )
-        TextField(
-            value = phone,
-            onValueChange = { phone = it },
-            label = { Text("手机号") },
-            modifier = Modifier.padding(top = 8.dp)
-        )
-        Button(
-            onClick = { viewModel.login(phone) },
-            modifier = Modifier.padding(top = 16.dp)
-        ) {
-            Text("获取验证码")
+    NavHost(
+        navController = navController,
+        startDestination = "news_list"
+    ) {
+        composable("news_list") {
+            NewsListScreen(
+                onArticleClick = { articleId ->
+                    navController.navigate("news_detail/$articleId")
+                }
+            )
+        }
+        composable(
+            route = "news_detail/{articleId}",
+            arguments = listOf(navArgument("articleId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val articleId = backStackEntry.arguments?.getString("articleId") ?: ""
+            NewsDetailScreen(
+                articleId = articleId,
+                onBack = { navController.popBackStack() }
+            )
         }
     }
 }

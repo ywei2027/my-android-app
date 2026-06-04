@@ -90,13 +90,25 @@ dependencies {
     implementation("androidx.room:room-ktx:2.6.1")
     kapt("androidx.room:room-compiler:2.6.1")
 
+    // Timber
+    implementation("com.jakewharton.timber:timber:5.0.1")
+
+    // Coil — 图片加载
+    implementation("io.coil-kt:coil-compose:2.5.0")
+
+    // Chrome CustomTabs — 原文链接
+    implementation("androidx.browser:browser:1.7.0")
+
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
     // Test
     testImplementation("junit:junit:4.13.2")
-    testImplementation("io.mockk:mockk:1.13.8")
+    testImplementation("io.mockk:mockk:1.13.12")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+
+    // Room Testing — in-memory database
+    testImplementation("androidx.room:room-testing:2.6.1")
 
     // Robolectric — JVM 端 Android 单元测试（无需模拟器）
     testImplementation("org.robolectric:robolectric:4.14.1")

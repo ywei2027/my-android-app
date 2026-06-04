@@ -6,6 +6,7 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -20,19 +21,17 @@ object NetworkModule {
     fun provideOkHttpClient(): OkHttpClient {
         return OkHttpClient.Builder()
             .addInterceptor { chain ->
-                // D-50: API Key 通过 Interceptor 动态注入，不出现在接口签名
+                // D-50: API Key 通过 Interceptor 动态注入
                 val request = chain.request()
-                // OkHttp 3.x url() 方法是 public，但 url 字段是 package-private
-                @Suppress("DEPRECATION")
-                val newUrl = request.url().newBuilder()
+                val newUrl = request.url.newBuilder()
                     .addQueryParameter("apiKey", BuildConfig.NEWS_API_KEY)
                     .build()
                 chain.proceed(request.newBuilder().url(newUrl).build())
             }
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)
-            .writeTimeout(15, TimeUnit.SECONDS) // D-64
-            .callTimeout(30, TimeUnit.SECONDS) // D-64
+            .writeTimeout(15, TimeUnit.SECONDS)
+            .callTimeout(30, TimeUnit.SECONDS)
             .build()
     }
 
