@@ -57,7 +57,7 @@ fun NewsCard(
         elevation = CardDefaults.cardElevation(defaultElevation = NewsDimens.CardElevation)
     ) {
         Row(
-            modifier = Modifier.padding(NewsDimens.CardPadding),
+            modifier = Modifier.padding(NewsDimens.CardInnerPadding),
             verticalAlignment = Alignment.Top
         ) {
             // 左侧缩略图 80×60dp — PRD §9 三态 fallback

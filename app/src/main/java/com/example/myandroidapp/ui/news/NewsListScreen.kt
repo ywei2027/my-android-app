@@ -1,14 +1,19 @@
 package com.example.myandroidapp.ui.news
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
+
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -24,14 +29,18 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -48,9 +57,9 @@ import com.example.myandroidapp.ui.components.ErrorState
 import com.example.myandroidapp.ui.components.NewsCard
 import com.example.myandroidapp.ui.components.NewsDimens
 import com.example.myandroidapp.ui.components.ShimmerCard
-import androidx.compose.runtime.derivedStateOf
+import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun NewsListScreen(
     onArticleClick: (String) -> Unit,
@@ -63,15 +72,36 @@ fun NewsListScreen(
     val searchResults by viewModel.searchResults.collectAsStateWithLifecycle()
 
     val focusManager = LocalFocusManager.current
-    val listState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+
+    // HorizontalPager 状态
+    val categories = NewsCategory.entries
+    val pagerState = rememberPagerState(
+        initialPage = categories.indexOf(selectedTab),
+        pageCount = { categories.size }
+    )
+
+    // 滑动时同步 ViewModel Tab + 触发加载
+    LaunchedEffect(pagerState.currentPage) {
+        val category = categories[pagerState.currentPage]
+        if (category != selectedTab) {
+            viewModel.loadNews(category)
+        }
+    }
 
     // 下拉刷新状态
     val pullToRefreshState = rememberPullToRefreshState()
 
-    if (pullToRefreshState.isRefreshing) {
-        LaunchedEffect(true) {
-            viewModel.loadNews(selectedTab, isRefresh = true)
+    LaunchedEffect(pullToRefreshState.isRefreshing) {
+        if (pullToRefreshState.isRefreshing) {
+            viewModel.loadNews(categories[pagerState.currentPage], isRefresh = true)
+        }
+    }
+
+    // 刷新完成后关闭指示器
+    LaunchedEffect(uiState) {
+        if (pullToRefreshState.isRefreshing) {
             pullToRefreshState.endRefresh()
         }
     }
@@ -112,7 +142,7 @@ fun NewsListScreen(
                     .fillMaxSize()
                     .padding(horizontal = NewsDimens.CardPadding)
             ) {
-                // 搜索栏 — PRD §9: OutlinedTextField, imeAction=Search
+                // 搜索栏
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { viewModel.onSearchQueryChanged(it) },
@@ -135,38 +165,55 @@ fun NewsListScreen(
                     }
                 )
 
-                // Tab 栏
-                if (!isSearchActive) {
-                    androidx.compose.material3.ScrollableTabRow(
-                        selectedTabIndex = NewsCategory.entries.indexOf(selectedTab),
-                        modifier = Modifier.testTag("categoryTabRow"),
-                        edgePadding = 0.dp
-                    ) {
-                        NewsCategory.entries.forEach { category ->
-                            androidx.compose.material3.Tab(
-                                selected = selectedTab == category,
-                                onClick = { viewModel.loadNews(category) },
-                                text = { Text(category.displayName) }
-                            )
-                        }
-                    }
-                }
-
-                // 内容区
-                Box(modifier = Modifier.weight(1f)) {
-                    when {
-                        isSearchActive -> SearchResultsView(
+                // 搜索激活 → 显示搜索结果
+                if (isSearchActive) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        SearchResultsView(
                             results = searchResults,
                             query = searchQuery,
                             onArticleClick = onArticleClick
                         )
-                        else -> ContentView(
-                            uiState = uiState,
-                            onArticleClick = onArticleClick,
-                            onRetry = { viewModel.loadNews(selectedTab) },
-                            onLoadMore = { viewModel.loadMore() },
-                            listState = listState
-                        )
+                    }
+                } else {
+                    // Tab 栏 — 点击/滑动联动
+                    TabRow(
+                        selectedTabIndex = pagerState.currentPage,
+                        modifier = Modifier.testTag("categoryTabRow")
+                    ) {
+                        categories.forEachIndexed { index, category ->
+                            Tab(
+                                selected = pagerState.currentPage == index,
+                                onClick = {
+                                    coroutineScope.launch {
+                                        pagerState.animateScrollToPage(index, animationSpec = tween(300))
+                                    }
+                                },
+                                text = { Text(category.displayName) }
+                            )
+                        }
+                    }
+
+                    // HorizontalPager — 左右滑动切换分类
+                    HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                    ) { page ->
+                        val category = categories[page]
+                        // 每个 Page 独立的内容视图
+                        if (category == selectedTab) {
+                            // 当前 Tab 已加载数据
+                            CategoryContentView(
+                                uiState = uiState,
+                                onArticleClick = onArticleClick,
+                                onRetry = { viewModel.loadNews(category) },
+                                onLoadMore = { viewModel.loadMore() }
+                            )
+                        } else {
+                            // 滑动到的 Tab 正在加载中
+                            FirstLoadingView()
+                        }
                     }
                 }
             }
@@ -212,23 +259,27 @@ private fun SearchResultsView(
 }
 
 @Composable
-private fun ContentView(
+private fun FirstLoadingView() {
+    LazyColumn(modifier = Modifier.testTag("newsCardList")) {
+        items(3) { index ->
+            ShimmerCard(
+                modifier = Modifier.padding(vertical = NewsDimens.CardSpacing),
+                testTag = "shimmerCard_$index"
+            )
+        }
+    }
+}
+
+@Composable
+private fun CategoryContentView(
     uiState: NewsListUiState,
     onArticleClick: (String) -> Unit,
     onRetry: () -> Unit,
-    onLoadMore: () -> Unit,
-    listState: androidx.compose.foundation.lazy.LazyListState
+    onLoadMore: () -> Unit
 ) {
     when (uiState) {
         is NewsListUiState.FirstLoading -> {
-            LazyColumn(modifier = Modifier.testTag("newsCardList")) {
-                items(3) { index ->
-                    ShimmerCard(
-                        modifier = Modifier.padding(vertical = NewsDimens.CardSpacing),
-                        testTag = "shimmerCard_$index"
-                    )
-                }
-            }
+            FirstLoadingView()
         }
         is NewsListUiState.Loading -> {
             Column(modifier = Modifier.fillMaxWidth()) {
@@ -236,7 +287,6 @@ private fun ContentView(
                 ArticleList(
                     articles = uiState.currentArticles,
                     onArticleClick = onArticleClick,
-                    listState = listState,
                     onLoadMore = onLoadMore
                 )
             }
@@ -245,7 +295,6 @@ private fun ContentView(
             ArticleList(
                 articles = uiState.articles,
                 onArticleClick = onArticleClick,
-                listState = listState,
                 onLoadMore = onLoadMore
             )
         }
@@ -259,7 +308,6 @@ private fun ContentView(
             ArticleList(
                 articles = uiState.currentArticles,
                 onArticleClick = onArticleClick,
-                listState = listState,
                 onLoadMore = onLoadMore,
                 isPagingLoading = true
             )
@@ -267,18 +315,14 @@ private fun ContentView(
     }
 }
 
-/**
- * 无限滚动文章列表。
- * 使用 derivedStateOf 检测滚动到底部（距底 ≤3 项）自动触发分页。
- */
 @Composable
 private fun ArticleList(
     articles: List<NewsArticle>,
     onArticleClick: (String) -> Unit,
-    listState: androidx.compose.foundation.lazy.LazyListState,
     onLoadMore: () -> Unit,
     isPagingLoading: Boolean = false
 ) {
+    val listState = remember { LazyListState() }
     LazyColumn(
         state = listState,
         modifier = Modifier.testTag("newsCardList")

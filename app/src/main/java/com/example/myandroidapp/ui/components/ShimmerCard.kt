@@ -41,7 +41,7 @@ fun ShimmerCard(
         initialValue = 0f,
         targetValue = 1000f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1200, easing = LinearEasing),
+            animation = tween(durationMillis = 1500, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "shimmerTranslate"
@@ -64,7 +64,7 @@ fun ShimmerCard(
         shape = NewsDimens.CardShape,
         elevation = CardDefaults.cardElevation(defaultElevation = NewsDimens.CardElevation)
     ) {
-        Row(modifier = Modifier.padding(NewsDimens.CardPadding)) {
+        Row(modifier = Modifier.padding(NewsDimens.CardInnerPadding)) {
             // 左侧缩略图占位 80×60dp
             Box(
                 modifier = Modifier
@@ -76,26 +76,26 @@ fun ShimmerCard(
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            // 右侧文字占位
+            // 右侧文字占位 — 对齐原型：标题1(16dp/85%) + 标题2(16dp/60%) + 元信息(12dp/40%)
             Column(modifier = Modifier.weight(1f)) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.85f)
-                        .height(NewsDimens.ShimmerTitleHeight)
+                        .height(NewsDimens.ShimmerTitle1Height)
                         .background(shimmerBrush)
                 )
-                Spacer(modifier = Modifier.height(NewsDimens.CardSpacing))
+                Spacer(modifier = Modifier.height(NewsDimens.ShimmerLineGap))
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth(0.5f)
-                        .height(NewsDimens.ShimmerSubtitleHeight)
+                        .fillMaxWidth(0.6f)
+                        .height(NewsDimens.ShimmerTitle2Height)
                         .background(shimmerBrush)
                 )
-                Spacer(modifier = Modifier.height(NewsDimens.CardSpacing))
+                Spacer(modifier = Modifier.height(NewsDimens.ShimmerLineGap))
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth(0.75f)
-                        .height(NewsDimens.ShimmerBodyHeight)
+                        .fillMaxWidth(0.4f)
+                        .height(NewsDimens.ShimmerMetaHeight)
                         .background(shimmerBrush)
                 )
             }
