@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>启动页面版本号 — UI 原型</title>
+<title>my-android-app — UI 原型预览</title>
 <style>
 :root {
-  --primary: #1A4FBF;
+  --primary: #1A73E8;
   --primary-light: #B0C6FF;
   --surface: #FEFBFF;
   --surface-variant: #E7E0EC;
@@ -16,7 +16,7 @@
   --error: #B81C1C;
   --outline: #79747E;
   --outline-variant: #CAC4D0;
-  --ripple: rgba(26, 79, 191, 0.08);
+  --ripple: rgba(26, 115, 232, 0.08);
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -24,13 +24,13 @@
     --surface-variant: #49454F;
     --on-surface: #E6E1E5;
     --on-surface-variant: #CAC4D0;
-    --primary: #B0C6FF;
+    --primary: #8AB4F8;
     --primary-light: #1A4FBF;
-    --on-primary: #001D36;
+    --on-primary: #003A75;
     --error: #FFB4AB;
     --outline: #938F99;
     --outline-variant: #49454F;
-    --ripple: rgba(176, 198, 255, 0.08);
+    --ripple: rgba(138, 180, 248, 0.08);
   }
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -64,15 +64,33 @@ h1 { font-size: 24px; color: var(--on-surface); margin-bottom: 4px; }
 }
 .link-primary { background: var(--primary); color: var(--on-primary); }
 .link-primary:hover { opacity: 0.9; }
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  margin-left: 8px;
+  background: var(--primary);
+  color: var(--on-primary);
+  opacity: 0.7;
+}
 </style>
 </head>
 <body>
 <div class="container">
-  <h1>📱 启动页面版本号显示</h1>
-  <p class="subtitle">UI 原型预览 — v0.1-draft</p>
+  <h1>my-android-app — UI 原型预览</h1>
+  <p class="subtitle">v0.1-draft — 2026-06-07</p>
 
   <div class="page-card">
-    <h2>🚀 启动页面</h2>
+    <h2>用户登录 <span class="badge">新</span></h2>
+    <p>LoginScreen — 邮箱+密码登录，M3 风格，含完整状态覆盖（Idle/Editing/Loading/Error/Timeout）</p>
+    <div class="links">
+      <a href="login.html" class="link-primary">登录页原型（可交互）</a>
+    </div>
+  </div>
+
+  <div class="page-card">
+    <h2>启动页面版本号</h2>
     <p>MainActivity → LoginScreen + VersionTag 叠加，键盘弹出时版本号自动隐藏</p>
     <div class="links">
       <a href="startup_default.html" class="link-primary">默认态（版本号可见）</a>
