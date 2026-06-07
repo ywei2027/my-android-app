@@ -1,865 +1,718 @@
-# 小型新闻App — 技术方案
+# 用户登录 — 技术方案
 
-> **版本:** v1.0-confirmed
-> **功能名称:** 小型新闻App
-> **创建日期:** 2026-06-04
-> **作者:** Hermes AI
-> **修订:** 2026-06-04 三视角评审 P0 自动修订（11项）
+> **版本:** v0.2-review
+> **功能名称:** 用户登录
+> **基于:** PRD v1.0-confirmed | UI_DESIGN v1.0-confirmed
 
 ---
 
 ## §1 架构概览
 
-### 分层架构
-
 ```
-┌──────────────────────────────────┐
-│  UI Layer (Compose + ViewModel)  │
-│  NewsListScreen, NewsDetailScreen │
-│  NewsCard, ShimmerCard, ErrorState│
-├──────────────────────────────────┤
-│  ViewModel Layer                 │
-│  NewsListViewModel (Activity-scoped)
-│  NewsDetailViewModel (NavEntry-scoped)
-│  UiState<Loading|Success|Error|Empty>
-├──────────────────────────────────┤
-│  Repository Layer                │
-│  NewsRepository (Cache-Fallback)
-│  SearchRepository (Room LIKE)
-├──────────────────────────────────┤
-│  Data Layer                      │
-│  Remote: NewsApiService (Retrofit)
-│  Local:  NewsDao, NewsArticleEntity
-│  DI:     NetworkModule, DatabaseModule
-└──────────────────────────────────┘
-```
-
-**数据流方向（单向）：**
-```
-User → Composable → ViewModel (Event) → Repository → DataSource → API/DB
-                                                                    ↓
-UI ← Composable ← ViewModel (UiState) ← Repository ← DataSource ← Response
+┌──────────────────────────────────────────────────────────┐
+│                      UI Layer (Compose)                    │
+│  LoginScreen ←→ LoginViewModel (StateFlow<LoginUiState>)  │
+│  BackHandler → activity.finish()                          │
+└──────────────────────┬───────────────────────────────────┘
+                       │ DI: Hilt AuthModule
+┌──────────────────────▼───────────────────────────────────┐
+│                    Domain Layer                            │
+│  AuthModels: LoginRequest / LoginResponse /               │
+│              LoginErrorResponse / LoginUiState /          │
+│              LoginEvent / LoginStatus                      │
+└──────────────────────┬───────────────────────────────────┘
+                       │
+┌──────────────────────▼───────────────────────────────────┐
+│                     Data Layer                             │
+│  AuthRepository ─→ LoginApi (Retrofit)                    │
+│       │                                                   │
+│       ├── MockAuthInterceptor (dev/mock env)              │
+│       └── LoginStateManager (DataStore Preferences)       │
+└──────────────────────────────────────────────────────────┘
 ```
 
-### 导航架构
-
-```kotlin
-// ViewModel 必须在 Activity scope 创建以保持列表状态
-// 方法：在 NavHost 外层使用 hiltViewModel(LocalContext.current as ComponentActivity)
-// 或 viewModel(viewModelStoreOwner = activity)
-
-NavHost(startDestination = "news_list") {
-    composable("news_list") {
-        NewsListScreen(
-            viewModel = hiltViewModel(LocalContext.current as ComponentActivity),
-            onArticleClick = { id -> navController.navigate("news_detail/$id") }
-        )
-    }
-    composable(
-        route = "news_detail/{articleId}",
-        arguments = listOf(navArgument("articleId") { type = NavType.StringType })
-    ) { backStackEntry ->
-        NewsDetailScreen(
-            articleId = backStackEntry.arguments?.getString("articleId") ?: "",
-            onBack = { navController.popBackStack() }
-        )
-    }
-}
-```
-
-### 关键架构决策
-
-| # | 决策 | 原因 | 影响 |
-|---|------|------|------|
-| AD-1 | MainActivity 移除 LoginScreen → 直接 NavHost(NewsListScreen) | D-28 PRD决议 | 删除 LoginScreen/LoginViewModel/LoginRepository |
-| AD-2 | Cache-Fallback 模式（网络优先→缓存兜底） | 新闻时效性优先；v1 100条规模无需 NetworkBoundResource 完整语义 | NewsRepository 实现 try-catch 双数据源协调 |
-| AD-3 | Room LIKE 本地全文搜索（非 FTS4） | 100条数据量 FTS4 过度设计，LIKE 查询延迟 <100ms 够用 | SearchRepository 使用 LIKE 查询 |
-| AD-4 | NewsListViewModel Activity-scoped | 详情返回保持列表状态 | ViewModel 通过 `hiltViewModel(activity)` 获取 |
-| AD-5 | @OptIn pullRefresh 实验性 API（不升级 BOM） | BOM 升级至 2024.06.00 与 kotlinCompilerExtension 1.5.5 不兼容 | 使用当前 BOM 2023.10.01 中已有的 pullRefresh modifier |
-| AD-6 | Chrome CustomTabs 打开原文链接 | Android 平台惯例 | 需添加 androidx.browser:browser 依赖 |
-| AD-7 | API Key 通过 OkHttp Interceptor 动态注入（不在接口签名暴露） | 反编译安全 | NetworkModule 添加 apiKey 拦截器 |
-| AD-8 | Timber 日志框架 | 可观测性需求 | 依赖 `com.jakewharton.timber:timber:5.0.1` |
+**策略**：将现有 username+password mock 体系重构为 email+password Retrofit 体系，核心变更集中在 AuthRepository（从 mock→Retrofit）和 LoginViewModel（字段+状态机），UI 层遵循 UI_DESIGN §3 组件层级树和 Token 映射表。
 
 ---
 
 ## §2 模块设计
 
-### 2.1 UI 层
+### 2.1 LoginApi — Retrofit 接口（新建）
 
-#### NewsListScreen
+**文件**：`app/src/main/java/com/example/myandroidapp/data/remote/LoginApi.kt`
 
 ```kotlin
-@Composable
-fun NewsListScreen(
-    onArticleClick: (String) -> Unit,
-    viewModel: NewsListViewModel = hiltViewModel(LocalContext.current as ComponentActivity)
-) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
-    val isSearchActive by viewModel.isSearchActive.collectAsStateWithLifecycle()
+interface LoginApi {
+    @POST("api/auth/login")
+    suspend fun login(@Body request: LoginRequest): Response<LoginResponse>
+}
+```
 
-    // BackHandler 互斥
-    BackHandler(enabled = !isSearchActive) { (LocalContext.current as Activity).finish() }
-    if (isSearchActive) {
-        BackHandler(enabled = true) {
-            viewModel.clearSearch()
-            focusManager.clearFocus()
-        }
-    }
+**约束**：
+- 使用项目已有的 `NetworkModule` 提供的 OkHttpClient
+- LoginApi 实例由 `AuthModule` Hilt 提供
+- 请求/响应模型见 §3 接口定义
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding).imePadding()) {
-            Column(Modifier.padding(horizontal = 16.dp)) {
-                SearchBar(
-                    modifier = Modifier.semantics { testTag = "searchBar" },
-                    ...
-                )
-                ScrollableTabRow(
-                    modifier = Modifier.semantics { testTag = "categoryTabRow" },
-                    ...
-                )
-                PullToRefreshBox(isRefreshing, onRefresh) {
-                    when (uiState) {
-                        is NewsListUiState.FirstLoading -> ShimmerList()
-                        is NewsListUiState.Loading -> LoadingWithContent()
-                        is NewsListUiState.Success -> NewsCardList(
-                            articles = (uiState as Success).articles,
-                            modifier = Modifier.semantics { testTag = "newsCardList" }
-                        )
-                        is NewsListUiState.Empty -> EmptyState(
-                            modifier = Modifier.semantics { testTag = "emptyState" }
-                        )
-                        is NewsListUiState.Error -> ErrorState(
-                            message = (uiState as Error).message,
-                            modifier = Modifier.semantics { testTag = "errorState" },
-                            onRetry = { viewModel.loadNews() }
-                        )
-                        is NewsListUiState.PagingLoading -> PagingLoadingAtBottom()
-                    }
-                }
-            }
+### 2.2 MockAuthInterceptor — OkHttp 拦截器（新建）
 
-            // 搜索覆盖层（动画测试：使用 mainClock.autoAdvance = false 控制动画时钟）
-            AnimatedVisibility(
-                visible = isSearchActive,
-                modifier = Modifier.semantics { testTag = "searchOverlay" }
-            ) {
-                SearchOverlay(...)
-            }
+**文件**：`app/src/main/java/com/example/myandroidapp/data/remote/MockAuthInterceptor.kt`
+
+```kotlin
+class MockAuthInterceptor : Interceptor {
+    // ✅ P0-G1: 缓冲 request body 避免 one-shot 消费
+    override fun intercept(chain: Interceptor.Chain): Response {
+        val request = chain.request()
+        if (request.url.encodedPath != "/api/auth/login") return chain.proceed(request)
+
+        // 缓冲 body (OkHttp RequestBody 为 one-shot)
+        val buffer = Buffer()
+        request.body?.writeTo(buffer)
+        val bodyString = buffer.readUtf8()
+        val loginRequest = Gson().fromJson(bodyString, LoginRequest::class.java)
+
+        // ✅ P0-G3: Mock 延迟改用 readTimeout 模拟，避免 Thread.sleep 阻塞 OkHttp 线程池
+        return when {
+            loginRequest.email == "admin@example.com" && loginRequest.password == "123456" ->
+                mockResponse(200, LoginResponse(token="mock-jwt", user=User(id="1", email="admin@example.com", displayName="Admin")))
+            loginRequest.email.contains("locked") ->
+                mockResponse(403, LoginErrorResponse(code=403, message="账户已被锁定"))
+            loginRequest.email.contains("ratelimit") ->
+                mockResponse(429, LoginErrorResponse(code=429, message="操作过于频繁，请稍后再试"))
+            else ->
+                mockResponse(401, LoginErrorResponse(code=401, message="邮箱或密码错误"))
         }
     }
 }
 ```
 
-#### NewsDetailScreen
+**参考**：项目已有 `MockNewsInterceptor` 模式，复用其 `mockResponse()` 辅助函数（该函数内联在 `buildJsonResponse()` 中，需提取为独立工具函数）。
 
+**Mock 延迟模拟**：通过 OkHttp 客户端 `readTimeout=2s` + `callTimeout=3s` 模拟正常延迟；超时场景使用 `connectTimeout=1ms` 触发。**禁止**在拦截器中使用 `Thread.sleep()` — 会阻塞 OkHttp dispatcher 线程池。
+
+**Debug 门控增强**：
 ```kotlin
-@Composable
-fun NewsDetailScreen(
-    articleId: String,
-    onBack: () -> Unit,
-    viewModel: NewsDetailViewModel = hiltViewModel()
-) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                navigationIcon = {
-                    IconButton(onBack, Modifier.semantics { testTag = "detailBackButton" }) { ... }
-                }
-            )
-        },
-        modifier = Modifier.semantics { testTag = "newsDetailScreen" }
-    ) { padding ->
-        when (uiState) {
-            is DetailUiState.Loading -> ShimmerDetail()
-            is DetailUiState.Success -> {
-                Column(Modifier.verticalScroll(rememberScrollState())) {
-                    AsyncImage(article.urlToImage, 200.dp)
-                    Text(article.title, fontSize = 24.sp)
-                    Row { Text(source) + "·" + Text(time) }
-                    Text(article.description, fontSize = 16.sp)
-                    FilledTonalButton(
-                        onClick = { openUrl(article.url) },
-                        modifier = Modifier.semantics { testTag = "readOriginalButton" }
-                    ) { Text("阅读原文") }
-                }
-            }
-            is DetailUiState.Error -> ErrorState(
-                message = (uiState as DetailUiState.Error).message,
-                onRetry = { viewModel.loadDetail() },
-                modifier = Modifier.semantics { testTag = "detailErrorState" }
-            )
-        }
-    }
+// AuthModule.kt — 使用 FLAG_DEBUGGABLE 替代 BuildConfig.DEBUG
+val isDebug = (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
+okHttpClient = if (isDebug) {
+    networkClient.newBuilder().addInterceptor(MockAuthInterceptor()).build()
+} else {
+    networkClient  // Release 构建不含 MockInterceptor
 }
 ```
 
-#### 可复用组件
+### 2.3 AuthRepository — 数据仓库（重构）
 
-| 组件 | 用途 | 参数 | testTag |
-|------|------|------|---------|
-| `NewsCard` | 新闻卡片 | `article: NewsArticle, onClick: () -> Unit` | `newsCard_{article.url}` |
-| `ShimmerCard` | 骨架屏卡片 | 无 | `shimmerCard_{index}` |
-| `ErrorState` | 错误态（通用） | `message, onRetry, icon` | `errorState_{context}` |
-| `EmptyState` | 空态（通用） | `title, subtitle, icon` | `emptyState_{context}` |
-| `SearchOverlay` | 搜索覆盖层 | `query, results, isSearching, onItemClick` | `searchOverlay`, `searchResultItem_{index}` |
+**文件**：`app/src/main/java/com/example/myandroidapp/data/repository/AuthRepository.kt`
 
-### 2.2 ViewModel 层
+> **⚠️ P0 修订说明**：`AuthResult` 保持为 `domain/model/AuthModels.kt` 中的顶层 sealed class（不改动为内部类，避免破坏现有所有引用）。`Error` 类新增 `code: Int?` 可选参数保持向后兼容。
 
-#### NewsListViewModel
+```kotlin
+class AuthRepository @Inject constructor(
+    private val loginApi: LoginApi,
+    private val stateManager: LoginStateManager
+) {
+
+    suspend fun login(email: String, password: String): AuthResult<LoginResponse> {
+        // ✅ P0-G2: withTimeout 包装在 try-catch 最外层，确保 TimeoutCancellationException 被捕获
+        return try {
+            withTimeout(10_000L) {  // D-56
+                val response = loginApi.login(LoginRequest(email, password))
+                if (response.isSuccessful) {
+                    // ✅ P0-G5: body() 安全解包，非空断言 → 空安全
+                    val body = response.body()
+                        ?: return@withTimeout AuthResult.Error(-1, "服务器返回数据异常")
+                    stateManager.saveUser(body.token, body.user)  // Token 持久化
+                    AuthResult.Success(body)
+                } else {
+                    val errorBody = parseError(response)
+                    AuthResult.Error(errorBody.code, errorBody.message)
+                }
+            }
+        } catch (e: TimeoutCancellationException) {  // ✅ P0-G2: 补充超时异常捕获
+            AuthResult.Error(-1, "网络请求超时，请重试")
+        } catch (e: HttpException) {  // D-42
+            AuthResult.Error(e.code(), e.message())
+        } catch (e: SocketTimeoutException) {
+            AuthResult.Error(-1, "网络请求超时，请重试")
+        } catch (e: IOException) {
+            AuthResult.Error(-1, "网络连接失败，请检查网络设置")
+        } catch (e: JsonSyntaxException) {  // ✅ P0-G4: Gson 解析失败兜底
+            AuthResult.Error(-1, "数据解析失败")
+        } catch (e: Exception) {  // ✅ P0-G4: 全局兜底
+            AuthResult.Error(-1, "未知错误: ${e.message}")
+        }
+    }
+
+    // ✅ P0-G4: parseError 实现（含 Gson 解析保护）
+    private fun parseError(response: Response<*>): AuthResult.Error {
+        return try {
+            val errorBody = response.errorBody()?.string() ?: "{}"
+            val parsed = Gson().fromJson(errorBody, LoginErrorResponse::class.java)
+                ?: LoginErrorResponse(response.code(), "未知错误")
+            AuthResult.Error(parsed.code, parsed.message)
+        } catch (e: Exception) {
+            AuthResult.Error(response.code(), "请求失败 (${response.code()})")
+        }
+    }
+
+    fun isLoggedIn(): Boolean = stateManager.getToken() != null
+    fun logout() = stateManager.clear()
+}
+```
+
+**关键变更**：
+- 从硬编码 mock → Retrofit `LoginApi` 调用
+- 添加 `withTimeout(10s)` + 全异常覆盖：`TimeoutCancellationException` / `HttpException` / `SocketTimeoutException` / `IOException` / `JsonSyntaxException` / `Exception` 全局兜底
+- `AuthResult` 保持顶层密封类（`AuthModels.kt`），`Error(code: Int?, message: String)` 向后兼容
+- Token 通过 `LoginStateManager` 持久化到 DataStore（D-67）
+
+### 2.4 AuthModels — 数据模型（重构）
+
+**文件**：`app/src/main/java/com/example/myandroidapp/domain/model/AuthModels.kt`
+
+```kotlin
+// ── 请求 ──
+data class LoginRequest(
+    val email: String,     // RFC 5322, max 254
+    val password: String   // 1-128 chars
+)
+
+// ── 成功响应 ──
+data class LoginResponse(
+    val token: String,
+    val user: User
+)
+
+data class User(
+    val id: String,
+    val email: String,
+    val displayName: String
+)
+
+// ── 错误响应 ──
+data class LoginErrorResponse(
+    val code: Int,         // 401 | 403 | 429
+    val message: String
+)
+
+// ── UI 状态 ──
+data class LoginUiState(
+    val email: String = "",
+    val password: String = "",
+    val isEmailValid: Boolean = false,
+    val isPasswordVisible: Boolean = false,
+    val status: LoginStatus = LoginStatus.Idle,
+    val errorMessage: String? = null,
+    val cooldownSeconds: Int = 0          // 429 限流倒计时
+)
+
+enum class LoginStatus { Idle, Editing, Loading, Success, Error, Timeout, Cooldown }
+
+// ── UI 事件 ──
+sealed class LoginEvent {
+    data class EmailChanged(val email: String) : LoginEvent()
+    data class PasswordChanged(val password: String) : LoginEvent()
+    object SubmitLogin : LoginEvent()
+    object TogglePasswordVisibility : LoginEvent()
+    object ClearError : LoginEvent()
+}
+```
+
+**关键变更**：
+- `username` → `email`，新增 `isEmailValid` 字段
+- `LoginResponse` 从 `(token, username)` → `(token, user{id,email,displayName})` 对应 PRD §11 JSON Schema
+- 新增 `LoginErrorResponse` 独立错误模型
+- `LoginUiState` 新增显式 `status: LoginStatus` 枚举 + `cooldownSeconds` 429 专用
+- 新增 `LoginEvent` 密封类（原 `LoginEvent` 在现有代码中不存在，为全新引入）
+
+### 2.5 LoginViewModel — 视图模型（重构）
+
+**文件**：`app/src/main/java/com/example/myandroidapp/ui/auth/LoginViewModel.kt`
 
 ```kotlin
 @HiltViewModel
-class NewsListViewModel @Inject constructor(
-    private val newsRepository: NewsRepository,
-    private val searchRepository: SearchRepository,
-    savedStateHandle: SavedStateHandle
+class LoginViewModel @Inject constructor(
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow<NewsListUiState>(NewsListUiState.FirstLoading)
-    val uiState: StateFlow<NewsListUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(LoginUiState())
+    val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
 
-    private val _searchQuery = MutableStateFlow("")
-    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+    private val EMAIL_REGEX = Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")
 
-    private val _isSearchActive = MutableStateFlow(false)
-    val isSearchActive: StateFlow<Boolean> = _isSearchActive.asStateFlow()
-
-    private val _selectedTab = MutableStateFlow(NewsCategory.RECOMMENDED)
-    val selectedTab: StateFlow<NewsCategory> = _selectedTab.asStateFlow()
-
-    private var loadJob: Job? = null
-    private var searchJob: Job? = null
-    private var currentPage = 1
-    private var currentData: List<NewsArticle> = emptyList()
-
-    // 客户端分页上限 — 防止无限累积 OOM (P0-B2-2)
-    private val MAX_CACHED_ARTICLES = 200
-
-    init {
-        // 从 SavedStateHandle 恢复 Tab 状态 (P1-B2-5)
-        _selectedTab.value = savedStateHandle.get<NewsCategory>("selectedTab") ?: NewsCategory.RECOMMENDED
-        currentPage = savedStateHandle.get<Int>("currentPage") ?: 1
-        loadNews()
-        observeSearchQuery()
-        Timber.d("NewsListViewModel initialized, tab=${_selectedTab.value}")
-    }
-
-    fun loadNews(category: NewsCategory = _selectedTab.value, isRefresh: Boolean = false) {
-        loadJob?.cancel() // 取消前一个 tab 加载防止竞态 (P0-B2-3)
-        loadJob = viewModelScope.launch {
-            Timber.d("loadNews category=$category isRefresh=$isRefresh")
-            _uiState.value = if (isRefresh) _uiState.value else NewsListUiState.FirstLoading
-            _selectedTab.value = category
-            savedStateHandle["selectedTab"] = category // 持久化 Tab (P1-B2-5)
-            currentPage = 1
-            savedStateHandle["currentPage"] = 1
-            newsRepository.getTopHeadlines(category, page = 1)
-                .onSuccess { articles ->
-                    currentData = articles
-                    _uiState.value = if (articles.isEmpty()) NewsListUiState.Empty
-                                    else NewsListUiState.Success(articles)
-                    Timber.d("loadNews SUCCESS, count=${articles.size}")
-                }
-                .onFailure { e ->
-                    Timber.e(e, "loadNews FAILED")
-                    _uiState.value = when (e) {
-                        is Http429Exception -> NewsListUiState.Error("请求太频繁，请稍后再试")
-                        else -> NewsListUiState.Error("加载失败，请检查网络")
-                    }
-                }
+    fun onEvent(event: LoginEvent) {
+        when (event) {
+            is LoginEvent.EmailChanged -> onEmailChanged(event.email)
+            is LoginEvent.PasswordChanged -> onPasswordChanged(event.password)
+            LoginEvent.SubmitLogin -> login()
+            LoginEvent.TogglePasswordVisibility -> togglePasswordVisibility()
+            LoginEvent.ClearError -> clearError()
         }
     }
 
-    fun loadMore() {
-        if (_uiState.value is NewsListUiState.PagingLoading) return
-        val oldData = currentData
-        loadJob?.cancel()
-        loadJob = viewModelScope.launch {
-            _uiState.value = NewsListUiState.PagingLoading(oldData)
-            Timber.d("loadMore page=${currentPage + 1}")
-            newsRepository.getTopHeadlines(_selectedTab.value, page = ++currentPage)
-                .onSuccess { moreArticles ->
-                    // 客户端分页上限保护 (P0-B2-2)
-                    currentData = (oldData + moreArticles).takeLast(MAX_CACHED_ARTICLES)
-                    _uiState.value = NewsListUiState.Success(currentData)
-                    savedStateHandle["currentPage"] = currentPage
-                    Timber.d("loadMore SUCCESS, total=${currentData.size}")
-                }
-                .onFailure {
-                    // 保留已加载数据 + Snackbar 事件 (P1-B2-3)
-                    _uiState.value = NewsListUiState.Success(oldData)
-                    // 通过 SharedFlow 发送一次性事件通知 UI 展示 Snackbar
-                    Timber.e("loadMore FAILED, keeping ${oldData.size} items")
-                }
+    private fun onEmailChanged(email: String) {
+        val isValid = EMAIL_REGEX.matches(email) && email.length <= 254
+        _uiState.update {
+            it.copy(
+                email = email,
+                isEmailValid = isValid,
+                errorMessage = null,       // 输入变更清除错误
+                status = LoginStatus.Editing
+            )
         }
     }
 
-    fun onSearchQueryChanged(query: String) {
-        _searchQuery.value = query.take(100) // 搜索词长度上限 (P2-B2-2)
-        _isSearchActive.value = query.length >= 3
+    private fun onPasswordChanged(password: String) {
+        _uiState.update {
+            it.copy(
+                password = password,
+                errorMessage = null,
+                status = LoginStatus.Editing
+            )
+        }
     }
 
-    private fun observeSearchQuery() {
+    fun login() {
+        // ✅ P0-G6: 原子检查+切换，消除竞态条件（快速连点→并发双请求）
         viewModelScope.launch {
-            _searchQuery
-                .debounce(300)
-                .filter { it.length >= 3 }
-                .collectLatest { query ->
-                    // collectLatest 自动取消前一个 lambda — 移除冗余 searchJob 嵌套 launch (P1-B2-2)
-                    Timber.d("search triggered: query=$query")
-                    val results = withTimeout(10_000L) { // 搜索超时保护 (P1-B2-1)
-                        searchRepository.search(query)
-                    }
-                    _searchResults.value = results
-                    Timber.d("search completed: ${results.size} results")
+            val acquired = _uiState.updateAndGet { current ->
+                if (!current.isEmailValid ||
+                    current.password.isEmpty() ||
+                    current.status == LoginStatus.Loading ||
+                    current.status == LoginStatus.Cooldown
+                ) return@updateAndGet current  // 不修改，放弃本次
+                current.copy(status = LoginStatus.Loading, errorMessage = null)
+            }
+            if (acquired.status != LoginStatus.Loading) return@launch  // 未获取登录权
+
+            val currentState = acquired  // 闭包内捕获 state
+
+            // ✅ P0-G7: 网络请求在 Dispatchers.IO 中执行（遵守 CLAUDE.md）
+            when (val result = withContext(Dispatchers.IO) {
+                authRepository.login(currentState.email, currentState.password)
+            }) {
+                is AuthResult.Success -> {
+                    _uiState.update { it.copy(status = LoginStatus.Success) }
                 }
-        }
-    }
-
-    fun clearSearch() {
-        _searchQuery.value = ""
-        _isSearchActive.value = false
-    }
-
-    override fun onCleared() {
-        super.onCleared()
-        loadJob?.cancel()
-        searchJob?.cancel()
-        Timber.d("NewsListViewModel cleared")
-    }
-}
-
-// UiState sealed interface
-sealed interface NewsListUiState {
-    data object FirstLoading : NewsListUiState
-    data class Loading(val currentArticles: List<NewsArticle> = emptyList()) : NewsListUiState
-    data class Success(val articles: List<NewsArticle>) : NewsListUiState
-    data object Empty : NewsListUiState
-    data class Error(val message: String) : NewsListUiState
-    data class PagingLoading(val currentArticles: List<NewsArticle>) : NewsListUiState
-}
-```
-
-### 2.3 Repository 层
-
-#### NewsRepository (Cache-Fallback)
-
-```kotlin
-class NewsRepository @Inject constructor(
-    private val newsApiService: NewsApiService,
-    private val newsDao: NewsDao
-) {
-    suspend fun getTopHeadlines(
-        category: NewsCategory,
-        page: Int = 1,
-        pageSize: Int = 20
-    ): Result<List<NewsArticle>> {
-        return withTimeout(30_000L) { // 超时保护 (P1-B2-1)
-            withContext(Dispatchers.IO) {
-                try {
-                    val response = newsApiService.getTopHeadlines(
-                        country = "cn",
-                        category = category.apiValue,
-                        page = page,
-                        pageSize = pageSize
-                    )
-                    if (response.status == "ok") {
-                        val articles = response.articles.map { it.toNewsArticle(category) }
-                        // 异步缓存不阻塞响应 (P1-B1-7)
-                        CoroutineScope(Dispatchers.IO).launch {
-                            newsDao.insertAll(articles)
+                is AuthResult.Error -> {
+                    when (result.code) {
+                        429 -> {
+                            // ✅ P1-G1: 30s 冷却倒计时 — cancel-safe (try-catch CancellationException + finally 清理)
+                            var countdown = 30
+                            _uiState.update { it.copy(status = LoginStatus.Cooldown, cooldownSeconds = countdown, errorMessage = result.message) }
+                            try {
+                                while (countdown > 0) {
+                                    delay(1000)
+                                    countdown--
+                                    _uiState.update { it.copy(cooldownSeconds = countdown) }
+                                }
+                            } catch (_: CancellationException) {
+                                // ViewModel.onCleared 时协程取消，不做任何操作
+                            } finally {
+                                // 确保退出时状态干净
+                                if (countdown > 0) {
+                                    _uiState.update { it.copy(status = LoginStatus.Idle, cooldownSeconds = 0) }
+                                }
+                            }
+                            _uiState.update { it.copy(status = LoginStatus.Idle, cooldownSeconds = 0) }
                         }
-                        Timber.d("Network success, cached ${articles.size} articles")
-                        Result.success(articles)
-                    } else {
-                        Timber.w("API status=${response.status}, fallback to cache")
-                        val cached = newsDao.getByCategory(category.apiValue)
-                        if (cached.isNotEmpty()) Result.success(cached)
-                        else Result.failure(ApiException(response.status))
+                        -1 -> {
+                            _uiState.update { it.copy(status = LoginStatus.Timeout, errorMessage = result.message) }
+                        }
+                        else -> {
+                            _uiState.update { it.copy(status = LoginStatus.Error, errorMessage = result.message) }
+                        }
                     }
-                } catch (e: HttpException) {
-                    // 捕获 HTTP 异常后尝试缓存回退 (P0-B2-1)
-                    Timber.e(e, "HTTP ${e.code()} failed, fallback to cache")
-                    val cached = newsDao.getByCategory(category.apiValue)
-                    if (cached.isNotEmpty()) Result.success(cached)
-                    else Result.failure(e)
-                } catch (e: IOException) {
-                    // 网络不可用 → 缓存回退
-                    Timber.e(e, "Network unavailable, fallback to cache")
-                    val cached = newsDao.getByCategory(category.apiValue)
-                    if (cached.isNotEmpty()) Result.success(cached)
-                    else Result.failure(e)
-                } catch (e: Exception) {
-                    // 解析错误兜底 (P0-B2-1)
-                    Timber.e(e, "Unexpected error")
-                    Result.failure(e)
                 }
             }
         }
     }
-}
-```
 
-#### SearchRepository
+    // ✅ P1-G5: 保留 logout() 方法 — NavGraph news_list composable 依赖
+    fun logout() {
+        viewModelScope.launch { authRepository.logout() }
+    }
 
-```kotlin
-class SearchRepository @Inject constructor(
-    private val newsDao: NewsDao
-) {
-    suspend fun search(query: String): List<NewsArticle> {
-        return withTimeout(10_000L) { // 超时保护 (P1-B2-1)
-            withContext(Dispatchers.IO) {
-                try {
-                    newsDao.searchByTitleAndDescription("%$query%")
-                } catch (e: Exception) {
-                    // 数据库异常不崩溃 (P0-B2-4)
-                    Timber.e(e, "Search failed for query=$query")
-                    emptyList()
-                }
-            }
-        }
+    private fun togglePasswordVisibility() {
+        _uiState.update { it.copy(isPasswordVisible = !it.isPasswordVisible) }
+    }
+
+    private fun clearError() {
+        _uiState.update { it.copy(errorMessage = null) }
+    }
+
+    override fun onCleared() {  // D-58
+        super.onCleared()
     }
 }
 ```
 
-### 2.4 Data 层
+**关键变更**：
+- `onUsernameChanged()` → `onEmailChanged()` + 邮箱正则校验
+- 新增 `LoginEvent` 驱动的事件处理（替代旧有的方法直调）
+- 显式状态机：`Idle → Editing → Loading → Success/Error/Timeout/Cooldown`
+- `collectLatest` 模式 — 事件处理使用 `onEvent()` 统一入口（D-55）
+- 429 限流：30s Cooldown 倒计时 + 按钮 disabled
+- `onCleared()` 显式声明（D-58）
 
-#### Retrofit API
+### 2.6 LoginScreen — Compose UI（重构）
 
-```kotlin
-// API Key 不暴露在接口签名中，通过 OkHttp Interceptor 动态注入 (P2-B2-6)
-interface NewsApiService {
-    @GET("v2/top-headlines")
-    suspend fun getTopHeadlines(
-        @Query("country") country: String = "cn",
-        @Query("category") category: String,
-        @Query("page") page: Int = 1,
-        @Query("pageSize") pageSize: Int = 20
-    ): NewsApiResponse
-}
+**文件**：`app/src/main/java/com/example/myandroidapp/ui/auth/LoginScreen.kt`
 
-data class NewsApiResponse(
-    val status: String,
-    val totalResults: Int,
-    val articles: List<NewsApiArticle>
-)
-```
+**关键变更**（遵循 UI_DESIGN §3 组件层级树）：
+- `username` 输入框 → `email` 输入框，`KeyboardType.Email` + `imeAction = Next`
+- 按钮 enabled 条件：`isEmailValid && password.isNotEmpty() && status != LoginStatus.Loading && status != LoginStatus.Cooldown`
+- 按钮文字：Cooldown 态显示 "请等待 {cooldownSeconds}s"
+- 错误展示：内联 `Text(error)` + `AnimatedVisibility`（非 Card）
+- `BackHandler(enabled = true) { activity.finish() }`（AC-08）
+- 所有元素添加 `testTag` + `contentDescription`（§7 无障碍表）
+- `Modifier.imePadding()` 键盘避让
 
-#### Room 数据库
+### 2.7 AuthModule — Hilt DI（重构）
 
-```kotlin
-@Entity(tableName = "news_articles")
-data class NewsArticleEntity(
-    @PrimaryKey val url: String,
-    val title: String,
-    val description: String?,
-    val sourceName: String,
-    val publishedAt: String,
-    val urlToImage: String?,
-    val category: String,
-    val cachedAt: Long = System.currentTimeMillis()
-)
-
-// 不使用 FTS4 — 100条数据量 LIKE 查询延迟<100ms 够用 (P0-B1-1)
-@Dao
-interface NewsDao {
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAll(articles: List<NewsArticleEntity>)
-
-    @Query("SELECT * FROM news_articles WHERE category = :category ORDER BY publishedAt DESC")
-    suspend fun getByCategory(category: String): List<NewsArticleEntity>
-
-    @Query("""
-        SELECT * FROM news_articles
-        WHERE title LIKE :query OR description LIKE :query
-        ORDER BY publishedAt DESC
-        LIMIT 50
-    """)
-    suspend fun searchByTitleAndDescription(query: String): List<NewsArticleEntity>
-
-    @Query("DELETE FROM news_articles WHERE cachedAt < :expireTime")
-    suspend fun deleteExpired(expireTime: Long)
-
-    @Query("SELECT COUNT(*) FROM news_articles")
-    suspend fun getCount(): Int
-}
-```
-
-#### DI 模块
+**文件**：`app/src/main/java/com/example/myandroidapp/di/AuthModule.kt`
 
 ```kotlin
 @Module
 @InstallIn(SingletonComponent::class)
-object NetworkModule {
-    @Provides @Singleton
-    fun provideOkHttpClient(): OkHttpClient {
-        return OkHttpClient.Builder()
-            .addInterceptor { chain ->
-                // NewsAPI Key 动态注入 (P2-B2-6)
-                val url = chain.request().url.newBuilder()
-                    .addQueryParameter("apiKey", BuildConfig.NEWS_API_KEY)
-                    .build()
-                chain.proceed(chain.request().newBuilder().url(url).build())
-            }
-            .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(15, TimeUnit.SECONDS)
-            .writeTimeout(15, TimeUnit.SECONDS)
-            .callTimeout(30, TimeUnit.SECONDS)
-            .build()
-    }
+object AuthModule {
 
-    @Provides @Singleton
-    fun provideNewsApi(client: OkHttpClient): NewsApiService {
+    // ✅ P0-G8: LoginApi 暴露为独立 binding — 单元测试可直接 mockk<LoginApi>()
+    @Provides
+    @Singleton
+    fun provideLoginApi(okHttpClient: OkHttpClient): LoginApi {
         return Retrofit.Builder()
-            .baseUrl("https://newsapi.org/")
-            .client(client)
+            .baseUrl("https://api.example.com/")
+            .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
-            .create(NewsApiService::class.java)
-    }
-}
-
-@Module
-@InstallIn(SingletonComponent::class)
-object DatabaseModule {
-    @Provides @Singleton
-    fun provideDatabase(@ApplicationContext context: Context): NewsDatabase {
-        return Room.databaseBuilder(context, NewsDatabase::class.java, "news.db")
-            .fallbackToDestructiveMigration() // TODO: v1.1 实现 Migration(1,2)
-            .build()
+            .create(LoginApi::class.java)
     }
 
-    @Provides fun provideNewsDao(db: NewsDatabase) = db.newsDao()
+    @Provides
+    @Singleton
+    fun provideAuthRepository(
+        loginApi: LoginApi,              // ✅ 独立注入，可 mock
+        stateManager: LoginStateManager   // ✅ 独立注入，可 mock
+    ): AuthRepository = AuthRepository(loginApi, stateManager)
 }
+```
+
+**关键变更**：
+- 从手动 `new AuthRepository()` → Hilt `@Provides` Retrofit 注入
+- ✅ **P0-G8**: `LoginApi` 暴露为独立 Hilt binding，单元测试中可直接 `mockk<LoginApi>()` 注入 `AuthRepository`
+- ✅ **P0-G1**: Debug 门控使用 `FLAG_DEBUGGABLE` 替代 `BuildConfig.DEBUG`（见 §2.2 MockAuthInterceptor）
+- 复用 `NetworkModule` 提供的 OkHttpClient（含 writeTimeout/callTimeout，D-64）
+
+### 2.8 LoginStateManager — DataStore 持久化（重构）
+
+**文件**：`app/src/main/java/com/example/myandroidapp/data/local/LoginStateManager.kt`
+
+**关键变更**：
+- `username` key → `user_email` + `user_display_name` + `auth_token` 三个独立 key
+- 新增 `saveUser(token, user)` / `getToken()` / `getUser()` / `clear()` 方法
+- 使用 `DataStore<Preferences>` 加密存储（EncryptedSharedPreferences 后续迭代）
+
+### 2.9 NavGraph — 导航（修改）
+
+**文件**：`app/src/main/java/com/example/myandroidapp/MainActivity.kt`（⚠️ P0-G9: 统一到 `NewsAppNavHost()`，**非** `NavGraph.kt` 的 `AppNavGraph()`）
+
+> **⚠️ 关键纠正**：项目存在两个 NavHost 实现 — `NavGraph.kt` 的 `AppNavGraph()` 和 `MainActivity.kt` 的 `NewsAppNavHost()`。实际运行时使用的是 `MainActivity.kt` 中的 `NewsAppNavHost()`。需在 `NewsAppNavHost()` 中新增 login composable，而非修改 `AppNavGraph()`。
+
+```kotlin
+// MainActivity.kt — NewsAppNavHost()
+@Composable
+fun NewsAppNavHost() {
+    val navController = rememberNavController()
+    val context = LocalContext.current
+
+    NavHost(
+        navController = navController,
+        startDestination = "login"  // ✅ 改为 login
+    ) {
+        composable("login") {
+            LoginScreen(
+                onLoginSuccess = {
+                    navController.navigate("news_list") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                }
+            )
+            // ✅ AC-08: 返回键退出应用
+            BackHandler { (context as? Activity)?.finish() }
+        }
+        composable("news_list") { /* 现有逻辑 */ }
+        composable("news_detail/{articleId}") { /* 现有逻辑 */ }
+    }
+}
+```
+
+- `startDestination = "login"`（原 "news_list"）
+- 登录成功 → `navigate("news_list") { popUpTo("login") { inclusive = true } }` 防止回退
+- `BackHandler` 使用安全类型转换 `as? Activity`（测试环境兼容）
+- **行动项**：删除 `NavGraph.kt` 中的 `AppNavGraph()` 死代码，避免后续混淆
+
+### 2.10 数据流
+
+```
+用户输入 email                          LoginApi
+      │                                    │
+      ▼                                    ▼
+LoginEvent.EmailChanged ──→ LoginViewModel    POST /api/auth/login
+      │                         │                │
+      ▼                         │                ▼
+isEmailValid = regex.match()    │           Response(200/401/403/429)
+      │                         │                │
+      ▼                         ▼                ▼
+_uiState.update { ... }    viewModelScope.launch  AuthResult.Success/Error
+      │                         │                │
+      ▼                         ▼                ▼
+LoginScreen 重组               _uiState.update   LoginStateManager.saveUser()
 ```
 
 ---
 
 ## §3 接口定义
 
-### UiState 类型
-
-| 类型 | 字段 | 说明 |
-|------|------|------|
-| `NewsListUiState.FirstLoading` | — | 首次加载骨架屏 |
-| `NewsListUiState.Loading` | `currentArticles: List<NewsArticle>` | 非首次加载保留旧列表（注：空列表时等同 FirstLoading） |
-| `NewsListUiState.Success` | `articles: List<NewsArticle>` | 正常数据（≤200条，受 MAX_CACHED_ARTICLES 限制） |
-| `NewsListUiState.Empty` | — | 分类无数据 |
-| `NewsListUiState.Error` | `message: String` | 网络/限流/超时错误 |
-| `NewsListUiState.PagingLoading` | `currentArticles: List<NewsArticle>` | 分页加载中 |
-| `DetailUiState.Loading` | — | 详情加载 |
-| `DetailUiState.Success` | `article: NewsArticle` | 详情成功 |
-| `DetailUiState.Error` | `message: String` | 详情错误 |
-
-### 数据模型
+### 3.1 LoginApi
 
 ```kotlin
-data class NewsArticle(
-    val url: String,
-    val title: String,
-    val description: String?,
-    val sourceName: String,
-    val publishedAt: String,
-    val urlToImage: String?,
-    val category: NewsCategory
-)
-
-enum class NewsCategory(val displayName: String, val apiValue: String) {
-    RECOMMENDED("推荐", "general"),
-    TECHNOLOGY("科技", "technology"),
-    BUSINESS("财经", "business"),
-    SPORTS("体育", "sports"),
-    ENTERTAINMENT("娱乐", "entertainment")
-}
+@POST("api/auth/login")
+suspend fun login(@Body request: LoginRequest): Response<LoginResponse>
 ```
 
----
+### 3.2 AuthRepository
 
-## §4 数据流与状态管理
-
-### 列表页数据流
-
-```
-User打开App
-  → NewsListViewModel.init() → savedStateHandle 恢复 tab/page → loadNews()
-  → uiState = FirstLoading → UI渲染3张骨架屏
-  → NewsRepository.getTopHeadlines("general", 1)
-    [withTimeout(30s) + withContext(Dispatchers.IO)]
-    → NewsApiService.getTopHeadlines() [网络请求]
-      → 200 → async insertAll() [缓存] + Result.success(articles)
-      → HttpException → NewsDao.getByCategory() [缓存回退]
-      → IOException → NewsDao.getByCategory() [缓存回退]
-      → Exception → Result.failure(e)
-  → uiState = Success | Empty | Error
-  → Timber.d 记录结果
-  → UI更新 → LazyColumn(items, key = { it.url }) 卡片列表 | 空态 | 错误态
+```kotlin
+suspend fun login(email: String, password: String): AuthResult<LoginResponse>
+fun isLoggedIn(): Boolean
+fun logout()
 ```
 
-### 搜索数据流
+### 3.3 LoginViewModel
 
-```
-User输入 ≥3字符
-  → onSearchQueryChanged(query.take(100)) → searchQuery 更新
-  → observeSearchQuery:
-    .debounce(300ms) → .filter(len>=3) → .collectLatest (自动取消前一个)
-      → withTimeout(10s) → searchRepository.search(query)
-        → withContext(Dispatchers.IO) → try { newsDao LIKE } catch → emptyList()
-  → _searchResults 更新 → UI 渲染搜索结果
+```kotlin
+val uiState: StateFlow<LoginUiState>
+fun onEvent(event: LoginEvent)
 ```
 
-### 防竞态机制
+### 3.4 数据模型（对齐 PRD §11 JSON Schema）
 
-- **Tab 切换**: `loadJob?.cancel()` 取消前一个加载协程
-- **搜索**: `collectLatest` 自动取消前一个 lambda → 无需手动 job 管理
-- **分页加载**: `PagingLoading` 状态作防重入保护
-- **Repository 超时**: `withTimeout(30s)` 防止协程永久挂起
-
----
-
-## §5 安全考虑
-
-| 安全项 | 措施 |
-|--------|------|
-| API Key | `local.properties` → `BuildConfig` → OkHttp Interceptor 动态注入，不出现于接口签名 |
-| 网络请求 | HTTPS only (newsapi.org)，OkHttp 强制 TLS 1.2+ |
-| 缓存过期 | Room 7 天过期 + 定时清理 `deleteExpired()` + COUNT 限 100 条 |
-| 数据校验 | Gson 解析使用 `@SerializedName` + 可空字段防御 |
-| 外部链接 | Chrome CustomTabs 打开，不允许 WebView 内嵌 |
-| 崩溃防护 | Repository 层 Exception 全覆盖（HttpException + IOException + Exception），UI 层永远不会看到未捕获异常 |
-| 超时保护 | 网络 30s / 搜索 10s 硬超时，防止 ANR |
-| ProGuard | Retrofit/Gson/Room/Coil keep 规则（见下文） |
-
-### ProGuard 规则
-
-```proguard
-# Retrofit
--keepattributes Signature
--keepattributes *Annotation*
--keep class com.example.myandroidapp.data.remote.** { *; }
--keep class retrofit2.** { *; }
-
-# Gson
--keep class com.example.myandroidapp.data.model.** { *; }
--keepclassmembers class * {
-    @com.google.gson.annotations.SerializedName <fields>;
-}
-
-# Room
--keep class * extends androidx.room.RoomDatabase
--keep @androidx.room.Entity class *
-
-# Coil
--keep class coil.** { *; }
-
-# Timber
--keep class timber.log.** { *; }
-```
-
----
-
-## §6 测试策略
-
-### 单元测试
-
-| 层级 | 测试文件 | 覆盖内容 | 新增依赖 |
-|------|----------|----------|----------|
-| ViewModel | `NewsListViewModelTest` | 状态机全路径（加载→成功→错误→空→分页→搜索→防抖→tab竞态）+ SavedStateHandle恢复 | — |
-| ViewModel | `NewsDetailViewModelTest` | 详情加载成功/错误/不存在/空articleId | — |
-| Repository | `NewsRepositoryTest` | Cache-Fallback: 网络成功→异步缓存 / HttpException→回退 / IOException→回退 / 空缓存 | — |
-| Repository | `SearchRepositoryTest` | Room LIKE 查询 / DB异常→空列表 / 空结果 | — |
-| DAO | `NewsDaoTest` | Room in-memory: insertAll / getByCategory / search / deleteExpired / getCount | `room-testing:2.6.1` |
-
-### UI 测试（Compose Test）
-
-| 测试 | 内容 | testTag 覆盖 |
+| 模型 | 字段 | 对应 Schema |
 |------|------|-------------|
-| `NewsListScreenTest` | 骨架屏渲染 + 卡片列表展示 + 空态 + 错误态重试 + Tab切换 + pullRefresh | searchBar, categoryTabRow, newsCardList, emptyState, errorState, shimmerCard_X, newsCard_{url} |
-| `NewsDetailScreenTest` | 标题/来源/时间/正文渲染 + "阅读原文"按钮 + 返回按钮 | newsDetailScreen, readOriginalButton, detailBackButton |
-| `SearchTest` | 搜索覆盖层 AnimatedVisibility + 结果列表 + 清除恢复 | searchOverlay, searchResultItem_X |
-| `NavigationTest` | NavHost 路由验证：news_list→news_detail 传参 + 返回栈 + 无效articleId→Error | detailBackButton, newsDetailScreen |
+| `LoginRequest` | email, password | `LoginRequest` |
+| `LoginResponse` | token, user{id,email,displayName} | `LoginResponse` |
+| `LoginErrorResponse` | code(401/403/429), message | `LoginErrorResponse` |
+| `LoginUiState` | email, password, isEmailValid, isPasswordVisible, status, errorMessage, cooldownSeconds | — |
+| `LoginStatus` | Idle, Editing, Loading, Success, Error, Timeout, Cooldown | §11.3 状态枚举扩展 |
 
-### AnimatedVisibility 测试策略
+---
 
+## §4 安全考虑
+
+| 风险 | 等级 | 缓解 |
+|------|:----:|------|
+| 明文密码在 ViewModel 内存中 | 🟢 低 | ViewModel 在 onCleared 时销毁，密码不写入 DataStore。后续迭代考虑 CharArray/@Transient |
+| HTTPS 中间人攻击 | 🟢 低 | Retrofit + OkHttp 默认 TLS 1.2+；NetworkModule 配置 certificatePinner（后续） |
+| 登录按钮快速连点导致并发请求 | 🟢 低 | ✅ **P0-G6 已修订**：原子 `updateAndGet` 闭包内检查 `status == Loading/Cooldown`，消除竞态 |
+| Token 明文存储 DataStore | 🟡 中 | v1.0 使用 DataStore Preferences；**建议 v1.0 即接入 EncryptedSharedPreferences**（非延期 v1.1） |
+| MockAuthInterceptor 泄漏到 Release | 🟢 低 | ✅ **P0-G1 已修订**：`FLAG_DEBUGGABLE` 门控替代 `BuildConfig.DEBUG`；Release 不含 MockInterceptor |
+| `activity.finish()` 在非 Activity Context 调用 | 🟢 低 | ✅ `as? Activity` 安全转换（测试/Preview 环境返回 null 不崩溃） |
+| DataStore 三 key 写入非原子事务 | 🟡 中 | 建议合并为单次 `edit{}` 写入；v1.0 风险低（写入量小） |
+
+---
+
+## §5 测试策略
+
+| # | 测试类型 | 用例 | 断言 |
+|---|----------|------|------|
+| T1 | 单元测试 | `LoginViewModel` email 校验 | 合法邮箱 `isEmailValid=true`，非法 `false` |
+| T2 | 单元测试 | `LoginViewModel` 按钮联动 | `isEmailValid=false` → button disabled；两者满足 → enabled |
+| T3 | 单元测试 | `LoginViewModel` login 成功 | `AuthResult.Success` → `status=Success` |
+| T4 | 单元测试 | `LoginViewModel` login 401 | `AuthResult.Error(401)` → `status=Error`，`errorMessage="邮箱或密码错误"` |
+| T5 | 单元测试 | `LoginViewModel` login 403 | `AuthResult.Error(403)` → `status=Error`，`errorMessage="账户已被锁定"` |
+| T6 | 单元测试 | `LoginViewModel` login 429 | `AuthResult.Error(429)` → `status=Cooldown`，`cooldownSeconds=30`，倒计时结束 → `Idle` |
+| T7 | 单元测试 | `LoginViewModel` login 超时 | `SocketTimeoutException` → `status=Timeout` |
+| T8 | 单元测试 | `LoginViewModel` loading 中不可重入 | `status=Loading` 时再次 `login()` → 无第二次调用 |
+| T9 | 单元测试 | `LoginViewModel` 输入变更清除错误 | `status=Error/errorMessage` → 输入 email → `errorMessage=null` |
+| T10 | 单元测试 | `AuthRepository` HttpException → Error | Mock 401 response → `AuthResult.Error` |
+| T11 | 单元测试 | `AuthRepository` withTimeout | Mock 延迟 >10s → `SocketTimeoutException` |
+| T12 | Compose UI | LoginScreen idle 态 | testTag 存在，按钮 disabled，输入框可见 |
+| T13 | Compose UI | LoginScreen loading 态 | CircularProgressIndicator 可见，输入框 disabled |
+| T14 | Compose UI | LoginScreen error 态 | 错误文字可见，AnimatedVisibility 展开 |
+| T15 | Compose UI | LoginScreen 密码显隐 | trailingIcon 点击 → password visible ↔ hidden |
+| T16 | Compose UI | BackHandler 退出 | 按返回键 → `activity.finish()` 调用 |
+
+**CI 策略**：`./gradlew testDebugUnitTest lintDebug`
+> ✅ **P0-G10**：Compose UI Test（T12-T16）通过 Robolectric 在 `src/test/` 目录运行，与项目现有 `NewsListScreenComposeTest` 模式一致。不使用 `connectedAndroidTest`（无 `androidTest/` 基础设施）。
+
+**测试依赖**（✅ 新增项已标记）：
+- MockK：Mock `AuthRepository` + `LoginApi`
+- ✅ **Turbine 1.0.0**：测试 `StateFlow` 发射序列（状态机 T3-T8）← **P0-G10: 需追加到 `build.gradle.kts`**
+- Compose UI Test：T12-T16（通过 `androidx.compose.ui:ui-test-junit4` + Robolectric）
+- Coroutines Test：`runTest` + `StandardTestDispatcher`
+- ✅ **Hilt Android Testing**：`@HiltAndroidTest` + `HiltAndroidRule`（`hilt-android-testing:2.48.1` + `kaptTest hilt-android-compiler`）← **P0-G11: 需追加到 `build.gradle.kts`**
+
+**`build.gradle.kts` 需追加的依赖**：
 ```kotlin
-// 使用 mainClock.autoAdvance = false 控制动画时钟
-@Test fun searchOverlay_visible_afterQuery() {
-    composeTestRule.mainClock.autoAdvance = false
-    composeTestRule.setContent { NewsListScreen(...) }
-
-    composeTestRule.onNodeWithTag("searchOverlay").assertDoesNotExist() // 初始隐藏
-
-    viewModel.onSearchQueryChanged("科技新闻")
-    composeTestRule.mainClock.advanceTimeBy(301) // 过 300ms 防抖
-
-    composeTestRule.onNodeWithTag("searchOverlay").assertIsDisplayed() // 动画后可见
-}
+testImplementation("app.cash.turbine:turbine:1.0.0")
+testImplementation("com.google.dagger:hilt-android-testing:2.48.1")
+kaptTest("com.google.dagger:hilt-android-compiler:2.48.1")
 ```
 
-### CI 集成
+---
 
-```gradle
-android {
-    testOptions {
-        unitTests {
-            isIncludeAndroidResources = true  // Robolectric
-        }
-    }
-}
-```
+## §6 文件变更清单
 
-CI 命令:
-```bash
-./gradlew assembleDebug lintDebug testDebug
-```
+| 操作 | 文件 | 说明 |
+|:--:|------|------|
+| **新建** | `data/remote/LoginApi.kt` | Retrofit 登录 API 接口 |
+| **新建** | `data/remote/MockAuthInterceptor.kt` | Mock 后端拦截器（含 Buffer body 解析 + FLAG_DEBUGGABLE 门控） |
+| **新建** | `domain/model/LoginModels.kt` | LoginEvent + LoginStatus + 重构后的数据模型 |
+| **新建** | `ui/theme/Theme.kt` | M3 Theme（lightColorScheme + darkColorScheme + Typography） |
+| **新建** | `ui/theme/Color.kt` | 品牌色 `#1A73E8` 等 Token 常量 |
+| **新建** | `ui/theme/Type.kt` | 字体层级映射（headlineMedium/bodyMedium/labelLarge 等） |
+| **新建** | `ui/auth/LoginDimens.kt` | 间距 Token: spacing0=0dp, spacing1=8dp, ..., spacing5=40dp + icon/field/btn 规格 |
+| **新建** | `data/repository/AuthRepositoryTest.kt` | ✅ T10-T11 单元测试（mock LoginApi + coEvery + runTest + advanceTimeBy） |
+| **新建** | `ui/auth/LoginScreenComposeTest.kt` | ✅ T12-T16 Compose UI 测试（Robolectric） |
+| **修改** | `data/repository/AuthRepository.kt` | mock→Retrofit + withTimeout + TimeoutCancellationException + body空安全 + parseError + 全局异常兜底 |
+| **修改** | `domain/model/AuthModels.kt` | username→email，AuthResult.Error 新增 `code: Int?` 可选参数，新增 LoginErrorResponse |
+| **修改** | `ui/auth/LoginViewModel.kt` | email 校验 + 原子状态检查 + Dispatchers.IO + LoginEvent + 429 cancel-safe 倒计时 + logout |
+| **修改** | `ui/auth/LoginScreen.kt` | email 输入框 + 按钮联动 + BackHandler + 内联错误 + testTag + 无障碍 + 密码显隐用 ViewModel 状态 |
+| **修改** | `di/AuthModule.kt` | 手动 new → Hilt Retrofit 注入；LoginApi 独立 binding；DEBUG 门控升级 |
+| **修改** | `data/local/LoginStateManager.kt` | username key → user_email/user_display_name/auth_token 三 key |
+| **修改** | `MainActivity.kt` (NewsAppNavHost) | ⚠️ 非 NavGraph.kt；startDestination→login + login composable + BackHandler |
+| **修改** | `app/build.gradle.kts` | ✅ 追加 Turbine + Hilt testing 依赖 |
+| **删除** | `navigation/NavGraph.kt` (AppNavGraph) | 死代码 — 已统一到 NewsAppNavHost |
+| **删除** | 旧 `domain/model/AuthModels.kt` 残留 | username 相关旧字段 |
 
-### 测试前置条件
+---
 
-| 依赖 | 版本 | 用途 |
+## §7 架构决策
+
+| 编号 | 决策 | 原因 |
 |------|------|------|
-| `mockk` | 1.13.12（需从 1.13.8 升级） | ViewModel/Repository mock |
-| `kotlinx-coroutines-test` | 已存在 | runTest + advanceTimeBy |
-| `compose-ui-test-junit4` | 已存在 | composeTestRule |
-| `room-testing` | 2.6.1（新增） | Room in-memory database for DAO test |
-| `timber` | 5.0.1（新增） | 日志输出 |
+| AD-01 | AuthRepository 使用密封类 `AuthResult<T>` 而非裸异常 | 调用方可在 ViewModel 中用 `when` 穷举处理，编译期保证分支覆盖 |
+| AD-02 | 邮箱校验在 ViewModel 中执行（非 Repository） | 客户端校验属于 UI 层逻辑，不应污染数据层；Repository 仅负责网络调用 |
+| AD-03 | 429 倒计时在 ViewModel 中用 `delay(1000)` 循环实现 | 避免引入 CountDownTimer / Android 依赖，纯协程方案便于单元测试 |
+| AD-04 | MockAuthInterceptor 仅在 Debug 构建启用（`FLAG_DEBUGGABLE` 门控） | ✅ 修订：`BuildConfig.DEBUG` → `ApplicationInfo.FLAG_DEBUGGABLE` 更可靠 |
+| AD-05 | LoginStateManager 使用 3 个独立 DataStore key（token/email/displayName） | 避免 JSON 序列化开销，Preferences 天然支持独立 key 读写 |
+| AD-06 | 输入框 Loading 态 disabled 使用 `Modifier.enabled(!isLoading)` 而非仅 alpha | `alpha` 不阻止触摸事件（Pitfalls 已验证），必须配合 `enabled=false` |
+| AD-07 | Theme.kt 定义独立于 NewsDimens 的 LoginDimens | 登录页与新闻列表设计语境不同，强行共享 Token 会导致语义混乱 |
+| AD-08 | `LoginEvent` 采用密封类 + 统一 `onEvent()` 入口 | `onEvent` 方法调用天然串行处理事件，无需 `collectLatest` |
 
 ---
 
-## §7 文件清单
+## §8 依赖关系
 
-### 新增文件
+```
+LoginViewModel
+  └── AuthRepository (runtime, Hilt injected)
+        ├── LoginApi (runtime, Retrofit)
+        │     └── OkHttpClient (compile-time, NetworkModule)
+        │           └── MockAuthInterceptor (debug-only, OkHttp)
+        └── LoginStateManager (runtime, DataStore)
 
-| # | 路径 | 说明 | 复杂度 |
-|---|------|------|--------|
-| 1 | `ui/news/NewsListScreen.kt` | 列表页 Composable + BackHandler/IME/testTag | 🔴 高 |
-| 2 | `ui/news/NewsListViewModel.kt` | 状态机 6态 + 搜索防抖(collectLatest) + 分页 + 超时 + Timber | 🔴 高 |
-| 3 | `ui/news/NewsDetailScreen.kt` | 详情页 Composable + CustomTabs/testTag | 🟡 中 |
-| 4 | `ui/news/NewsDetailViewModel.kt` | 详情加载状态机 + 超时 | 🟡 中 |
-| 5 | `ui/components/NewsCard.kt` | 新闻卡片 Composable + testTag | 🟢 低 |
-| 6 | `ui/components/ShimmerCard.kt` | 骨架屏 + shimmer modifier | 🟢 低 |
-| 7 | `ui/components/ErrorState.kt` | 通用错误态 + testTag | 🟢 低 |
-| 8 | `ui/components/EmptyState.kt` | 通用空态 + testTag | 🟢 低 |
-| 9 | `data/remote/NewsApiService.kt` | Retrofit 接口（apiKey 不在签名） | 🟢 低 |
-| 10 | `data/remote/NewsApiModels.kt` | API 响应数据类 | 🟢 低 |
-| 11 | `data/local/NewsArticleEntity.kt` | Room Entity（无 FTS4） | 🟢 低 |
-| 12 | `data/local/NewsDao.kt` | Room DAO（LIKE 查询） | 🟢 低 |
-| 13 | `data/local/NewsDatabase.kt` | Room Database | 🟢 低 |
-| 14 | `data/repository/NewsRepository.kt` | Cache-Fallback + 全异常覆盖 + 异步缓存 | 🟡 中 |
-| 15 | `data/repository/SearchRepository.kt` | Room LIKE 搜索 + 异常兜底 | 🟡 中 |
-| 16 | `di/NetworkModule.kt` | Retrofit + OkHttp（Interceptor 注入 apiKey）+ Timber | 🟢 低 |
-| 17 | `di/DatabaseModule.kt` | Room Hilt 模块 | 🟢 低 |
-| 18 | `domain/model/NewsModels.kt` | NewsArticle + NewsCategory | 🟢 低 |
+LoginScreen
+  ├── LoginViewModel (runtime, hiltViewModel)
+  ├── LoginDimens (compile-time)
+  └── MaterialTheme (runtime, Theme.kt → Color.kt + Type.kt)
 
-### 修改文件
+AuthModule
+  ├── LoginApi → Retrofit.Builder → OkHttpClient (NetworkModule)
+  └── AuthRepository → LoginApi + LoginStateManager
+```
 
-| # | 路径 | 变更 |
+**需确认的编译依赖**：
+- `material-icons-extended`：`Icons.Filled.Email` 在 extended 包中（非默认 material-icons-core）
+
+---
+
+## §9 多视角评审记录
+
+> **评审日期:** 2026-06-07 | **方式:** delegate_task 三视角并行 (B1 工程师/B2 安全/B3 可测试性)
+
+### 评审总览
+
+| 视角 | 评分 | P0 | P1 | P2 | 关键发现 |
+|------|:----:|----|----|-----|---------|
+| B1 资深工程师 | 6/10 | 6 | 8 | 5 | MockAuth 伪代码、withTimeout 异常泄漏、NavGraph 双实现、Dispatchers.IO 缺失、AuthResult 签名变更、body!! |
+| B2 安全/稳定性 | 3.8/10 | 5 | 6 | 5 | withTimeout 异常 miss、login() 竞态、body!! NPE、parseError 空缺、Mock body 消费 |
+| B3 可测试性 | 3/10 | 6 | 8 | 6 | Turbine/依赖缺失、androidTest 虚构、LoginApi 不可独立 mock、hilt-test 缺失、AuthResult 破坏引用 |
+
+> **去重后合计：12 P0 / 22 P1 / 16 P2** — 全部 12 项 P0 已在本次修订中自动修复；P1 项编码阶段逐项消化。
+
+### P0 修订记录（已自动修订 ✅）
+
+| # | 来源 | 问题 | 修订 |
+|---|------|------|------|
+| P0-G1 | B1+B2 | MockAuthInterceptor: body 伪代码 + one-shot 消费 + Thread.sleep + DEBUG 门控 | Buffer.writeTo 读取 body → Gson 解析；延迟改用 readTimeout；门控升级 FLAG_DEBUGGABLE |
+| P0-G2 | B1+B2 | withTimeout 不捕获 TimeoutCancellationException | try-catch 移至 withTimeout 外层，新增 TimeoutCancellationException 分支 |
+| P0-G3 | B1 | NavGraph 双实现 — NewsAppNavHost 不含 login 路由 | 统一到 MainActivity.kt NewsAppNavHost，新增 login composable + BackHandler |
+| P0-G4 | B1 | 网络请求缺少 Dispatchers.IO | LoginViewModel.login() 中用 `withContext(Dispatchers.IO)` 包裹 `authRepository.login()` |
+| P0-G5 | B1+B2 | response.body()!! NPE | 改为 `body ?: return@withTimeout AuthResult.Error(...)` 空安全解包 |
+| P0-G6 | B2 | login() 竞态条件 — 读取/写入非原子 | `_uiState.updateAndGet` 原子闭包内检查 status + 切换 Loading，双重 check Cooldown |
+| P0-G7 | B2 | parseError() 未定义 + Gson 解析失败无保护 | 实现 parseError 方法（含 Gson 解析 try-catch）+ 全局 catch(Exception) 兜底 |
+| P0-G8 | B1+B3 | AuthResult 从独立文件移入内部类 — 破坏引用 | AuthResult 保持为顶层 sealed class；Error 新增 `code: Int?` 可选参数向后兼容 |
+| P0-G9 | B3 | AuthRepository 的 LoginApi 不可独立 mock | AuthModule 中 LoginApi 暴露为独立 Hilt binding |
+| P0-G10 | B3 | Turbine 依赖未声明；connectedAndroidTest 不可执行 | §5 追加 Turbine 1.0.0 → build.gradle.kts；CI 改为 `testDebugUnitTest lintDebug` |
+| P0-G11 | B3 | hilt-android-testing 缺失 | §5 追加 `hilt-android-testing:2.48.1` + `kaptTest hilt-android-compiler` |
+| P0-G12 | B3 | 测试文件未列入变更清单 | §6 追加 AuthRepositoryTest.kt + LoginScreenComposeTest.kt |
+
+### P1 待确认项（编码阶段消化）
+
+| # | 问题 | 来源 |
 |---|------|------|
-| 19 | `app/build.gradle.kts` | +coil-compose:2.5.0, +timber:5.0.1, +browser, +room-testing:2.6.1, +mockk:1.13.12, 不升级 BOM |
-| 20 | `MainActivity.kt` | 移除 LoginScreen → NavHost(NewsListScreen), hiltViewModel(activity) |
-| 21 | `app/proguard-rules.pro` | 新建或追加：Retrofit/Gson/Room/Coil/Timber keep 规则 |
+| P1-G1 | LoginUiState/LoginEvent 跨层放置 — UiState 在 domain 层 | B1 |
+| P1-G2 | AuthRepository.isLoggedIn() 非 suspend 却调 DataStore | B1 |
+| P1-G3 | LoginStateManager 旧 key 迁移无数据兼容策略 | B1 |
+| P1-G4 | LoginScreen 密码显隐从 remember 本地状态迁移到 ViewModel | B1+B3 |
+| P1-G5 | LoginViewModel 丢失 logout() 方法 — NavGraph 依赖 | B1 |
+| P1-G6 | Token 明文 DataStore → 建议 v1.0 即接入 EncryptedSharedPreferences | B2 |
+| P1-G7 | 429 Cooldown delay 循环 + cancel-safe + finally 状态清理 | B2 |
+| P1-G8 | 密码长度无上限校验 — 硬截断到 128 字符 | B2 |
+| P1-G9 | AuthRepository 单元测试无独立文件计划 — §6 追补 | B3 |
+| P1-G10 | LoginApi Retrofit 接口无法用 mockk 直接 mock — 需明确 coEvery 策略 | B3 |
+| P1-G11 | CI 无 lint 步骤 — 追补 lintDebug | B3 |
+| P1-G12 | 新增 Theme/Dimens 文件无独立测试 — 追补 LoginDimens 值校验 | B3 |
+| P1-G13 | withTimeout 超时测试 (T11) runTest 中需 advanceTimeBy 触发 | B3 |
+| P1-G14 | email 校验边界值未枚举 — 建议参数化测试覆盖 RFC 5322 边界 | B3 |
+| P1-G15 | EncryptedSharedPreferences 建议 v1.0 实现（非延至 v1.1） | B2 |
+| P1-G16 | LoginStateManager 三 key 写入非事务 — 建议单次 edit{} | B2 |
+| P1-G17 | Gson 反序列化 LoginResponse 失败无保护 — 全局 catch(Exception) 兜底 | B1 |
+| P1-G18 | MockNewsInterceptor 无独立 mockResponse() — 需提取公共工具函数 | B1 |
+| P1-G19 | LoginScreen password visible 从 remember → ViewModel.uiState.isPasswordVisible | B3 |
+| P1-G20 | T16 BackHandler 测试需要 Activity Scenario（或降级为 Robolectric） | B3 |
+| P1-G21 | AnimatedVisibility 测试 — testTag 放入内部 composable | B3 |
+| P1-G22 | T8 loading 不可重入断言需配合 coVerify(exactly=0) | B3 |
 
-### 删除文件
+### P2 优化建议（低优先级）
 
-| # | 路径 | 原因 |
+| # | 建议 | 来源 |
 |---|------|------|
-| 22 | `ui/login/LoginViewModel.kt` | D-28: v1 移除登录 |
-| 23 | `data/LoginRepository.kt` | 不在 scope 内 |
+| P2-1 | 429 冷却态 login() 追加 Cooldown 双重防护 | B1 |
+| P2-2 | AnimatedVisibility + imePadding 重组抖动 — 建议 animateContentSize | B1 |
+| P2-3 | LoginUiState.copy() 每字符触发全字段重建 — 建议 derivedStateOf | B1 |
+| P2-4 | Theme.kt 暗色模式 onPrimary 色值用 MaterialTheme 自动生成 | B1 |
+| P2-5 | BackHandler `as? Activity` 测试兼容 — 建议 CompositionLocal | B1+B2 |
+| P2-6 | 邮箱正则拒绝 RFC 5322 合法格式 — 评估用户群后放宽 | B2 |
+| P2-7 | 网络切换无自动重试 — 建议指数退避重试 | B2 |
+| P2-8 | 进程杀死后 429 Cooldown 状态丢失 — 建议 deadline 持久化 | B2 |
+| P2-9 | withTimeout(10s) 与 OkHttp callTimeout 双重超时 — 建议统一 | B2 |
+| P2-10 | 密码 String 驻留内存 — 后续迁移 CharArray/@Transient | B2 |
+| P2-11 | 缺少 Timber 日志验证测试 | B3 |
+| P2-12 | 缺少参数化测试依赖声明（JUnit5 @ParameterizedTest） | B3 |
+| P2-13 | 缺少代码覆盖率阈值（JaCoCo） | B3 |
+| P2-14 | AnimatedVisibility Robolectric 下动画跳过 — assertIsDisplayed 可直接用 | B3 |
+| P2-15 | LoginDimens 具体值仅在 P1 中提及 — §6 已补充 | B1 |
+| P2-16 | 删除 NavGraph.kt 中 AppNavGraph 死代码 | B1 |
+
+### 工时重新估算
+
+| 原估 | 修订后 | 说明 |
+|:----:|:------:|------|
+| 20h | **28h** | P0 修订涉及 7 个模块的代码重构（AuthRepository/LoginViewModel/AuthModule/MockInterceptor/NavGraph/§5测试/§6文件）+ 新增 9 测试文件。编码阶段 22 项 P1 需逐项消化。 |
 
 ---
 
-## §8 风险与缓解
-
-| 风险 | 可能性 | 影响 | 缓解 |
-|------|--------|------|------|
-| @OptIn pullRefresh 未来版本行为变更 | 低 | 升级 Compose 时需适配 | DECISIONS.md 记录技术债，稳定 API 发布后迁移 |
-| NewsAPI 免费版频率限制（~100 req/day） | 高 | 开发阶段频繁触发 429 | OkHttp MockInterceptor 返回 Mock 数据 |
-| LIKE 查询性能随数据量线性下降 | 低 | 100条内延迟<100ms安全 | COUNT 限 100 + 7 天过期自动清理 |
-| Coil 图片内存占用过大 | 低 | OOM | ImageLoader diskCache 50MB + crossfade 300ms + LazyColumn 自动回收 |
-| 分页无限累积 | 低 | 已通过 MAX_CACHED_ARTICLES=200 解决 | 客户端硬限制 |
-| Tab 切换竞态 | 低 | 已通过 loadJob?.cancel() 解决 | 编码阶段验证 |
-
----
-
-## §9 可观测性
-
-| 层级 | 日志点 | 级别 |
-|------|--------|------|
-| ViewModel 初始化 | "NewsListViewModel initialized, tab=X" | Debug |
-| loadNews 开始 | "loadNews category=X isRefresh=X" | Debug |
-| loadNews 成功 | "loadNews SUCCESS, count=X" | Debug |
-| loadNews 失败 | "loadNews FAILED" + 异常信息 | Error |
-| loadMore | "loadMore page=X" / "loadMore SUCCESS total=X" / "loadMore FAILED" | Debug/Error |
-| 搜索 | "search triggered: query=X" / "search completed: X results" | Debug |
-| Repository 网络 | "HTTP XXX failed, fallback to cache" | Warn |
-| Repository 异常 | "Unexpected error" | Error |
-| ViewModel 清理 | "NewsListViewModel cleared" | Debug |
-
----
-
-## §10 三视角评审记录
-
-### 评审概况
-
-| 轮次 | 日期 | 方式 | 模型 | 评审结论 |
-|------|------|------|------|----------|
-| R1 | 2026-06-04 | 3-Agent 并行 (delegate_task) | deepseek-v4-flash | 11 P0 自动修订 ✓ |
-
-### P0 致命决议（已修订 ✓）
-
-| # | 来源 | 问题 | 修订措施 |
-|---|------|------|----------|
-| P0-01 | B1 | Room FTS4 虚表定义但 DAO 无 FTS MATCH 查询 | 删除 NewsArticleFts Entity，坦诚使用 LIKE，更新 AD-3 |
-| P0-02 | B1 | ViewModel Activity-scoped 但 hiltViewModel() 默认 NavBackStackEntry scope | 文档明确 `hiltViewModel(activity)` 获取方式 |
-| P0-03 | B2 | NewsRepository 仅捕获 IOException，HttpException 漏网 | 新增 catch(HttpException) + catch(Exception) 全覆盖 |
-| P0-04 | B2 | loadMore 无限累积 article 列表 → OOM | 添加 MAX_CACHED_ARTICLES=200，takeLast 保护 |
-| P0-05 | B2 | Tab 快速切换无取消 → 并发写入竞态 | 添加 loadJob?.cancel() 机制 |
-| P0-06 | B2 | SearchRepository 零异常处理 → SQLiteException 崩溃 | try/catch 包裹返回 emptyList() |
-| P0-07 | B3 | UI 组件无 testTag/semantics → 无法自动化测试 | 组件表增加 testTag 列，关键节点标注 semantics |
-| P0-08 | B3 | 路由测试完全缺失 | §6 新增 NavigationTest |
-| P0-09 | B3 | ViewModel init() 立即启动异步副作用 → 测试无法控制时机 | 记录为设计约束，测试用 runTest + advanceUntilIdle |
-| P0-10 | B3 | 零日志 → 故障定位困难 | 新增 Timber 依赖 + §9 可观测性规范 |
-| P0-11 | B3 | AnimatedVisibility 动画测试策略未设计 | §6 补充 mainClock.autoAdvance 动画测试策略 |
-
-### P1 重要决议（编码阶段消化）
-
-| # | 来源 | 决议 |
-|---|------|------|
-| P1-01 | B1 | 4 个独立 StateFlow 违反单一状态源 — v1 保留，v1.1 统一为单一 UiState |
-| P1-02 | B1 | BOM 升级与 kotlinCompilerExtension 不兼容 — 改用 @OptIn pullRefresh，不升级 BOM |
-| P1-03 | B1 | LazyColumn 缺 key → 编码时添加 `items(articles, key = { it.url })` |
-| P1-04 | B1 | IME 可见性在每次重组时查询 → 编码时改用 snapshotFlow |
-| P1-05 | B1 | DataStore 搜索历史设计缺失 — v1 不做搜索历史（PRD 范围外） |
-| P1-06 | B1 | insertAll 阻塞响应 → 改为异步缓存（CoroutineScope.launch fire-and-forget） |
-| P1-07 | B1/B2 | 搜索双重竞态防护（collectLatest + searchJob）冗余 → 统一为 collectLatest |
-| P1-08 | B2 | 所有网络/DB 调用无超时 → 添加 withTimeout(30s/10s) |
-| P1-09 | B2 | loadMore 错误静默吞没 → 用 SharedFlow 发送 Snackbar 事件 |
-| P1-10 | B2 | onCleared() 未声明 → 添加 Job 清理 |
-| P1-11 | B2/B3 | savedStateHandle 未使用 → 持久化 selectedTab + currentPage |
-| P1-12 | B3 | 缺失关键边界条件测试 — 编码时补充 tab竞态/分页边界/429限流/空列表/极长文本 |
-| P1-13 | B3 | 新增 Composable 无独立测试 — 编码时为新组件各写至少 1 个 preview test |
-| P1-14 | B3 | Room 测试依赖缺失 — 新增 room-testing:2.6.1 |
-
-### 各视角评分
-
-| 视角 | 评分 | 核心评价 |
-|------|------|----------|
-| B1 资深工程师 | 6/10 → 8/10（修订后） | 架构清晰，P0-01/P0-02 修复后设计完整性达标 |
-| B2 安全/稳定性 | 5/10 → 8/10（修订后） | 异常覆盖/超时/竞态全面修复，防御性编程到位 |
-| B3 可测试性 | 5/10 → 7/10（修订后） | testTag/日志/动画测试补齐，路由测试新增 |
-
----
-
-## §11 变更记录
-
-| 版本 | 日期 | 变更内容 |
-|------|------|----------|
-| v0.1-draft | 2026-06-04 | 初始生成：架构概览、模块设计、接口定义、数据流、测试策略、文件清单 |
-| v0.1-draft | 2026-06-04 | R1 三视角评审 P0 修订：FTS4→LIKE、ViewModel作用域、全异常覆盖、分页上限、Tab竞态、testTag、路由测试、Timber、动画测试 |
-
----
-
-> **状态:** v0.1-draft — 三视角评审 P0 全部自动修订。请审阅后回复「确认」冻结进入编码。
+> **状态:** 已评审 (v0.2-review) — 12 项 P0 已自动修订，22 项 P1 编码阶段消化。请审阅后回复「确认」冻结进入编码。

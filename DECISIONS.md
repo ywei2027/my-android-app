@@ -165,4 +165,38 @@
 | D-97 | 输入框 maxLength 约束反馈 | UX | R-35 |
 | D-98 | Loading 态输入框 disabled UI 验证 | QA | R-36 |
 | D-99 | 决策冲突补充论证 | 产品 | R-23 |
+
+---
+
+## 用户登录 — 技术方案评审阶段（2026-06-07）
+
+### 评审概况
+
+| 轮次 | 日期 | 方式 | 评审结论 |
+|------|------|------|----------|
+| R3 | 2026-06-07 | delegate_task 三视角并行 (B1 工程师/B2 安全/B3 可测试性) | 去重后 12P0+22P1+16P2，12P0 全部自动修订，综合评分 B1:6/10, B2:3.8/10, B3:3/10，工时修订 20h→28h |
+
+### 12 项 P0 致命决议（D-100~D-111，已修订 ✅）
+
+| # | 决议 | 来源 | 修订状态 |
+|----|------|------|----------|
+| D-100 | MockAuthInterceptor: Buffer.writeTo 缓冲 body，禁止 Thread.sleep，FLAG_DEBUGGABLE 门控 | B1+B2 | ✅ §2.2 |
+| D-101 | withTimeout 异常捕获改为外层 try-catch + TimeoutCancellationException | B1+B2 | ✅ §2.3 |
+| D-102 | NavGraph 统一到 NewsAppNavHost（MainActivity.kt），删除 AppNavGraph 死代码 | B1 | ✅ §2.9 |
+| D-103 | LoginViewModel.login() 中 withContext(Dispatchers.IO) 包裹网络请求 | B1 | ✅ §2.5 |
+| D-104 | response.body()!! → 空安全解包 body ?: return@withTimeout Error | B1+B2 | ✅ §2.3 |
+| D-105 | login() 原子竞态保护 — _uiState.updateAndGet 闭包内检查+切换 | B2 | ✅ §2.5 |
+| D-106 | parseError 实现 + 全局 catch(Exception) + catch(JsonSyntaxException) | B2 | ✅ §2.3 |
+| D-107 | AuthResult 保持顶层 sealed class，Error 新增 code: Int? 可选参数 | B1+B3 | ✅ §2.3 |
+| D-108 | AuthModule: LoginApi 独立 Hilt binding，单元测试可 mockk<LoginApi>() | B3 | ✅ §2.7 |
+| D-109 | build.gradle.kts 追加 Turbine + hilt-android-testing，CI 改 testDebugUnitTest + lintDebug | B3 | ✅ §5 |
+| D-110 | 测试文件 AuthRepositoryTest.kt + LoginScreenComposeTest.kt 列入 §6 | B3 | ✅ §6 |
+| D-111 | EncryptedSharedPreferences 建议 v1.0 实现（非延至 v1.1） | B2 | P1 跟踪 |
+
+### 关键否决/反模式
+
+- ❌ 否决「AuthResult 移入 AuthRepository 内部类」— 破坏 3+ 文件引用，保持顶层 sealed class
+- ❌ 否决「connectedAndroidTest」— 项目无 androidTest 基础设施，UI 测试统一用 Robolectric
+- ❌ 否决「Thread.sleep(2000) 在拦截器中」— 阻塞 OkHttp dispatcher 线程池，改用 readTimeout
+- ❌ 否决「BuildConfig.DEBUG 门控」— 非可靠，改用 FLAG_DEBUGGABLE 检测
 | D-100 | UI 预留忘记密码占位 | 产品 | R-24 |
