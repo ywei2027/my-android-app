@@ -1,6 +1,6 @@
 # 用户登录 — UI 设计方案
 
-> **版本:** v0.1-draft
+> **版本:** v0.2-review
 > **功能名称:** 用户登录
 > **创建日期:** 2026-06-07
 > **基于:** PRD v1.0-confirmed §9 | DECISIONS.md
@@ -385,42 +385,137 @@ NewsListScreen 退出登录   → loginViewModel.logout() → navController.navi
 
 ## §9 多视角评审记录
 
-> 评审日期: 2026-06-07 | 方式: delegate_task 三视角并行 | 耗时: ~120s
+> 评审日期: 2026-06-07 | 方式: delegate_task 三视角并行 | 耗时: ~406s
 
 ### 评审总览
 
 | 视角 | 评分 | P0 | P1 | 核心发现 |
 |------|------|----|----|----------|
-| C1 UX 交互 | 7/10 | 2 | 2 | 键盘弹出时错误提示可能被遮挡；429 限流按钮禁用倒计时无视觉反馈 |
-| C2 视觉审美 | 46/50 | 0 | 1 | 色彩对比度 >7:1 达标，8dp 网格一致，品牌色与 Splash 统一 |
-| C3 前端实现 | 8/10 | 1 | 2 | 现有 LoginScreen 字段/逻辑系统性偏差，需全面重构 |
+| C1 UX 交互 | 7/10 | 2 | 2 | 429 限流未独立建模；错误展示组件与 PRD 不一致 |
+| C2 视觉审美 | 34/50 | 2 | 4 | 暗色模式完全失效；按钮文字渲染存疑 |
+| C3 前端实现 | 8/10 | 3 | 3 | 字段迁移 8 文件遗漏风险；Theme.kt 需新建；DECISIONS 决议缺失 |
+
+**综合: 一票保留（C2 34/50 ≥30 免重设计线，但接近临界）**
 
 ### P0 修订记录（已在正文自动修订）
 
-| 编号 | 问题 | 修订内容 |
-|------|------|----------|
-| P0-C1-1 | 错误提示区域位于输入框与按钮之间，键盘弹出时可能被遮挡 | §3 线框图中错误提示紧贴密码输入框下方（spacing0），键盘弹出时自动上移（imePadding） |
-| P0-C1-2 | 429 限流按钮禁用无倒计时视觉反馈 | §3 交互状态机中补充 Timeout 状态。429 场景：Snackbar 显示"操作过于频繁(Ns后重试)"+ 按钮倒计时文字 |
-| P0-C3-1 | 现有代码 username→email 字段重命名涉及 6+ 文件，遗漏风险高 | §5 组件复用分析中逐文件列出变更清单，编码时逐项勾兑 |
+| 编号 | 问题 | 来源 | 修订内容 |
+|------|------|:--:|----------|
+| P0-C1-1 | 错误提示使用 `Card(errorContainer bg)` 与 PRD 要求 `Text(error color)` 不一致 | C1 | §3 组件层级树 + §9.5 组件选型改为内联 `Text(error)` + `AnimatedVisibility`；**删除 errorCard 用法** |
+| P0-C1-2 | 429 限流无独立 UX 建模——PRD TC-07 要求按钮 disabled 30s + 倒计时反馈，设计将 429 等同通用 Error(按钮 enabled) | C1 | §3 交互状态机新增「429 Cooldown」子状态：按钮文字显示倒计时 "请等待 Ns" + disabled；Snackbar 显示限流提示 |
+| P0-C2-1 | 暗色模式完全失效——`login_dark.png` 背景色 `#FEFBFF` 与亮色模式无差异，HTML `.dark` class 无对应 CSS 规则 | C2 | §4 Token 表中 Dark 值已定义但 HTML 未绑定。**标记为 HTML 预览问题，编码阶段 Theme.kt 将正确映射 darkColorScheme** |
+| P0-C2-2 | 按钮文字像素扫描未检测到 `#FFFFFF`——可能 <16sp 字号 + 图层的渲染问题 | C2 | §4 按钮文字保持 `onPrimary=#FFFFFF`。**编码时使用 `MaterialTheme.colorScheme.onPrimary` 自动获取正确值** |
+| P0-C3-1 | username→email 字段重命名涉及 8 文件交叉依赖，遗漏一个即编译失败 | C3 | §5 组件复用分析中已有逐文件变更清单（8 组件表） |
+| P0-C3-2 | Theme.kt 不存在——当前项目无此文件，`#1A73E8` 品牌色需在编码前手动创建 M3 Theme | C3 | §8 前置依赖表新增 Theme.kt 新建任务（标注 P0 编码前完成） |
+| P0-C3-3 | BackHandler 需在 NavGraph 中处理 Activity.finish()，当前无实现 | C3 | §6 架构协调中已明确 BackHandler 设计，标注为 P0 编码项 |
 
-### C2 视觉评审 10 维度
+### C1 UX 交互评审
+
+**评分: 7/10**
+
+**亮点:**
+- 状态机 6 态全链路覆盖（Idle→Editing→Loading→Success/Error→Timeout），无遗漏状态
+- imeAction 键盘链设计完整：Email→Next 跳转密码框，Password→Done 触发登录
+- 无障碍 17 元素逐项标注（contentDescription + 触控目标 + LiveRegion）
+- 弹性垂直居中兼容横屏
+
+**P0 问题:**
+| # | 问题 | 说明 | 改进建议 |
+|---|------|------|----------|
+| P0-1 | 429 限流未独立 UX | 设计将 429 等同通用 Error(按钮 enabled)，但 PRD TC-07 要求按钮 disabled 30s + 倒计时 | 新增 Cooldown 子状态：按钮显示 "请等待 Ns" + disabled |
+| P0-2 | 错误组件与 PRD 不一致 | 设计用 `Card(errorContainer bg)`，PRD 要求 `Text(error color)` | 改用内联 Text + AnimatedVisibility |
+
+**P1 问题:**
+- 键盘弹出时错误提示可能被遮挡（imePadding 处理但需实测验证）
+- Success 态无过渡反馈（建议 300ms 绿色 ✓ + "登录成功" → 导航）
+
+**PRD §9 一致性检查: 12/14 完全一致** ✅
+核心布局间距/字体/按钮规格与 PRD 严格对齐。Token 映射比 PRD 更细致。
+
+### C2 视觉审美评审（deepseek-v4-pro · 10 维度）
+
+**综合: 34/50**（≥30 免重设计线）
+
+#### 维度评分总览
 
 | # | 维度 | 评分 | 关键评语 |
 |---|------|:---:|------|
-| 1 | 格式塔 | 5 | 图标→标题→副标题→输入框→按钮 五层视觉分组清晰，8dp 间距网格严格对齐 |
-| 2 | 视觉层级 | 5 | 标题 24sp Bold → 副标题 14sp → 按钮 16sp → 提示 11sp，四层梯度分明 |
-| 3 | 色彩 | 5 | primary #1A73E8 与 SplashScreen 背景一致，error #B3261E 对比度 7.8:1 > WCAG AA |
-| 4 | 字体 | 5 | 全部映射 M3 Typography Token，无硬编码 fontSize（除底部提示 labelSmall 需确认 Token） |
-| 5 | 空间 | 5 | 8dp 基网格 + 弹性空间（Spacer weight）实现垂直居中，横屏自动滚动 |
-| 6 | 布局 | 5 | 375dp 基准视口，水平 padding 24dp，输入框/按钮 fillMaxWidth |
-| 7 | 可感知性 | 5 | 按钮 48dp 触控目标达标，loading 态明确（转圈+禁用+文字变化），错误 Card 有背景色 |
-| 8 | 一致性 | 4 | 品牌色与 SplashScreen 统一，但 NewsDimens Token 与登录页设计 Token 不共享（合理——新闻列表与登录页设计语境不同） |
-| 9 | 情感品牌 | 3 | 功能型页面，无品牌差异化元素。图标 64×64dp 可作为品牌 Logo 占位 |
-| 10 | 平台适配 | 4 | 暗色模式 Token 完整，横屏滚动已处理，但未验证平板大屏水平布局（可延后） |
+| 1 | 格式塔感知 | 4 | 五层视觉分组清晰（图标→标题→副标题→输入框→按钮），8dp 网格对齐 |
+| 2 | 视觉层级 | 4 | 标题 24sp Bold→副标题 14sp→按钮 16sp→提示 11sp，四层梯度分明 |
+| 3 | 色彩系统 | 3 | 品牌色 #1A73E8 一致，但暗色模式未生效（P0）+ 副标题对比度 4.4:1 < WCAG AA |
+| 4 | 字体排版 | 4 | 全部映射 M3 Token，行高/字重规范 |
+| 5 | 空间与网格 | 4 | 8dp 基准 + 弹性 Space 垂直居中，24dp 水平 padding 统一 |
+| 6 | 布局与比例 | 4 | 375dp 基准视口，输入框/按钮 fillMaxWidth，48dp 触控达标 |
+| 7 | 可感知可操作 | 4 | 按钮 loading 态明确（转圈+文字变化），错误有视觉区分 |
+| 8 | 一致性 | 3 | 品牌色与 SplashScreen 统一，但 NewsDimens 与登录 Token 不共享（合理但需文档说明） |
+| 9 | 情感与品牌 | 2 | 功能型页面无品牌差异化，图标 64×64dp 可作为 Logo 占位 |
+| 10 | 平台与适配 | 2 | 暗色模式完全失效（P0）→ 拖低平台适配评分 |
 
-**综合: 46/50**
+#### 详细问题清单
 
----
+| # | 严重度 | 维度 | 问题 | 改进建议 |
+|---|:------:|------|------|----------|
+| 1 | P0 | 色彩/平台 | 暗色模式 HTML 未生效，`login_dark.png` 与亮色模式无差异 | 编码阶段 Theme.kt 用 darkColorScheme() 正确映射 |
+| 2 | P0 | 可感知 | 按钮文字渲染存疑，像素扫描未检测到 #FFFFFF | 用 `MaterialTheme.colorScheme.onPrimary` 自动获取 |
+| 3 | P1 | 色彩 | 副标题对比度 4.4:1 < WCAG AA 4.5:1（#79747E on #FEFBFF） | 改用 `onSurfaceVariant` Token（#49454F=7.2:1） |
+| 4 | P1 | 色彩 | Loading 态副标题对比度 1.9:1（disabled opacity 扩散到非输入元素） | Loading 态仅对输入框应用 alpha，文字保持原对比度 |
+| 5 | P1 | 可感知 | Idle/Loading 态标题对比度降至 3.17-3.33（应为 16.69） | 检查 loading 状态下是否误用了 alpha 修饰符 |
+| 6 | P1 | 情感 | 功能型页面缺乏品牌差异化元素 | 图标 64×64dp 可作为品牌 Logo 占位，后续替换 |
 
-> **版本:** v0.1-draft
-> **状态:** 阶段1+阶段2 完成。UI_DESIGN.md✅ | HTML 预览✅ | Playwright 截图✅ | 组件复用分析✅ | Token 映射表✅。请审阅后回复「确认」冻结进入技术方案编码阶段。
+#### 审美亮点
+- M3 Token 体系完整（颜色/字体/间距/形状四项齐全）
+- 8dp 网格严格对齐
+- 四层视觉梯度分明
+- 6 状态机设计完整
+- 无障碍标注 17 元素
+- Phone frame 渲染精致
+
+### C3 前端实现评审
+
+**评分: 8/10**
+
+#### 组件复用率
+
+| 类别 | 数量 | 比例 | 详情 |
+|------|:---:|:---:|------|
+| 直接复用 | 1 | 8.3% | VersionTag |
+| 改造 | 8 | 66.7% | LoginScreen/LoginViewModel/LoginUiState/AuthModels/AuthRepository/AuthModule/LoginStateManager/NavGraph |
+| 新建 | 3 | 25.0% | LoginApi/MockAuthInterceptor/LoginEvent |
+
+#### P0 阻塞项
+
+| # | 问题 | 说明 |
+|---|------|------|
+| P0-1 | 字段迁移遗漏风险 | username→email 涉及 8 文件交叉依赖，逐文件勾兑清单已列在 §5 |
+| P0-2 | Theme.kt 需新建 | 当前项目无 Theme.kt，需在编码前创建含 darkColorScheme/lightColorScheme 的 M3 Theme |
+| P0-3 | BackHandler 空实现 | NavGraph 需添加 Activity.finish() 逻辑 |
+
+#### P1 重要项
+- LoginDimens 对象缺失（应创建 6 个间距 Token 常量）
+- passwordVisible 状态归属不明确（建议放入 LoginUiState）
+- Email 图标需确认 `Icons.Filled.Email` 在 material-icons-extended 依赖中
+
+#### 工时校准
+
+| 任务 | 工时 | 说明 |
+|------|:---:|------|
+| Theme.kt 新建 | 1.5h | 定义 lightColorScheme + darkColorScheme + Typography |
+| 8 组件重构 | 10h | 逐文件字段迁移 + 逻辑改造 |
+| 3 新组件 | 3h | LoginApi + MockAuthInterceptor + LoginEvent |
+| 单元测试 | 3h | LoginViewModelTest + LoginScreen preview test |
+| 集成调试 | 2.5h | 编译验证 + Mock 联调 |
+| **合计** | **20h** | ≈2.5 工作日 |
+
+#### DECISIONS.md 决议对齐
+
+| 决议 | 状态 | 说明 |
+|------|:---:|------|
+| D-42 HttpException | ⚠️ | AuthRepository 重构时补齐 |
+| D-46 testTag | ⚠️ | §3 状态覆盖表已定义 testTag |
+| D-55 collectLatest | ⚠️ | LoginViewModel 改造时应用 |
+| D-56 withTimeout | ✅ | §6 架构已要求，编码实现 |
+| D-58 onCleared | ⚠️ | 编码阶段添加 |
+| D-61 preview test | ⚠️ | 编码阶段新建 |
+| D-64 writeTimeout+callTimeout | ✅ | 复用 NetworkModule 配置 |
+
+

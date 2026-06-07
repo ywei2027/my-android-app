@@ -1,10 +1,16 @@
 {
-  "current_stage": "STAGE_PRD",
+  "current_stage": "STAGE_UI_DESIGN",
   "feature_name": "用户登录",
-  "prd_version": "v0.1-draft",
-  "ui_design_version": "",
+  "prd_version": "v1.0-confirmed",
+  "ui_design_version": "v0.1-draft",
   "design_version": "",
-  "issues": [],
+  "issues": [
+    "UI_DESIGN.md v0.1-draft 已生成",
+    "HTML 预览已生成 (docs/ui-preview/login.html)",
+    "Playwright 截图已生成 (docs/ui-preview/screenshots/, 10 张)",
+    "组件复用分析已完成",
+    "Token 映射表已完成"
+  ],
   "issue_urls": {},
-  "updated": "2026-06-07T22:32:46+08:00"
+  "updated": "2026-06-07T23:00:00+08:00"
 }
