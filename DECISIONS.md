@@ -62,3 +62,141 @@
 **否决**：首版包含自动补全（原因：增加开发周期，且无数据支撑优先级判断）
 **影响范围**：搜索功能范围边界
 **关联**：PRD.md#讨论决议#3
+
+---
+
+## 小型新闻App — 技术方案评审阶段（2026-06-04）
+
+### 评审概况
+| 轮次 | 日期 | 方式 | 评审结论 |
+|------|------|------|----------|
+| R1 | 2026-06-04 | 3-Agent 并行 (B1工程/B2安全/B3测试) | 11 P0 已修订 ✅，14 P1 编码阶段消化 |
+
+### 11 项 P0 致命决议（已修订 ✅）
+| # | 决议 | 来源 | 修订状态 |
+|----|------|------|----------|
+| D-40 | Room 不使用 FTS4，坦诚使用 LIKE 查询（100条规模够用） | B1 | ✅ 已修订 |
+| D-41 | NewsListViewModel 通过 `hiltViewModel(activity)` 获取 Activity scope | B1 | ✅ 已修订 |
+| D-42 | NewsRepository 捕获 HttpException + Exception 全覆盖，不单靠 IOException | B2 | ✅ 已修订 |
+| D-43 | loadMore 添加 MAX_CACHED_ARTICLES=200 客户端分页上限防 OOM | B2 | ✅ 已修订 |
+| D-44 | Tab 切换前 loadJob?.cancel() 取消前一个加载协程 | B2 | ✅ 已修订 |
+| D-45 | SearchRepository 添加 try/catch 兜底，DB异常返回空列表不崩溃 | B2 | ✅ 已修订 |
+| D-46 | 所有 UI 组件添加 testTag/semantics 标记 | B3 | ✅ 已修订 |
+| D-47 | 新增 NavigationTest 覆盖 NavHost 路由 | B3 | ✅ 已修订 |
+| D-48 | 添加 Timber 日志框架 + §9 可观测性规范 | B3 | ✅ 已修订 |
+| D-49 | AnimatedVisibility 动画测试用 mainClock.autoAdvance=false | B3 | ✅ 已修订 |
+| D-50 | API Key 通过 OkHttp Interceptor 注入，不出现在接口签名 | B2 | ✅ 已修订 |
+
+### 14 项 P1 重要决议（编码阶段消化）
+| # | 决议 | 来源 |
+|----|------|------|
+| D-51 | 4 StateFlow v1 保留，v1.1 统一为单一 UiState | B1 |
+| D-52 | 不升级 BOM，使用 @OptIn pullRefresh（kotlinCompilerExtension 兼容性） | B1 |
+| D-53 | LazyColumn 编码时添加 `items(articles, key = { it.url })` | B1 |
+| D-54 | insertAll 改为异步 fire-and-forget（CoroutineScope.launch） | B1 |
+| D-55 | 搜索统一使用 collectLatest 取消前一个，移除冗余 searchJob | B1 |
+| D-56 | 所有 Repository 方法添加 withTimeout 超时保护 | B2 |
+| D-57 | loadMore 失败通过 SharedFlow 发送 Snackbar 事件 | B2 |
+| D-58 | onCleared() 显式声明清理 loadJob/searchJob | B2 |
+| D-59 | savedStateHandle 持久化 selectedTab + currentPage | B2 |
+| D-60 | 编码时补充 6+ 边界条件测试 | B3 |
+| D-61 | 新 Composable 各写独立 preview test | B3 |
+| D-62 | 新增 room-testing:2.6.1 依赖 | B3 |
+| D-63 | 搜索 query 限 100 字符上限 | B2 |
+| D-64 | OkHttp 补全 writeTimeout + callTimeout | B2 |
+
+---
+
+## 登录模块 — PRD 评审阶段（2026-06-07）
+
+### 评审概况
+| 轮次 | 日期 | 方式 | 评审结论 |
+|------|------|------|----------|
+| R1 | 2026-06-07 | 4-Agent 并行 (产品/技术/UX/QA) | 22 P0 已识别，14 P1 编码阶段消化，待人工确认冻结 |
+
+### 核心决策：邮箱+密码替代手机号+验证码
+| 属性 | 原方案（2026-05-31） | 新方案（2026-06-07） |
+|------|---------------------|---------------------|
+| 认证方式 | 手机号+验证码 | 邮箱+密码 |
+| 理由 | 试点阶段无必要复杂密码体系 | 用户需求明确要求邮箱+密码；邮箱作为通用身份标识更符合账号体系长期规划 |
+| 否决原因 | 邮箱+密码增加开发成本 | — |
+
+**决策（v2，覆盖旧版）：** 采用邮箱+密码登录，覆盖 2026-05-31 决策。现有 LoginViewModel/LoginScreen/AuthModels 等组件需从 username→email 重构。关联 PRD.md R-01。
+
+### 22 项 P0 致命决议（已识别，待修订）
+| # | 决议 | 来源 | 关联 PRD |
+|----|------|------|----------|
+| D-65 | 覆盖 DECISIONS.md 原决策，重新评估邮箱+密码为主要登录方式 | 产品+技术 | R-01 |
+| D-66 | 补充注册入口或明确账号来源（管理员预分配/最简注册页） | 产品 | R-02 |
+| D-67 | Token 持久化纳入首版（DataStore 加密存储，启动自动校验） | 产品 | R-03 |
+| D-68 | 补充网络异常场景（超时→错误提示→重试） | 产品+QA | R-04 |
+| D-69 | 补充 403/429 错误码交互和测试覆盖 | 产品+QA | R-05 |
+| D-70 | 新建 LoginApi (Retrofit) 接口，替换 AuthRepository 硬编码 mock | 技术 | R-06 |
+| D-71 | LoginResponse 数据模型重构为 `token+user{id,email,displayName}` | 技术 | R-07 |
+| D-72 | 实现邮箱格式客户端校验，LoginScreen 字段 username→email | 技术 | R-08 |
+| D-73 | 修复登录按钮启用条件 | 技术+UX | R-09 |
+| D-74 | 实现返回键退出应用（BackHandler） | 技术 | R-10 |
+| D-75 | AuthRepository 添加 HttpException 捕获 + withTimeout | 技术 | R-11 |
+| D-76 | 定义品牌色 Token primary=#1A73E8 + M3 ColorScheme | UX | R-12 |
+| D-77 | 字体层级映射 M3 Token | UX | R-13 |
+| D-78 | 间距基于 8dp 网格系统 | UX | R-14 |
+| D-79 | 补齐无障碍（contentDescription/semantics） | UX | R-15 |
+| D-80 | 明确键盘类型和焦点链 | UX | R-16 |
+| D-81 | 补全 Gherkin 测试用例（超时/403/429/状态枚举） | QA | R-17 |
+| D-82 | 修复 Loading 中间态测试断言 | QA | R-18 |
+| D-83 | 补充按钮联动正向验证测试 | QA | R-19 |
+| D-84 | 字段重构同步更新全部测试 | QA | R-20 |
+| D-85 | 统一错误展示为内联 Text+AnimatedVisibility | UX | R-21 |
+| D-86 | 添加登录成功过渡态（✓ 300ms→导航） | UX | R-22 |
+
+### 14 项 P1 重要决议（编码阶段消化）
+| # | 决议 | 来源 | 关联 PRD |
+|----|------|------|----------|
+| D-87 | LoginStateManager key username→user 对象 | 技术 | R-25 |
+| D-88 | LoginViewModel 使用 collectLatest（D-55） | 技术 | R-26 |
+| D-89 | LoginViewModel 添加 onCleared()（D-58） | 技术 | R-27 |
+| D-90 | 新增 LoginScreen preview test（D-61） | 技术 | R-28 |
+| D-91 | 密码显隐图标 testTag（D-46） | 技术 | R-29 |
+| D-92 | AuthModule 改为 Hilt+Retrofit 注入 | 技术 | R-30 |
+| D-93 | LoginUiState 添加显式 status 枚举 | 技术 | R-31 |
+| D-94 | Token refresh 标注 v1.1 | 技术 | R-32 |
+| D-95 | 网络超时 UI（>10s→提示+恢复） | UX | R-33 |
+| D-96 | 429 限流文案+禁用 N 秒 | UX | R-34 |
+| D-97 | 输入框 maxLength 约束反馈 | UX | R-35 |
+| D-98 | Loading 态输入框 disabled UI 验证 | QA | R-36 |
+| D-99 | 决策冲突补充论证 | 产品 | R-23 |
+
+---
+
+## 用户登录 — 技术方案评审阶段（2026-06-07）
+
+### 评审概况
+
+| 轮次 | 日期 | 方式 | 评审结论 |
+|------|------|------|----------|
+| R3 | 2026-06-07 | delegate_task 三视角并行 (B1 工程师/B2 安全/B3 可测试性) | 去重后 12P0+22P1+16P2，12P0 全部自动修订，综合评分 B1:6/10, B2:3.8/10, B3:3/10，工时修订 20h→28h |
+
+### 12 项 P0 致命决议（D-100~D-111，已修订 ✅）
+
+| # | 决议 | 来源 | 修订状态 |
+|----|------|------|----------|
+| D-100 | MockAuthInterceptor: Buffer.writeTo 缓冲 body，禁止 Thread.sleep，FLAG_DEBUGGABLE 门控 | B1+B2 | ✅ §2.2 |
+| D-101 | withTimeout 异常捕获改为外层 try-catch + TimeoutCancellationException | B1+B2 | ✅ §2.3 |
+| D-102 | NavGraph 统一到 NewsAppNavHost（MainActivity.kt），删除 AppNavGraph 死代码 | B1 | ✅ §2.9 |
+| D-103 | LoginViewModel.login() 中 withContext(Dispatchers.IO) 包裹网络请求 | B1 | ✅ §2.5 |
+| D-104 | response.body()!! → 空安全解包 body ?: return@withTimeout Error | B1+B2 | ✅ §2.3 |
+| D-105 | login() 原子竞态保护 — _uiState.updateAndGet 闭包内检查+切换 | B2 | ✅ §2.5 |
+| D-106 | parseError 实现 + 全局 catch(Exception) + catch(JsonSyntaxException) | B2 | ✅ §2.3 |
+| D-107 | AuthResult 保持顶层 sealed class，Error 新增 code: Int? 可选参数 | B1+B3 | ✅ §2.3 |
+| D-108 | AuthModule: LoginApi 独立 Hilt binding，单元测试可 mockk<LoginApi>() | B3 | ✅ §2.7 |
+| D-109 | build.gradle.kts 追加 Turbine + hilt-android-testing，CI 改 testDebugUnitTest + lintDebug | B3 | ✅ §5 |
+| D-110 | 测试文件 AuthRepositoryTest.kt + LoginScreenComposeTest.kt 列入 §6 | B3 | ✅ §6 |
+| D-111 | EncryptedSharedPreferences 建议 v1.0 实现（非延至 v1.1） | B2 | P1 跟踪 |
+
+### 关键否决/反模式
+
+- ❌ 否决「AuthResult 移入 AuthRepository 内部类」— 破坏 3+ 文件引用，保持顶层 sealed class
+- ❌ 否决「connectedAndroidTest」— 项目无 androidTest 基础设施，UI 测试统一用 Robolectric
+- ❌ 否决「Thread.sleep(2000) 在拦截器中」— 阻塞 OkHttp dispatcher 线程池，改用 readTimeout
+- ❌ 否决「BuildConfig.DEBUG 门控」— 非可靠，改用 FLAG_DEBUGGABLE 检测
+| D-100 | UI 预留忘记密码占位 | 产品 | R-24 |

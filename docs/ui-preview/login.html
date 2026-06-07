@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>用户登录 — UI 原型预览</title>
+<style>
+:root {
+  --primary: #1A73E8;
+  --on-primary: #FFFFFF;
+  --primary-container: #D3E3FD;
+  --on-primary-container: #001D36;
+  --error: #B3261E;
+  --error-container: #F9DEDC;
+  --on-error-container: #410E0B;
+  --surface: #FEFBFF;
+  --on-surface: #1C1B1F;
+  --on-surface-variant: #49454F;
+  --outline: #79747E;
+  --outline-variant: #CAC4D0;
+  --surface-variant: #E7E0EC;
+  --ripple: rgba(26, 115, 232, 0.08);
+  --scrim: rgba(0,0,0,0.3);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary: #8AB4F8;
+    --on-primary: #003A75;
+    --primary-container: #004A77;
+    --on-primary-container: #D3E3FD;
+    --error: #F2B8B5;
+    --error-container: #8C1D18;
+    --on-error-container: #F9DEDC;
+    --surface: #1C1B1F;
+    --on-surface: #E6E1E5;
+    --on-surface-variant: #CAC4D0;
+    --outline: #938F99;
+    --outline-variant: #49454F;
+    --surface-variant: #49454F;
+    --ripple: rgba(138, 180, 248, 0.08);
+    --scrim: rgba(0,0,0,0.5);
+  }
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #e8e8e8;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  font-family: 'Roboto', 'Noto Sans SC', sans-serif;
+}
+.demo-wrapper {
+  display: flex;
+  gap: 32px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 24px;
+}
+/* ===== 手机外框 ===== */
+.phone-frame {
+  width: 375px;
+  height: 812px;
+  background: var(--surface);
+  border-radius: 36px;
+  overflow: hidden;
+  box-shadow: 0 0 0 3px #1a1a1a, 0 0 0 6px #333, 0 8px 40px rgba(0,0,0,0.3);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+.phone-frame.dark-mode {
+  /* dark mode trigger */
+}
+/* 状态栏 */
+.status-bar {
+  height: 44px;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--on-surface);
+  flex-shrink: 0;
+}
+.status-bar .time { font-size: 15px; font-weight: 600; }
+.status-bar .icons { display: flex; gap: 6px; align-items: center; font-size: 12px; }
+/* 主内容区 */
+.phone-content {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  gap: 0;
+}
+/* 导航栏占位 */
+.nav-bar-placeholder {
+  height: 34px;
+  background: transparent;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 8px;
+}
+
+/* ===== 登录页面元素 ===== */
+.login-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: var(--primary-container);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+.login-icon svg { width: 32px; height: 32px; fill: var(--primary); }
+.login-title {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 32px;
+  color: var(--on-surface);
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+.login-subtitle {
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 0.25px;
+  line-height: 20px;
+  color: var(--on-surface-variant);
+  margin-bottom: 32px;
+  flex-shrink: 0;
+}
+
+/* 输入框容器 */
+.field-wrapper {
+  width: 100%;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+.field-label {
+  font-size: 12px;
+  color: var(--on-surface-variant);
+  margin-bottom: 4px;
+  padding-left: 4px;
+}
+.input-field {
+  display: flex;
+  align-items: center;
+  height: 56px;
+  border: 1px solid var(--outline);
+  border-radius: 4px;
+  padding: 0 12px;
+  gap: 12px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  background: transparent;
+  position: relative;
+}
+.input-field:focus-within {
+  border-color: var(--primary);
+  border-width: 2px;
+  padding: 0 11px;
+}
+.input-field.error {
+  border-color: var(--error);
+}
+.input-field.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+.input-field .field-icon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.input-field .field-icon svg { fill: var(--on-surface-variant); }
+.input-field.error .field-icon svg { fill: var(--error); }
+.input-field input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: 0.5px;
+  color: var(--on-surface);
+  font-family: inherit;
+}
+.input-field input::placeholder {
+  color: var(--on-surface-variant);
+  opacity: 0.6;
+}
+.input-field input:disabled { color: var(--on-surface-variant); }
+.input-field .toggle-btn {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 50%;
+  flex-shrink: 0;
+  padding: 0;
+  margin-right: -12px;
+}
+.input-field .toggle-btn:hover { background: var(--ripple); }
+.input-field .toggle-btn svg { fill: var(--on-surface-variant); }
+.supporting-text {
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  line-height: 16px;
+  color: var(--error);
+  margin-top: 4px;
+  padding-left: 4px;
+  display: none;
+  min-height: 16px;
+}
+.supporting-text.visible { display: block; }
+
+/* 错误提示 Card */
+.error-card {
+  width: 100%;
+  background: var(--error-container);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 24px;
+  display: none;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  animation: fadeIn 0.2s ease;
+}
+.error-card.visible { display: flex; }
+.error-card svg { width: 20px; height: 20px; fill: var(--error); flex-shrink: 0; }
+.error-card .error-text {
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 0.25px;
+  color: var(--on-error-container);
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+
+/* 登录按钮 */
+.login-btn {
+  width: 100%;
+  height: 48px;
+  border-radius: 24px;
+  border: none;
+  background: var(--primary);
+  color: var(--on-primary);
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: opacity 0.15s, box-shadow 0.15s;
+  font-family: inherit;
+  flex-shrink: 0;
+  margin-bottom: 24px;
+}
+.login-btn:hover { opacity: 0.9; box-shadow: 0 2px 8px rgba(26,115,232,0.3); }
+.login-btn:active { opacity: 0.8; }
+.login-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.login-btn .spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--on-primary);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* 底部提示 */
+.login-hint {
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.5px;
+  color: var(--on-surface-variant);
+  opacity: 0.6;
+  flex-shrink: 0;
+  margin-bottom: auto;
+}
+
+/* 底部版本号 */
+.version-tag {
+  font-size: 12px;
+  color: var(--on-surface-variant);
+  opacity: 0.7;
+  flex-shrink: 0;
+  margin-top: 8px;
+}
+
+/* ===== 控制面板 ===== */
+.control-panel {
+  background: var(--surface);
+  border: 1px solid var(--outline-variant);
+  border-radius: 16px;
+  padding: 20px;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: sticky;
+  top: 24px;
+}
+.control-panel h2 {
+  font-size: 18px;
+  color: var(--on-surface);
+  margin-bottom: 4px;
+}
+.control-panel label {
+  font-size: 13px;
+  color: var(--on-surface-variant);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.control-panel select, .control-panel button {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--outline);
+  background: var(--surface);
+  color: var(--on-surface);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.control-panel .action-btn {
+  background: var(--primary);
+  color: var(--on-primary);
+  border: none;
+  margin-top: 8px;
+}
+.control-panel .action-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+.control-panel .state-label {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+  text-align: center;
+  font-weight: 500;
+}
+</style>
+</head>
+<body>
+<div class="demo-wrapper">
+
+  <!-- ===== 手机外框 ===== -->
+  <div class="phone-frame" id="phoneFrame">
+    <!-- 状态栏 -->
+    <div class="status-bar">
+      <span class="time">9:41</span>
+      <span class="icons">●●●●○ &nbsp;WiFi &nbsp;🔋</span>
+    </div>
+    <!-- 内容区 -->
+    <div class="phone-content" id="phoneContent">
+      <!-- 图标 -->
+      <div class="login-icon">
+        <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+      </div>
+      <!-- 标题 -->
+      <div class="login-title">欢迎回来</div>
+      <div class="login-subtitle">请使用邮箱和密码登录</div>
+
+      <!-- 邮箱输入框 -->
+      <div class="field-wrapper">
+        <div class="input-field" id="emailField">
+          <div class="field-icon">
+            <svg viewBox="0 0 24 24" width="24" height="24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+          </div>
+          <input type="email" id="emailInput" placeholder="请输入邮箱地址" autocomplete="email">
+        </div>
+        <div class="supporting-text" id="emailError">请输入有效的邮箱地址</div>
+      </div>
+
+      <!-- 密码输入框 -->
+      <div class="field-wrapper">
+        <div class="input-field" id="passwordField">
+          <div class="field-icon">
+            <svg viewBox="0 0 24 24" width="24" height="24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2z"/></svg>
+          </div>
+          <input type="password" id="passwordInput" placeholder="请输入密码" autocomplete="current-password">
+          <button class="toggle-btn" id="togglePassword" title="显示密码">
+            <svg viewBox="0 0 24 24" width="24" height="24" id="visibilityIcon"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+          </button>
+        </div>
+        <div class="supporting-text"></div>
+      </div>
+
+      <!-- 错误提示 -->
+      <div class="error-card" id="errorCard">
+        <svg viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+        <span class="error-text" id="errorText">邮箱或密码错误</span>
+      </div>
+
+      <!-- 登录按钮 -->
+      <button class="login-btn" id="loginBtn" disabled>
+        <span id="btnText">登录</span>
+      </button>
+
+      <!-- 底部提示 -->
+      <div class="login-hint">测试账号: admin / 123456</div>
+
+      <!-- 版本号 -->
+      <div class="version-tag">v1.0(1)debug</div>
+    </div>
+    <!-- 导航栏 -->
+    <div class="nav-bar-placeholder"></div>
+  </div>
+
+  <!-- ===== 控制面板 ===== -->
+  <div class="control-panel" id="controlPanel">
+    <h2>状态切换</h2>
+    <div class="state-label" id="currentState">Idle</div>
+
+    <label>
+      <input type="checkbox" id="darkModeToggle" onchange="toggleDarkMode()">
+      暗色模式 (prefers-color-scheme)
+    </label>
+
+    <label>模拟场景:</label>
+    <select id="scenarioSelect" onchange="applyScenario(this.value)">
+      <option value="idle">Idle — 默认空状态</option>
+      <option value="editing">Editing — 输入已填，按钮启用</option>
+      <option value="emailError">Editing — 邮箱格式错误</option>
+      <option value="loading">Loading — 登录中</option>
+      <option value="error401">Error — 401 邮箱或密码错误</option>
+      <option value="error403">Error — 403 账户锁定</option>
+      <option value="error429">Error — 429 限流</option>
+      <option value="timeout">Timeout — 网络超时</option>
+      <option value="dark">Dark Mode — 深色模式预览</option>
+    </select>
+
+    <button class="action-btn" id="resetBtn" onclick="resetAll()">重置为 Idle</button>
+    <button class="action-btn" id="simLoginBtn" onclick="simulateLogin()">模拟登录流程</button>
+  </div>
+</div>
+
+<script>
+// ===== DOM elements =====
+const emailInput = document.getElementById('emailInput');
+const passwordInput = document.getElementById('passwordInput');
+const emailField = document.getElementById('emailField');
+const passwordField = document.getElementById('passwordField');
+const emailError = document.getElementById('emailError');
+const errorCard = document.getElementById('errorCard');
+const errorText = document.getElementById('errorText');
+const loginBtn = document.getElementById('loginBtn');
+const btnText = document.getElementById('btnText');
+const visibilityIcon = document.getElementById('visibilityIcon');
+const toggleBtn = document.getElementById('togglePassword');
+const currentState = document.getElementById('currentState');
+const phoneFrame = document.getElementById('phoneFrame');
+const scenarioSelect = document.getElementById('scenarioSelect');
+const darkToggle = document.getElementById('darkModeToggle');
+
+let passwordVisible = false;
+let state = 'idle';
+
+// ===== Email validation (RFC 5322 simplified) =====
+function isValidEmail(email) {
+  if (!email) return false;
+  const re = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+  return re.test(email);
+}
+
+// ===== Button enable logic =====
+function updateButtonState() {
+  const email = emailInput.value.trim();
+  const pwd = passwordInput.value;
+  const emailOk = isValidEmail(email);
+  const pwdOk = pwd.length > 0;
+  const notLoading = state !== 'loading';
+
+  // Email field error
+  if (email.length > 0 && !emailOk) {
+    emailField.classList.add('error');
+    emailError.classList.add('visible');
+  } else {
+    emailField.classList.remove('error');
+    emailError.classList.remove('visible');
+  }
+
+  // Button enabled
+  loginBtn.disabled = !(emailOk && pwdOk && notLoading);
+
+  // Error card visibility
+  if (state === 'error' || state === 'timeout') {
+    errorCard.classList.add('visible');
+  } else {
+    errorCard.classList.remove('visible');
+  }
+
+  // Loading spinner
+  if (state === 'loading') {
+    btnText.innerHTML = '<span class="spinner"></span> 登录中...';
+    emailField.classList.add('disabled');
+    passwordField.classList.add('disabled');
+  } else {
+    btnText.textContent = '登录';
+    emailField.classList.remove('disabled');
+    passwordField.classList.remove('disabled');
+  }
+}
+
+// ===== Apply scenario =====
+function applyScenario(scenario) {
+  resetAll();
+  state = scenario;
+
+  switch(scenario) {
+    case 'idle':
+      emailInput.value = '';
+      passwordInput.value = '';
+      setStateLabel('Idle');
+      break;
+    case 'editing':
+      emailInput.value = 'user@example.com';
+      passwordInput.value = 'password123';
+      setStateLabel('Editing — 按钮已启用');
+      break;
+    case 'emailError':
+      emailInput.value = 'invalid-email';
+      passwordInput.value = 'pass';
+      setStateLabel('Editing — 邮箱格式错误');
+      break;
+    case 'loading':
+      emailInput.value = 'user@example.com';
+      passwordInput.value = 'password123';
+      setStateLabel('Loading — 请求中...');
+      break;
+    case 'error401':
+      emailInput.value = 'wrong@example.com';
+      passwordInput.value = 'wrongpwd';
+      state = 'error';
+      errorText.textContent = '邮箱或密码错误';
+      setStateLabel('Error — 401 凭据错误');
+      break;
+    case 'error403':
+      emailInput.value = 'locked@example.com';
+      passwordInput.value = 'lockpwd';
+      state = 'error';
+      errorText.textContent = '账户已被锁定，请联系管理员';
+      setStateLabel('Error — 403 账户锁定');
+      break;
+    case 'error429':
+      emailInput.value = 'spam@example.com';
+      passwordInput.value = 'spampwd';
+      state = 'error';
+      errorText.textContent = '操作过于频繁，请稍后再试';
+      setStateLabel('Error — 429 限流');
+      break;
+    case 'timeout':
+      emailInput.value = 'user@example.com';
+      passwordInput.value = 'password123';
+      state = 'timeout';
+      errorText.textContent = '网络请求超时，请重试';
+      setStateLabel('Timeout — 网络超时');
+      break;
+    case 'dark':
+      emailInput.value = 'user@example.com';
+      passwordInput.value = 'password123';
+      darkToggle.checked = true;
+      phoneFrame.style.filter = 'invert(0)';
+      document.documentElement.classList.add('dark');
+      setStateLabel('Dark Mode — 深色模式');
+      break;
+  }
+  updateButtonState();
+  scenarioSelect.value = scenario;
+}
+
+function setStateLabel(text) {
+  currentState.textContent = text;
+}
+
+// ===== Dark mode toggle =====
+function toggleDarkMode() {
+  if (darkToggle.checked) {
+    phoneFrame.style.setProperty('--surface', '#1C1B1F');
+    phoneFrame.style.setProperty('--on-surface', '#E6E1E5');
+    phoneFrame.style.setProperty('--on-surface-variant', '#CAC4D0');
+    phoneFrame.style.setProperty('--primary', '#8AB4F8');
+    phoneFrame.style.setProperty('--on-primary', '#003A75');
+    phoneFrame.style.setProperty('--primary-container', '#004A77');
+    phoneFrame.style.setProperty('--on-primary-container', '#D3E3FD');
+    phoneFrame.style.setProperty('--error', '#F2B8B5');
+    phoneFrame.style.setProperty('--error-container', '#8C1D18');
+    phoneFrame.style.setProperty('--on-error-container', '#F9DEDC');
+    phoneFrame.style.setProperty('--outline', '#938F99');
+    phoneFrame.style.setProperty('--outline-variant', '#49454F');
+    phoneFrame.style.setProperty('--ripple', 'rgba(138,180,248,0.08)');
+  } else {
+    phoneFrame.style.setProperty('--surface', '#FEFBFF');
+    phoneFrame.style.setProperty('--on-surface', '#1C1B1F');
+    phoneFrame.style.setProperty('--on-surface-variant', '#49454F');
+    phoneFrame.style.setProperty('--primary', '#1A73E8');
+    phoneFrame.style.setProperty('--on-primary', '#FFFFFF');
+    phoneFrame.style.setProperty('--primary-container', '#D3E3FD');
+    phoneFrame.style.setProperty('--on-primary-container', '#001D36');
+    phoneFrame.style.setProperty('--error', '#B3261E');
+    phoneFrame.style.setProperty('--error-container', '#F9DEDC');
+    phoneFrame.style.setProperty('--on-error-container', '#410E0B');
+    phoneFrame.style.setProperty('--outline', '#79747E');
+    phoneFrame.style.setProperty('--outline-variant', '#CAC4D0');
+    phoneFrame.style.setProperty('--ripple', 'rgba(26,115,232,0.08)');
+  }
+}
+
+// ===== Login simulation =====
+function simulateLogin() {
+  if (state === 'loading') return;
+
+  // Set editing state
+  emailInput.value = 'user@example.com';
+  passwordInput.value = 'password123';
+  state = 'loading';
+  setStateLabel('Loading — 请求中...');
+  updateButtonState();
+
+  // Simulate API response after 1.5s
+  setTimeout(() => {
+    state = 'error';
+    errorText.textContent = '邮箱或密码错误';
+    setStateLabel('Error — 401 凭据错误');
+    updateButtonState();
+  }, 1500);
+}
+
+// ===== Password visibility toggle =====
+toggleBtn.addEventListener('click', () => {
+  passwordVisible = !passwordVisible;
+  passwordInput.type = passwordVisible ? 'text' : 'password';
+  toggleBtn.title = passwordVisible ? '隐藏密码' : '显示密码';
+  if (passwordVisible) {
+    visibilityIcon.innerHTML = '<path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z"/>';
+  } else {
+    visibilityIcon.innerHTML = '<path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>';
+  }
+});
+
+// ===== Event listeners =====
+emailInput.addEventListener('input', () => {
+  if (state === 'error' || state === 'timeout') {
+    state = 'editing';
+    setStateLabel('Editing');
+  } else if (state === 'idle' && (emailInput.value.trim() || passwordInput.value)) {
+    state = 'editing';
+    setStateLabel('Editing');
+  }
+  updateButtonState();
+});
+
+passwordInput.addEventListener('input', () => {
+  if (state === 'error' || state === 'timeout') {
+    state = 'editing';
+    setStateLabel('Editing');
+  } else if (state === 'idle' && (emailInput.value.trim() || passwordInput.value)) {
+    state = 'editing';
+    setStateLabel('Editing');
+  }
+  updateButtonState();
+});
+
+loginBtn.addEventListener('click', () => {
+  if (loginBtn.disabled) return;
+  simulateLogin();
+});
+
+// ===== Reset =====
+function resetAll() {
+  state = 'idle';
+  emailInput.value = '';
+  passwordInput.value = '';
+  emailField.classList.remove('error');
+  passwordField.classList.remove('error');
+  emailError.classList.remove('visible');
+  errorCard.classList.remove('visible');
+  errorText.textContent = '邮箱或密码错误';
+  setStateLabel('Idle');
+  darkToggle.checked = false;
+  phoneFrame.style.filter = '';
+  toggleDarkMode(); // reset light mode
+  document.documentElement.classList.remove('dark');
+  updateButtonState();
+  scenarioSelect.value = 'idle';
+}
+</script>
+</body>
+</html>
