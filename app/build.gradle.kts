@@ -59,6 +59,9 @@ dependencies {
     // Material (for Activity theme)
     implementation("com.google.android.material:material:1.11.0")
 
+    // SplashScreen
+    implementation("androidx.core:core-splashscreen:1.0.1")
+
     // Compose
     implementation(platform("androidx.compose:compose-bom:2024.06.00"))
     implementation("androidx.compose.ui:ui")
@@ -121,6 +124,12 @@ dependencies {
     testImplementation("androidx.test:core:1.5.0")
     testImplementation("androidx.test.ext:junit:1.1.5")
     testImplementation("androidx.test.espresso:espresso-core:3.5.1")
+
+    // Turbine — StateFlow 测试
+    testImplementation("app.cash.turbine:turbine:1.0.0")
+    // Hilt Testing
+    testImplementation("com.google.dagger:hilt-android-testing:2.48.1")
+    kaptTest("com.google.dagger:hilt-android-compiler:2.48.1")
 }
 
 // Compose UI 测试仅在 Debug 变体可运行（Release merged manifest 不含 ComponentActivity）

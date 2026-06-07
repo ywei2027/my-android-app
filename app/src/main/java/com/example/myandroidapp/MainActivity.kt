@@ -1,9 +1,11 @@
 package com.example.myandroidapp
 
+import android.app.Activity
 import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.BackHandler
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -29,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -38,6 +41,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.myandroidapp.ui.auth.LoginScreen
 import com.example.myandroidapp.ui.news.NewsDetailScreen
 import com.example.myandroidapp.ui.news.NewsListScreen
 import dagger.hilt.android.AndroidEntryPoint
@@ -150,11 +154,24 @@ fun AnimatedSplashContent(onFinished: () -> Unit) {
 @Composable
 fun NewsAppNavHost() {
     val navController = rememberNavController()
+    val context = LocalContext.current
 
     NavHost(
         navController = navController,
-        startDestination = "news_list"
+        startDestination = "login"
     ) {
+        composable("login") {
+            LoginScreen(
+                onLoginSuccess = {
+                    navController.navigate("news_list") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                }
+            )
+            BackHandler {
+                (context as? Activity)?.finish()
+            }
+        }
         composable("news_list") {
             NewsListScreen(
                 onArticleClick = { articleId ->
