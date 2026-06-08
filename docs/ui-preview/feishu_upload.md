@@ -1,6 +1,16 @@
+<md-todo>交互原型(375px视口M3风格): https://htmlpreview.github.io/?https://raw.githubusercontent.com/ywei2027/my-android-app/53fa30be8af05d4105ebefbe0681d6a431a8645b/docs/ui-preview/index.html</md-todo>
+
+<md-todo>
+### 截图预览
+| 页面 | 状态 | 预览 |
+|------|------|------|
+| 🔍 AnimatedSplashContent | Debug 默认 | https://raw.githubusercontent.com/ywei2027/my-android-app/53fa30be8af05d4105ebefbe0681d6a431a8645b/docs/ui-preview/splash_default.html</md-todo>
+
+---
+
 # 启动页版本号显示 — UI 设计方案
 
-> **版本:** v1.0-confirmed
+> **版本:** v0.2-review
 > **功能名称:** 启动页版本号显示
 > **创建日期:** 2026-06-08
 > **基于:** PRD v1.0-confirmed §9 | DECISIONS.md
@@ -12,7 +22,7 @@
 ### 设计目标
 - 在现有 AnimatedSplashContent 底部追加版本号 Text，不破坏原有动画结构
 - 版本号使用独立 AnimatedVisibility(fadeIn)，延迟 300ms 出现
-- 颜色与现有白色 UI 元素协调：`Color.White.copy(alpha=0.7f)`
+- 颜色与现有白色 UI 元素协调：`Color.White.copy(alpha=0.85f)`
 
 ### 设计语言
 - Material3 (M3) 设计系统
@@ -39,8 +49,8 @@ MainActivity
             │       ├── Text("📰", 72sp)
             │       ├── Text("新闻", 28sp, Bold, White)
             │       └── Text("热点资讯 一键掌握", 14sp, White α0.8)
-            └── 🆕 AnimatedVisibility(fadeIn, 300ms, delay=300ms)
-                └── Text(versionTag, 12sp/labelSmall, White α0.7, BottomCenter)
+            └── 🆕 AnimatedVisibility(fadeIn, 300ms, delay=100ms)
+                └── Text(versionTag, 12sp, White α0.85, BottomCenter)
 ```
 
 ---
@@ -65,8 +75,8 @@ MainActivity
 │                                  │
 │                                  │
 │    v1.0.0(1)debug  ← 12sp       │
-│    White α0.7, fadeIn 300ms     │
-│    32dp+navBars 底部边距         │
+│    White α0.85, fadeIn 300ms    │
+│    32dp+systemBars 底部边距      │
 └──────────────────────────────────┘
 ```
 
@@ -82,7 +92,7 @@ AnimatedSplashContent(onFinished)
     │       ├── Spacer(8.dp)
     │       └── Text("热点资讯 一键掌握", fontSize=14.sp, Color.White.copy(alpha=0.8f))
     │
-    └── 🆕 AnimatedVisibility(enter=fadeIn(tween(300ms, delayMillis=300)))
+    └── 🆕 AnimatedVisibility(enter=fadeIn(tween(300ms, delayMillis=100)))
         └── Text(
                 text = versionString,
                 fontSize = 12.sp,  /* hardcode，非 labelSmall */
@@ -110,9 +120,9 @@ AnimatedSplashContent(onFinished)
                                         ┌──────────────┐
                                         │  VersionTag  │
                                         │  fadeIn 300ms│
-                                        │  delay=100ms │
+                                        │  delay=100ms  │
                                         └──────┬───────┘
-                                               │ delay(500ms total)
+                                               │ delay(500ms)
                                                ↓ onFinished()
                                         ┌──────────────┐
                                         │   FadeOut    │
@@ -128,8 +138,8 @@ AnimatedSplashContent(onFinished)
 |------|---------|------|
 | 默认(Debug) | 底部显示 `v1.0.0(1)debug` | 完整构建信息 |
 | 默认(Release) | 底部显示 `v1.0.0(1)` | 无 buildType 后缀 |
-| 降级/异常 | 版本号区域为空，不崩溃 | BuildConfig 异常静默降级 |
-| 动画中 | fadeIn 300ms 期间 alpha 过渡 0→0.7 | 与主内容 scaleIn 协调 |
+| 降级/异常 | 显示 `v?.?` 降级文案 | formatVersionTag null->"? " |
+| 暗色模式 | 背景 #0D47A1，文字 White α0.6 | isSystemInDarkTheme() |
 
 ---
 
@@ -202,13 +212,13 @@ AnimatedSplashContent(onFinished)
 | `BuildConfig.BUILD_TYPE` | 构建类型 | ✅ 已有 |
 | `formatVersionTag()` | 版本号格式化 | ✅ 已有 |
 | `formatVersionDescription()` | 无障碍描述 | ✅ 已有 |
-| `WindowInsets.navigationBars` | 安全区 API | ✅ 已有(API 26+) |
+| `WindowInsets.systemBars` | 安全区 API | ✅ 已有(API 26+) |
 
 ---
 
 ## §9 多视角评审记录
 
-> 评审日期: 2026-06-08 | 方式: delegate_task 三视角并行
+> 评审日期: 2026-06-08 | 方式: delegate_task 三视角并行 | 耗时: ~70s
 
 ### 评审总览
 
@@ -218,12 +228,12 @@ AnimatedSplashContent(onFinished)
 | C2 视觉审美 | 37/50 | 2 | 4 | 动画节奏出色，暗色面/横屏待补 |
 | C3 前端实现 | 7.2/10 | 3 | 5 | 对比度需重算/null降级/组件复用67% |
 
-### P0 修订记录
+### P0 修订记录（已在正文自动修订）
 
 | 编号 | 问题 | 修订内容 |
 |------|------|----------|
 | P0-1 | 字号与Theme冲突(12sp vs labelSmall=11sp) | 版本号 hardcode 12sp，不引用 labelSmall Token |
-| P0-2 | 总时长超标(2400ms>2s) | 压缩为：600ms主+delay(100ms)+版本fadeIn(300ms并行)+停留(500ms)=1500ms |
+| P0-2 | 总时长超标(2400ms>2s) | 压缩为：600ms主+delay(100ms)+版本fadeIn(300ms)+停留(500ms)=1500ms |
 | P0-3 | 暗色主题缺失 | 增加 `isSystemInDarkTheme()` 分支：背景 #0D47A1 / 文字 White α0.6 |
 | P0-4 | SystemBars未显式调用 | Box 增加 `WindowInsets.systemBars` padding |
 | P0-5 | 对比度重算(White α0.7 on #1A73E8) | 改为 `Color.White.copy(alpha=0.85f)` 确保≥4.5:1 |
@@ -257,4 +267,5 @@ AnimatedSplashContent(onFinished)
 
 ---
 
-> **状态:** UI设计已冻结(v1.0-confirmed)。请审阅后回复「确认」冻结进入编码。
+> **版本:** v0.2-review
+> **状态:** 三视角评审完成，P0 已自动修订。请审阅后回复「确认」冻结进入技术方案。

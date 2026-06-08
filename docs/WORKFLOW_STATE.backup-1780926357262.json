@@ -1,0 +1,24 @@
+{
+  "current_stage": "STAGE_UI_DESIGN",
+  "feature_name": "启动页版本号显示",
+  "prd_version": "v1.0-confirmed",
+  "ui_design_version": "v0.2-review",
+  "design_version": "",
+  "issues": [
+    {"severity": "P0", "agent": "C1-UX", "summary": "字号冲突12sp/labelSmall"},
+    {"severity": "P0", "agent": "C1-UX", "summary": "总时长2400ms超2s"},
+    {"severity": "P0", "agent": "C1-UX", "summary": "暗色主题缺失"},
+    {"severity": "P0", "agent": "C1-UX", "summary": "SystemBars未显式调用"},
+    {"severity": "P0", "agent": "C3-前端", "summary": "对比度不达标α0.7"},
+    {"severity": "P0", "agent": "C3-前端", "summary": "Release格式未声明"},
+    {"severity": "P0", "agent": "C3-前端", "summary": "null降级无兜底"},
+    {"severity": "P0", "agent": "C3-前端", "summary": "Debug双版本号"},
+    {"severity": "P0", "agent": "C2-视觉", "summary": "暗色surface缺失"}
+  ],
+  "prd_p0_count": 9,
+  "prd_p1_count": 21,
+  "ui_p0_count": 9,
+  "ui_p1_count": 15,
+  "c2_score": "37/50",
+  "updated": "2026-06-08T15:10:00+08:00"
+}

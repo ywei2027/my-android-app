@@ -1,0 +1,22 @@
+{
+  "current_stage": "STAGE_PRD",
+  "feature_name": "启动页版本号显示",
+  "prd_version": "v0.1-draft",
+  "ui_design_version": "",
+  "design_version": "",
+  "issues": [
+    {"severity":"P0","agent":"产品","summary":"Release缺versionCode"},
+    {"severity":"P0","agent":"产品","summary":"Debug下VersionTag重复"},
+    {"severity":"P0","agent":"技术","summary":"布局冲突Box Center vs BottomCenter"},
+    {"severity":"P0","agent":"技术","summary":"动画隔离-版本号需独立AnimatedVisibility"},
+    {"severity":"P0","agent":"UX","summary":"字体缩放上限1.3x不足"},
+    {"severity":"P0","agent":"UX","summary":"无障碍绑定方式未说明"},
+    {"severity":"P0","agent":"UX","summary":"长版本号截断后TalkBack不完整"},
+    {"severity":"P0","agent":"QA","summary":"versionName空值降级未覆盖"},
+    {"severity":"P0","agent":"QA","summary":"fadeIn期间TalkBack未覆盖"}
+  ],
+  "prd_p0_count": 9,
+  "prd_p1_count": 21,
+  "prd_p2_count": 0,
+  "updated": "2026-06-08T14:40:00+08:00"
+}
