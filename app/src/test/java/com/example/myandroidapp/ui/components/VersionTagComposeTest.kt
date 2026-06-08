@@ -38,7 +38,7 @@ class VersionTagComposeTest {
         }
 
         composeTestRule
-            .onNodeWithContentDescription("应用版本号 v1.0")
+            .onNodeWithContentDescription("应用版本号 v1.0 构建 1 调试版本")
             .assertExists()
     }
 

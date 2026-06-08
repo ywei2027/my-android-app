@@ -64,18 +64,18 @@ class VersionTagTest {
     @Test
     fun `T3 formatVersionDescription 格式正确`() {
         val result = formatVersionDescription("1.0")
-        assertEquals("应用版本号 v1.0", result)
+        assertEquals("应用版本号 v1.0 构建 1 调试版本", result)
     }
 
     @Test
     fun `T3 formatVersionDescription 多段版本号`() {
         val result = formatVersionDescription("3.14.159")
-        assertEquals("应用版本号 v3.14.159", result)
+        assertEquals("应用版本号 v3.14.159 构建 1 调试版本", result)
     }
 
     @Test
     fun `T3 formatVersionDescription 与 BuildConfig 一致`() {
-        val expected = "应用版本号 v${BuildConfig.VERSION_NAME}"
+        val expected = "应用版本号 v${BuildConfig.VERSION_NAME} 构建 ${BuildConfig.VERSION_CODE} 调试版本"
         assertEquals(expected, formatVersionDescription())
     }
 

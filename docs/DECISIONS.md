@@ -5,14 +5,29 @@
 
 | 日期 | 变更内容 |
 |------|----------|
-| 2026-06-08 | 启动页版本号显示 PRD 评审，决议 R-01~R-06 |
+| 2026-06-08 | 启动页版本号显示 PRD 评审（第2轮），决议 R2-01~R2-08 |
+| 2026-06-08 | 启动页版本号显示 PRD 评审（第1轮），决议 R-01~R-06 |
 | 2026-06-03 | 初始 PRD 评审，决议 D-21~D-25 |
 
 ## 决策列表
 
 | 编号 | 日期 | 决策内容 | 状态 |
 |------|------|----------|------|
-| R-01 | 2026-06-08 | Debug/Release 双版本格式：Debug `v{name}({code}){buildType}` / Release `v{name}`，对齐 D-21/D-23 | ✅ 已修订 |
+| R2-01 | 2026-06-08 | formatVersionTag() 签名变更保持向后兼容，新增参数设默认值 | ✅ 已采纳 |
+| R2-02 | 2026-06-08 | 版本号生命周期：启动即显示，splash 结束保留不消失 | ✅ 已采纳 |
+| R2-03 | 2026-06-08 | contentDescription 区分 Debug/Release 构建类型 | ✅ 已采纳 |
+| R2-04 | 2026-06-08 | Box 布局：根容器 Alignment.Center + 版本号 BottomCenter，不被 AnimatedVisibility 包裹 | ✅ 已采纳 |
+| R2-05 | 2026-06-08 | 导航栏安全区：叠加 WindowInsets.navigationBars 到 bottom padding (32dp + navBarsInset) | ✅ 已采纳 |
+| R2-06 | 2026-06-08 | 长版本号溢出：maxLines=1 + TextOverflow.Ellipsis | ✅ 已采纳 |
+| R2-07 | 2026-06-08 | BuildConfig 异常：静默降级显示空字符串不崩溃 | ✅ 已采纳 |
+| R2-08 | 2026-06-08 | RTL 适配：TextDirection.Content 继承系统 locale | ✅ 已采纳 |
+| R2-01 | 2026-06-08 | 嵌套Box布局 + 独立AnimatedVisibility(fadeIn 300ms) | ✅ 已采纳 |
+| R2-02 | 2026-06-08 | Release 显示 `v{name}({code})` 不含 buildType | ✅ 已采纳 |
+| R2-03 | 2026-06-08 | 版本号颜色 `Color.White.copy(alpha=0.7f)`，对比度6.5:1≥AAA | ✅ 已采纳 |
+| R2-04 | 2026-06-08 | 无障碍: Modifier.semantics显式绑定 + contentDescription始终完整 | ✅ 已采纳 |
+| R2-05 | 2026-06-08 | 字体缩放上限1.5x | ✅ 已采纳 |
+| R2-06 | 2026-06-08 | Debug下替换VersionTag避免新旧重复 | ✅ 已采纳 |
+| R2-07 | 2026-06-08 | splash ~1.5s短暂展示，非永久主屏 | ✅ 已采纳 |
 | R-02 | 2026-06-08 | 对比度方案A：文字色 `rgba(0,0,0,0.55)`，在 #1A73E8 背景上 ~4.85:1 ≥ WCAG AA 4.5:1 | ✅ 已修订 |
 | R-03 | 2026-06-08 | 版本号独立于 AnimatedVisibility，放在 Box 根容器不参与 fadeOut | ✅ 已修订 |
 | R-04 | 2026-06-08 | 复用 formatVersionTag()，splash 专用 Composable 调用，新增 textColor 参数 | ✅ 已记录 |

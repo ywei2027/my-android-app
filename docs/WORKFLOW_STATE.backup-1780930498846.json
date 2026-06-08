@@ -1,11 +1,10 @@
 {
-  "current_stage": "STAGE_CODE",
+  "current_stage": "STAGE_TDD",
   "feature_name": "启动页版本号显示",
   "prd_version": "v1.0-confirmed",
   "ui_design_version": "v1.0-confirmed",
   "design_version": "v1.0-confirmed",
   "tdd_version": "v0.1-draft",
   "issues": [],
-  "updated": "2026-06-08T14:54:58.847Z",
-  "code_version": "v0.1-draft"
+  "updated": "2026-06-08T16:30:00+08:00"
 }

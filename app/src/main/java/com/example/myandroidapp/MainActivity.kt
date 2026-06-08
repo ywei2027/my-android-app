@@ -19,7 +19,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,7 +37,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -42,6 +51,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.myandroidapp.ui.auth.LoginScreen
+import com.example.myandroidapp.BuildConfig
+import com.example.myandroidapp.ui.components.formatVersionTag
+import com.example.myandroidapp.ui.components.formatVersionDescription
 import com.example.myandroidapp.ui.news.NewsDetailScreen
 import com.example.myandroidapp.ui.news.NewsListScreen
 import dagger.hilt.android.AndroidEntryPoint
@@ -104,17 +116,26 @@ fun AppWithAnimatedSplash(onSplashReady: () -> Unit) {
 fun AnimatedSplashContent(onFinished: () -> Unit) {
     var visible by remember { mutableStateOf(false) }
 
+    // 🆕 版本号
+    val isDark = isSystemInDarkTheme()
+    val versionAlpha = if (isDark) 0.8f else 0.85f   // AD-03: P0-D1 修订暗色 α0.8
+    val bgColor = if (isDark) Color(0xFF0D47A1) else Color(0xFF1A73E8)
+    val versionTag = formatVersionTag(
+        buildType = if (BuildConfig.DEBUG) BuildConfig.BUILD_TYPE else ""
+    )
+    val versionDesc = formatVersionDescription()
+
     // Step 1: Logo 弹入（scale + fade）
     LaunchedEffect(Unit) {
         visible = true
-        delay(1200) // Logo 展示 1.2s
+        delay(900) // Logo 展示 ~0.9s + 600ms scaleIn = ~1.5s 总时长
         onFinished() // 渐变切换到主内容
     }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF1A73E8)),
+            .background(bgColor),
         contentAlignment = Alignment.Center
     ) {
         AnimatedVisibility(
@@ -147,6 +168,26 @@ fun AnimatedSplashContent(onFinished: () -> Unit) {
                     fontSize = 14.sp
                 )
             }
+        }
+
+        // 🆕 版本号 — AD-04: 独立 AnimatedVisibility，不参与主内容 fadeOut
+        AnimatedVisibility(
+            visible = visible,
+            enter = fadeIn(animationSpec = tween(300, delayMillis = 100))
+        ) {
+            Text(
+                text = versionTag,
+                fontSize = 12.sp, // AD-02: hardcode 非 labelSmall
+                color = Color.White.copy(alpha = versionAlpha),
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .windowInsetsPadding(WindowInsets.systemBars)
+                    .padding(bottom = 32.dp)
+                    .semantics { contentDescription = versionDesc }
+            )
         }
     }
 }
