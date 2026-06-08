@@ -1,416 +1,253 @@
-# 用户登录 — PRD
+# 启动页版本号显示 — PRD
 
-> **版本:** v0.1-draft
-> **功能名称:** 用户登录
-> **创建日期:** 2026-06-07
+> **版本:** v1.0-confirmed
+> **功能名称:** 启动页版本号显示
+> **创建日期:** 2026-06-08
 > **作者:** Hermes 智能研发工作流
 
 ---
 
 ## §1 功能概述
 
-为用户提供邮箱+密码方式的身份认证入口。用户输入注册邮箱和密码后，系统验证凭据有效性，验证通过后进入主界面，验证失败则展示明确的错误提示。本次实现重点覆盖登录成功和校验失败的完整交互闭环，暂不包含注册、找回密码、第三方登录等功能。
-
-> **注意：** 原 DECISIONS.md 中「登录方式采用手机号+验证码，否决邮箱+密码」的决策将被本次需求覆盖。重新评估邮箱+密码登录作为主要认证方式。
+在应用启动页（Splash Screen）底部显示当前应用版本号，方便用户和测试人员快速识别安装的版本。
 
 ## §2 用户场景
 
 | 场景编号 | 角色 | 场景描述 |
 |----------|------|----------|
-| US-01 | 普通用户 | 打开应用后看到登录页面，输入已注册的邮箱和密码，点击登录按钮，验证通过后进入应用主界面 |
-| US-02 | 普通用户 | 输入错误的邮箱或密码，点击登录后看到错误提示，可重新输入 |
-| US-03 | 普通用户 | 未填写邮箱或密码时点击登录按钮，按钮处于禁用状态，无法提交 |
-| US-04 | 普通用户 | 输入邮箱格式不正确时，邮箱输入框显示格式校验错误提示 |
-| US-05 | 普通用户 | 登录请求发送中时，登录按钮显示加载状态且不可重复点击 |
+| US-01 | 普通用户 | 打开应用时在启动页看到版本号，确认应用是否为最新版本 |
+| US-02 | 测试人员 | 安装测试包后在启动页直接确认版本号，无需进入关于页面 |
+| US-03 | 开发者 | 快速验证 CI 构建产物的版本号与 Git tag 一致 |
 
 ## §3 范围边界
 
 ### 包含
-- 登录页面 UI（邮箱输入框 + 密码输入框 + 登录按钮）
-- 邮箱格式客户端校验（正则表达式验证）
-- 密码非空校验
-- 登录按钮联动启用/禁用（邮箱格式正确 + 密码非空 → 启用）
-- 登录 API 调用（POST 邮箱+密码）
-- 登录成功 → 导航到主界面
-- 登录失败 → 展示服务端返回的错误信息（Snackbar/内联提示）
-- 登录中的 Loading 状态（按钮转圈 + 禁止重复提交）
-- 密码输入框支持显示/隐藏切换
+- 启动页底部居中显示版本号文本
+- Debug 构建显示完整格式 `v{versionName}({versionCode}){buildType}`（如 `v1.0(1)debug`）
+- Release 构建显示简化格式 `v{versionName}`（如 `v1.0`，对齐 D-21/D-23 决议）
+- 版本号从 BuildConfig 读取，与 Gradle versionName/versionCode 同步
+- 复用项目已有 `formatVersionTag()` / `formatVersionDescription()` 函数
+- 复用项目已有 `VersionTag` 组件的格式化函数，新增 splash 专用 Composable 调用
 
 ### 不包含
-- 用户注册功能
-- 忘记密码 / 密码找回
-- 第三方登录（Google/微信/Apple）
-- 手机号+验证码登录
-- "记住我" / 自动登录
-- Biometric（指纹/面部）认证
-- Token 刷新 / Session 管理（由后续模块负责）
+- 不修改启动页 logo 或动画
+- 不增加手动刷新版本号功能
+- 不在启动页显示 build 号或其他调试信息
 
 ## §4 验收标准
 
 | 编号 | 验收项 | 预期结果 |
 |------|--------|----------|
-| AC-01 | 邮箱格式校验 | 输入不合规邮箱（缺少@、无域名等）时输入框显示错误提示，登录按钮禁用 |
-| AC-02 | 密码非空校验 | 密码为空时登录按钮禁用 |
-| AC-03 | 登录按钮联动 | 仅当邮箱格式正确 AND 密码非空时登录按钮可点击 |
-| AC-04 | 登录成功跳转 | 输入有效凭据后成功导航到主界面（HomeScreen） |
-| AC-05 | 登录失败提示 | 凭据错误时展示服务端错误信息（如"邮箱或密码错误"），用户可重新输入 |
-| AC-06 | Loading 态 | 登录请求进行中时按钮显示 CircularProgressIndicator，不可重复点击 |
-| AC-07 | 密码显隐切换 | 点击密码输入框的可见性图标可切换密码显示/隐藏 |
-| AC-08 | 返回键行为 | 在登录页按系统返回键退出应用（不回到闪屏页） |
+| AC-01 | 启动时显示版本号 | Debug: 启动页底部显示 `v1.0(1)debug`；Release: 显示 `v1.0`（对齐 D-21/D-23） |
+| AC-02 | 版本号来源正确 | 显示值与 BuildConfig.VERSION_NAME/VERSION_CODE/BUILD_TYPE 一致 |
+| AC-03 | 文字对比度达标 | 文字色 `rgba(0,0,0,0.55)` 在 #1A73E8 背景上对比度 ≥ 4.5:1（WCAG AA） |
+| AC-04 | 无性能影响 | 不增加启动页显示延迟（增量 < 5ms，无额外 jank） |
 
 ## §5 非功能性需求
 
-- **性能:** 登录 API 响应时间 P95 < 2s，客户端校验 < 16ms（不阻塞 UI 线程）
-- **安全性:** 密码传输使用 HTTPS，客户端不做明文持久化存储；登录按钮防重复提交
-- **兼容性:** Android 8.0 (API 26) 及以上，支持手机和平板竖屏布局
-- **可维护性:** 登录逻辑封装在 LoginViewModel 中，UI 仅消费 UiState；错误处理集中在 Repository 层
+- **性能:** 启动时间增量 < 5ms
+- **兼容性:** Android 8.0+，支持深色模式
+- **可维护性:** 版本号读取逻辑封装为独立工具方法
 
 ## §6 技术约束
 
-- MVVM 架构：LoginViewModel 暴露 StateFlow<LoginUiState>
-- DI 框架：Hilt
-- 网络层：Retrofit + OkHttp
-- UI：Jetpack Compose + Material3
-- 所有协程绑定 viewModelScope
-- 输入框使用 OutlinedTextField（M3 风格）
+- 基于现有 SplashScreen API（androidx.core:core-splashscreen）
+- 版本号从 BuildConfig.VERSION_NAME 获取
+- 使用 Jetpack Compose 实现（与项目技术栈一致）
 
 ## §7 风险与依赖
 
 | 风险 | 影响 | 缓解措施 |
 |------|------|----------|
-| 后端登录 API 尚未就绪 | 无法端到端验证 | 使用 Mock WebServer (OkHttp MockInterceptor) 先行开发和 UI 测试 |
-| 邮箱+密码与 DECISIONS.md 冲突 | 需重新评估登录方案 | 本次 PRD 评审中专题讨论，更新 DECISIONS.md |
-| Token 存储方案未定 | 登录成功后 Token 无处存放 | 本次简化：Token 暂存内存，Token 持久化由后续模块负责 |
+| Compose 与 SplashScreen API 兼容性 | 低 | Compose 视图嵌入已验证可行 |
+| 版本号获取路径变更 | 低 | BuildConfig 为标准方案，如有异常回退到 PackageManager |
 
 ## §8 术语表
 
 | 术语 | 说明 |
 |------|------|
-| LoginUiState | 登录页面的 UI 状态数据类，包含邮箱/密码/错误信息/加载状态 |
-| LoginEvent | 用户操作事件密封类（邮箱变更/密码变更/登录提交/密码可见性切换） |
-| AuthRepository | 认证数据仓库，封装登录 API 调用和错误处理 |
-| LoginApi | Retrofit 接口，定义 POST /api/auth/login |
+| Splash Screen | 应用启动时展示的过渡页面 |
+| BuildConfig | Gradle 构建时自动生成的配置类，含 VERSION_NAME 等字段 |
 
 ## §9 UI 设计输入
 
-> **状态:** 结构化规格（UX 评审后修订版）
-> **基准视口:** 360×640dp (手机竖屏) / 兼容横屏滚动
+> **状态:** v0.2-ux-reviewed | **基于:** UX 评审（5/10，4×P0 + 6×P1）
 
-### 9.1 页面清单
+### §9.1 页面清单
 
-| 页面 | 路由 | 类型 | 入口 | 说明 |
-|------|------|------|------|------|
-| LoginScreen | `/login` (NavHost startDestination) | 新建 | App 冷启动 → Splash 后 | 单页全屏，无 BottomBar/AppBar |
+| 页面 | 路由/组件 | 类型 | 说明 |
+|------|----------|------|------|
+| 启动页 | `AnimatedSplashContent` (MainActivity.kt) | 改造 | 现有蓝色启动页底部新增版本号文本。不涉及新页面/新路由，仅修改现有 Composable 布局层级。 |
 
-### 9.2 布局规格（精确 dp 值）
+### §9.2 布局规格
 
-```
-┌────────── 360dp ──────────┐
-│  statusBarsPadding        │
-│                           │
-│      [图标 64×64dp]       │  ← 距顶部 80dp（含状态栏）
-│      欢迎回来             │  ← headlineMedium (24sp), Bold
-│   请使用邮箱和密码登录     │  ← bodyMedium (14sp), onSurfaceVariant
-│                           │  ← 间距 32dp
-│  ┌─────────────────────┐  │
-│  │ 👤 邮箱            │  │  ← OutlinedTextField, height 56dp
-│  │    placeholder      │  │     leadingIcon: Icons.Filled.Email
-│  └─────────────────────┘  │     keyboardType: Email, imeAction: Next
-│                           │  ← 间距 16dp
-│  ┌─────────────────────┐  │
-│  │ 🔒 密码        👁  │  │  ← OutlinedTextField, height 56dp
-│  │    ••••••••         │  │     leadingIcon: Icons.Filled.Lock
-│  └─────────────────────┘  │     trailingIcon: Visibility/VisibilityOff
-│                           │     keyboardType: Password, imeAction: Done
-│  ┌─────────────────────┐  │  ← 内联错误文字 12sp error 色（input下方4dp）
-│  │ ⚠ 邮箱或密码错误    │  │     AnimatedVisibility fadeIn/Out
-│  └─────────────────────┘  │
-│                           │  ← 间距 24dp
-│  ┌─────────────────────┐  │
-│  │     登  录           │  │  ← Button(filled), height 48dp, fullWidth
-│  └─────────────────────┘  │     cornerRadius 24dp (50% pill)
-│     ◌ 登录中...          │  ← loading态：CircularProgressIndicator(20dp)
-│                           │       + "登录中..." text inside button
-│                           │  ← 间距 24dp
-│  测试账号: admin/123456   │  ← labelSmall (11sp), alpha 0.6
-│                           │
-│      1.0(1)debug          │  ← VersionTag 底部居中 (如存在)
-│  navigationBarsPadding    │
-└───────────────────────────┘
-```
+| 属性 | 原值（PRD v0.1） | **修订值（UX 评审后）** | 修订原因 |
+|------|-----------------|------------------------|----------|
+| 版本号位置 | 底部居中，距底部 32dp | 底部居中，距底部 32dp，叠加 `windowInsetsPadding(WindowInsets.navigationBars)` | P1-2：Edge-to-Edge 安全区适配 |
+| 字体大小 | 12sp | 12sp | 不变 |
+| 文字颜色 | `#80FFFFFF`（半透白） | **方案A：`rgba(0,0,0,0.55)`（深色半透明）** — 混合后 ~4.85:1 对比度，远超 WCAG AA 4.5:1 | P0-1：原方案对比度仅 1.64:1，方案A 低调可见不抢 logo 注意力 |
+| 字重 | Normal (400) | Normal (400) | 不变 |
+| 背景 | 透明 | 透明（方案B 例外：半透明深色 pill `RoundedCornerShape(4dp)`） | P0-1 取决于方案选型 |
+| 显示格式 | `vX.Y.Z` | Debug: `v{name}({code}){buildType}`（如 `v1.0(1)debug`） / Release: `v{name}`（如 `v1.0`，无 versionCode/buildType） | P1-4 + P0-4：对齐 ADR-2026-001 + 项目 formatVersionTag() |
+| 容器层级 | — | **Box → AnimatedVisibility(splash) → AnimatedSplashContent**（版本号 Text 独立于 AnimatedVisibility 外层，`Modifier.align(Alignment.BottomCenter)`） | P0-2：防止版本号随 FadeOut 消失 |
 
-| 元素 | 精确规格 | M3 Token |
-|------|----------|----------|
-| 页面容器 | `Column` fillMaxSize, verticalScroll, horizontalPadding=24dp, verticalArrangement=Center | — |
-| 应用图标 | `Icon` 64×64dp, painterResource, tint=primary | `primary` |
-| 标题文字 | `Text` "欢迎回来", 24sp, Bold | `headlineMedium` |
-| 副标题文字 | `Text` "请使用邮箱和密码登录", 14sp, regular | `bodyMedium`, `onSurfaceVariant` |
-| 图标→标题间距 | `Spacer` 16dp | — |
-| 标题→副标题间距 | `Spacer` 8dp | — |
-| 副标题→邮箱输入框间距 | `Spacer` 32dp | — |
-| 邮箱输入框 | `OutlinedTextField`, height=56dp, singleLine, shape=4dp | — |
-| 邮箱 leadingIcon | `Icons.Filled.Email`, contentDescription="邮箱图标" | — |
-| 邮箱 placeholder | "请输入邮箱地址" | — |
-| 邮箱错误文案 | "请输入有效的邮箱地址", 12sp, error color | `error`, `labelSmall` |
-| 邮箱↔密码间距 | `Spacer` 16dp | — |
-| 密码输入框 | `OutlinedTextField`, height=56dp, singleLine, shape=4dp | — |
-| 密码 leadingIcon | `Icons.Filled.Lock`, contentDescription="密码图标" | — |
-| 密码 trailingIcon | `IconButton` 48×48dp touch target, `Icons.Filled.Visibility`/`VisibilityOff` | — |
-| 密码 placeholder | "请输入密码" | — |
-| 密码→错误提示间距 | 0dp（内联错误在输入框 `supportingText` 或下方 4dp） | — |
-| 服务端错误提示 | `Text` 14sp, error color, AnimatedVisibility fadeIn/Out | `error`, `bodySmall` |
-| 错误→按钮间距 | `Spacer` 24dp | — |
-| 登录按钮 | `Button`(filled), height=48dp, fullWidth, shape=RoundedCornerShape(24dp) | `primary` / `onPrimary` |
-| 按钮 loading | `CircularProgressIndicator` 20dp, strokeWidth=2dp, color=onPrimary | `onPrimary` |
-| 按钮文字(默认) | "登录", 16sp, Medium | `labelLarge` |
-| 按钮文字(loading) | "登录中...", 16sp | `labelLarge` |
-| 按钮→底部提示间距 | `Spacer` 24dp | — |
-| 底部测试提示 | "测试账号: admin / 123456", 11sp, onSurfaceVariant alpha 0.6 | `labelSmall` |
+### §9.3 交互规格
 
-### 9.3 交互规格
+| 属性 | 值 |
+|------|-----|
+| 交互类型 | 纯展示，无交互（无点击/焦点/手势） |
+| 出现时机 | **启动页呈现瞬间即显示（0ms），不等待/不参与 logo scaleIn 动画**（P1-1） |
+| 消失时机 | 随启动页整体消失（Box 容器被移除），不单独执行 FadeOut |
+| 可见性约束 | 版本号在整个启动页生命周期内始终可见，不随 logo FadeOut 淡出（P0-2） |
+| 无障碍 | `semantics { contentDescription = formatVersionDescription() }` — 格式 `"应用版本号 v{versionName}"`（P0-3，复用已有函数） |
 
-| 触发元素 | 交互行为 | 键盘/焦点管理 |
-|----------|----------|---------------|
-| 邮箱输入框 | 输入时实时校验 RFC 5322 格式。格式错误 → `supportingText` 显示 "请输入有效的邮箱地址" + 输入框变 error 态。格式正确 → 清除 error 态。 | `keyboardType=Email`, `imeAction=Next` → 焦点跳转密码框 |
-| 密码输入框 | 输入时联动按钮启用状态。`trailingIcon` 点击切换 PasswordVisualTransformation ↔ None。`imeAction=Done` 触发登录。 | `keyboardType=Password`, `imeAction=Done` → 收起键盘+触发登录 |
-| 登录按钮 | **enable 条件**: `isEmailValid AND password.isNotEmpty() AND !isLoading`。点击 → 键盘收起 → loading 态(按钮内 CircularProgressIndicator + "登录中...") → 按钮 disabled。成功 → navigate HomeScreen。失败 → AnimatedVisibility 显示错误 + 按钮恢复 enabled。 | 点击时 `focusManager.clearFocus()` + `keyboardController?.hide()` |
-| 错误提示 | 内联显示在按钮上方。服务端错误/网络错误均在此区域。下次输入任意字段时自动清除。超时 10s 自动消失。 | 无焦点影响 |
-| 返回键 | `BackHandler` 拦截 → `activity.finish()` 退出应用（不返回 Splash）。 | — |
+### §9.4 组件选型
 
-### 9.4 状态覆盖
+| 组件 | 选型 | 原因 |
+|------|------|------|
+| 版本号文本 | `Text` (Compose) | 与项目技术栈一致 |
+| 版本号容器 | 直接置于 `Box`（启动页根容器）中，不包裹额外容器 | 保持透明叠加，最小侵入 |
+| 版本号格式化 | **复用** `formatVersionTag()`（调试版本号） + `formatVersionDescription()`（无障碍描述） | P0-3/P1-4：避免重复造轮子，对齐现有 ADR |
+| 颜色 Token | **[待决策]** 新增语义 Token `splashVersionColor` 或直接使用方案选定色值 | P1-3：避免硬编码，纳入 Theme 统一管理 |
 
-| 状态 | 触发条件 | UI 表现 | 测试标识 |
-|------|----------|---------|----------|
-| **默认 (Idle)** | 页面首次加载 | 邮箱/密码为空，按钮 disabled，无错误文字 | `testTag="login_screen_idle"` |
-| **输入中 (Editing)** | 用户输入邮箱/密码 | 按钮联动启用/禁用。邮箱格式错误时输入框变 error 态 | `testTag="login_screen_editing"` |
-| **加载中 (Loading)** | 点击登录按钮 → API 请求进行中 | 按钮 disabled + 显示 `CircularProgressIndicator`(20dp) + "登录中..."；输入框 disabled | `testTag="login_screen_loading"` |
-| **成功 (Success)** | API 返回 200 | 短暂展示成功态（可选）→ navigate HomeScreen | `testTag="login_screen_success"` |
-| **错误 (Error)** | API 返回 401/403/429 或网络异常 | 按钮恢复 enabled；按钮上方显示错误 Card/text；输入框 enabled | `testTag="login_screen_error"` |
-| **空状态 (Empty)** | 用户清空所有输入 | 按钮 disabled，格式错误清除，服务端错误清除 | `testTag="login_screen_empty"` |
-| **网络超时 (Timeout)** | 请求 > 10s 无响应 | 显示 "网络请求超时，请重试"；按钮恢复 enabled | `testTag="login_screen_timeout"` |
-| **深色模式** | 系统 dark theme 激活 | 所有颜色通过 M3 Token 自动适配 | — |
-| **横屏** | 设备旋转 landscape | `verticalScroll` 确保内容可滚动到按钮 | — |
+### §9.5 设计约束
 
-### 9.5 组件选型（含推荐 M3 组件）
+| # | 约束 | 说明 |
+|---|------|------|
+| C-1 | 不改变现有 logo/动画 | logo scaleIn(0.3→1, 600ms) + fadeIn(600ms) 保持原样 |
+| C-2 | 版本号始终可见 | 不随 FadeOut 消失，独立于 AnimatedVisibility |
+| C-3 | 对比度达标 | 文字与背景对比度 ≥ 4.5:1（WCAG AA）（P0-1 待方案选型） |
+| C-4 | System bars 适配 | `windowInsetsPadding(WindowInsets.navigationBars)` + 底部 32dp（P1-2） |
+| C-5 | 无障碍覆盖 | contentDescription 格式与可见文本一致（ADR-2026-002）（P0-3） |
+| C-6 | Release 构建行为 | **[待决策]** 方案A: 显示 `v{name}` / 方案B: 不显示（P0-4） |
+| C-7 | 刘海屏安全区 | 底部显示风险低，但建议标注 `displayCutout` 约束（P1-5） |
+| C-8 | 横屏兼容 | 底部居中 + 32dp，不做特殊布局（P1-6） |
+| C-9 | 性能 | 启动时间增量 < 5ms（PRD §5），纯 Text 渲染无额外开销 |
 
-| UI 元素 | 推荐 M3 组件 | 备选 | 选择理由 |
-|----------|-------------|------|----------|
-| 邮箱/密码输入框 | `OutlinedTextField` | `TextField`(filled) | M3 默认输入框风格，项目现有组件一致 |
-| 输入框错误态 | `OutlinedTextField(isError=true, supportingText={...})` | 独立 `Text` | M3 原生错误态内置红色边框+错误文字，语义化更好 |
-| 登录按钮 | `Button` (filled) | `FilledTonalButton` | 登录为页面核心 CTA，filled 层级最高 |
-| 加载指示器 | `CircularProgressIndicator`(indeterminate, size=20dp) | `LinearProgressIndicator` | 按钮内小尺寸转圈，标准模式 |
-| 密码显隐图标 | `IconButton` + `Icons.Filled.Visibility`/`VisibilityOff` | `IconToggleButton` | 标准做法，48dp 触控目标 |
-| 错误/成功通知 | 内联 `Text`(error color) + `AnimatedVisibility` | `Snackbar` | 内联不遮挡输入框，视觉归属明确。Snackbar 仅用于全局操作反馈 |
-| 键盘避让 | `Modifier.imePadding()` | `WindowInsets.ime` 手动处理 | Compose 官方 API，简洁可靠 |
-| 横屏滚动 | `Modifier.verticalScroll(rememberScrollState())` | — | 防止小屏横屏内容截断 |
-| 页面容器 | `Scaffold`（仅用 padding）或 `Box`+`fillMaxSize` | — | 无 AppBar/BottomBar 时 `Box` 更轻量 |
-
-### 9.6 设计约束
-
-#### 品牌色 / 色彩 Token
-
-| Token | Light 值 | Dark 值 | 用途 |
-|-------|----------|---------|------|
-| `primary` | `#1A73E8` | `#8AB4F8` | 按钮背景、图标、链接 |
-| `onPrimary` | `#FFFFFF` | `#003A75` | 按钮文字、loading 指示器 |
-| `primaryContainer` | `#D3E3FD` | `#004A77` | 输入框焦点背景（可选） |
-| `onPrimaryContainer` | `#001D36` | `#D3E3FD` | — |
-| `error` | `#B3261E` | `#F2B8B5` | 输入框错误边框、错误文字 |
-| `errorContainer` | `#F9DEDC` | `#8C1D18` | 错误提示卡片背景 |
-| `onErrorContainer` | `#410E0B` | `#F9DEDC` | 错误卡片文字 |
-| `surface` | `#FEFBFF` | `#1C1B1F` | 页面背景 |
-| `onSurface` | `#1C1B1F` | `#E6E1E5` | 标题文字 |
-| `onSurfaceVariant` | `#49454F` | `#CAC4D0` | 副标题、placeholder |
-
-> **来源:** M3 默认 ColorScheme 基础 + `primary` 品牌色 `#1A73E8`（与现有 SplashScreen 背景一致）。建议在 `Theme.kt` 中通过 `lightColorScheme()` / `darkColorScheme()` 显式定义。
-
-#### 字体层级
-
-| 角色 | M3 Token | Size | Weight | LetterSpacing |
-|------|----------|------|--------|---------------|
-| 页面标题 | `headlineMedium` | 24sp | Bold (700) | 0 |
-| 副标题/提示 | `bodyMedium` | 14sp | Regular (400) | 0.25sp |
-| 输入框文字 | `bodyLarge` | 16sp | Regular (400) | 0.5sp |
-| 输入框标签 | `bodySmall` → `labelSmall` (折叠后) | 12sp | Regular | 0.5sp |
-| 按钮文字 | `labelLarge` | 16sp | Medium (500) | 0.1sp |
-| 错误提示 | `bodySmall` | 14sp | Regular | 0.25sp |
-| 测试账号提示 | `labelSmall` | 11sp | Regular | 0.5sp |
-| 输入框 placeholder | `bodyLarge` | 16sp | Regular, alpha 0.6 | 0.5sp |
-
-#### 间距网格（8dp 基础）
+### §9.6 布局层级图（修订后）
 
 ```
-基准: 1x = 8dp
-┌──────────┬──────┬───────────────────────────────┐
-│ Token    │ 值   │ 用途                          │
-├──────────┼──────┼───────────────────────────────┤
-│ spacing0 │  0dp │ 内联错误紧贴输入框             │
-│ spacing1 │  8dp │ 标题↔副标题，按钮内图标↔文字  │
-│ spacing2 │ 16dp │ 标题↔图标，输入框之间，边距    │
-│ spacing3 │ 24dp │ 水平 padding，错误↔按钮        │
-│ spacing4 │ 32dp │ 副标题↔邮箱输入框              │
-│ spacing5 │ 40dp │ (预留) 大段间距                │
-├──────────┼──────┼───────────────────────────────┤
-│ iconSize │ 64dp │ 应用图标                       │
-│ fieldH   │ 56dp │ OutlinedTextField 高度         │
-│ btnH     │ 48dp │ Button 高度                    │
-│ btnR     │ 24dp │ Button 圆角半径 (pill)         │
-│ touchTgt │ 48dp │ IconButton 最小触摸目标         │
-│ spnrSize │ 20dp │ CircularProgressIndicator      │
-└──────────┴──────┴───────────────────────────────┘
+AppWithAnimatedSplash
+└── Box(fillMaxSize)                                    // 根容器
+    ├── AnimatedVisibility(visible=!showSplash)         // 主内容（延迟显示）
+    │   └── NewsAppNavHost()
+    ├── AnimatedVisibility(visible=showSplash,          // Splash 动画容器
+    │       exit=fadeOut(500ms))
+    │   └── AnimatedSplashContent(onFinished)           // logo 动画（不变）
+    │       ├── Text("📰", 72sp)                        // scaleIn + fadeIn 600ms
+    │       ├── Text("新闻", 28sp, Bold, White)
+    │       └── Text("热点资讯 一键掌握", 14sp, 半透白)
+    └── Text(versionText,                               // ★ 新增：版本号
+             Modifier.align(BottomCenter)
+               .windowInsetsPadding(navigationBars)
+               .padding(bottom=32dp),
+             fontSize=12sp,
+             color=[待决策],
+             semantics { contentDescription = ... })
 ```
 
 ## §10 验收测试用例
 
 > **产出方:** QA Agent（PRD 评审阶段并行产出）
+> **评审日期:** 2026-06-08
 > **格式:** Gherkin（Given/When/Then）
-> **用途:** 编码阶段直接执行红绿循环
-> **修订:** v1.0-qa-review — 新增超时/403/429/状态枚举覆盖
+> **基础:** PRD §2 用户场景 + §4 验收标准 + 前三方评审 P0 发现
+> **决议引用:** D-21 (Release 去 buildType 后缀), D-22 (contentDescription 与可见文本一致), D-23 (示例格式 v1.0(1)/v1.0(1)debug)
 
-### 场景组 A：登录核心流程（P0）
-
-```gherkin
-Scenario: TC-01 成功登录 — 完整闭环
-  Given 用户在登录页面，登录状态为 Idle
-  And   邮箱输入框和密码输入框均为空
-  And   登录按钮处于 disabled 状态
-  When  用户输入有效邮箱 "user@example.com"
-  And   邮箱格式校验通过，输入框无 error 态
-  And   用户输入非空密码 "password123"
-  And   登录按钮变为 enabled 状态（邮箱正确 AND 密码非空）
-  When  用户点击登录按钮
-  Then  登录按钮立即变为 disabled，显示 CircularProgressIndicator(20dp) 和文字 "登录中..."
-  And   邮箱输入框和密码输入框变为 disabled
-  And   服务端返回 HTTP 200 { token, user }
-  Then  登录状态切换为 Success
-  And   导航到 HomeScreen（不经过 Splash）
-
-Scenario: TC-02 邮箱格式实时校验 — 输入中校验
-  Given 用户在登录页面，登录状态为 Idle
-  When  用户在邮箱输入框输入 "invalid-email"
-  Then  每输入一个字符，实时校验 RFC 5322 格式
-  And   输入框变为 isError=true，supportingText 显示 "请输入有效的邮箱地址"
-  And   登录按钮保持 disabled（不满足"邮箱格式正确"条件）
-  When  用户将邮箱修改为 "user@example.com"
-  Then  邮箱输入框 error 态清除，supportingText 消失
-  And   若密码非空，登录按钮变为 enabled
-
-Scenario: TC-03 按钮联动 — 正向启用条件
-  Given 用户在登录页面，登录状态为 Idle
-  And   邮箱输入框为空，密码输入框为空
-  And   登录按钮为 disabled
-  When  用户输入有效邮箱 "user@example.com"
-  Then  登录按钮仍为 disabled（密码为空）
-  When  用户输入非空密码 "123456"
-  Then  登录按钮变为 enabled（邮箱有效 AND 密码非空）
-  When  用户清空密码
-  Then  登录按钮恢复 disabled
-  When  用户重新输入密码 "123456"
-  And   用户将邮箱改为 "bad-email"
-  Then  邮箱输入框显示格式错误
-  And   登录按钮恢复 disabled
-
-Scenario: TC-04 登录失败 — 401 凭据错误
-  Given 用户在登录页面
-  And   用户已输入有效邮箱 "wrong@example.com" 和非空密码 "wrongpwd"
-  When  用户点击登录按钮
-  Then  按钮进入 Loading 态（disabled + CircularProgressIndicator）
-  And   服务端返回 HTTP 401 { code: 401, message: "邮箱或密码错误" }
-  Then  登录状态切换为 Error
-  And   按钮上方显示内联错误 Card：文字 "邮箱或密码错误"，errorContainer 背景色
-  And   登录按钮恢复 enabled（退出 Loading 态）
-  And   邮箱和密码输入框恢复 enabled
-  When  用户开始修改邮箱或密码输入
-  Then  错误提示自动清除（AnimatedVisibility fadeOut）
-
-Scenario: TC-05 网络超时
-  Given 用户在登录页面
-  And   用户已输入有效邮箱 "user@example.com" 和非空密码 "password123"
-  When  用户点击登录按钮
-  And   服务端 10 秒内无任何响应（OkHttp timeout 触发 SocketTimeoutException）
-  Then  登录状态切换为 Error
-  And   按钮上方显示内联错误 Card：文字 "网络请求超时，请重试"
-  And   登录按钮恢复 enabled
-  And   邮箱和密码输入框恢复 enabled
-  And   用户可重新点击登录按钮发起重试
-```
-
-### 场景组 B：错误码与边界场景（P1）
+### §10.1 场景组：正常流程 — Debug/Release 双构建
 
 ```gherkin
-Scenario: TC-06 登录失败 — 403 账户锁定
-  Given 用户在登录页面
-  And   用户已输入有效邮箱 "locked@example.com" 和非空密码
-  When  用户点击登录按钮
-  And   服务端返回 HTTP 403 { code: 403, message: "账户已被锁定，请联系管理员" }
-  Then  按钮上方显示内联错误 Card：文字 "账户已被锁定，请联系管理员"
-  And   登录按钮恢复 enabled（用户可尝试其他账号）
-  And   输入框恢复 enabled
-
-Scenario: TC-07 登录失败 — 429 限流
-  Given 用户在登录页面
-  And   用户已输入有效邮箱和非空密码
-  When  用户点击登录按钮
-  And   服务端返回 HTTP 429 { code: 429, message: "操作过于频繁，请稍后再试" }
-  Then  按钮上方显示内联错误 Card：文字 "操作过于频繁，请稍后再试"
-  And   登录按钮恢复 disabled 并保持 disabled 至少 30 秒（防暴力破解）
-  And   30 秒后登录按钮自动恢复 enabled
-
-Scenario: TC-08 状态枚举全流转验证
-  Given 用户在登录页面，初始状态为 Idle（邮箱空/密码空/按钮 disabled/无错误）
-  When  用户输入有效邮箱和非空密码
-  Then  状态进入 Editing（按钮 enabled/无 error 态）
-  When  用户点击登录按钮
-  Then  状态进入 Loading（按钮 disabled+转圈/输入框 disabled/无错误）
-  And   服务端返回 HTTP 200
-  Then  状态进入 Success（isLoggedIn=true）并导航
-  # 第二个子流程：Error → Editing
-  Given 用户在登录页面，刚收到 401 错误
-  Then  状态为 Error（错误 Card 可见/按钮 enabled/输入框 enabled）
-  When  用户在邮箱输入框输入一个新字符
-  Then  状态回到 Editing（错误 Card 消失/按钮联动校验）
+Scenario: TC-01 Debug 构建启动页显示完整版本号
+  Given 应用以 Debug 变体构建，versionName="1.0"，versionCode=1
+  When 用户冷启动应用
+  Then 启动页底部居中显示文本 "v1.0(1)debug"
+  And 版本号字体大小为 12sp，文本单行不换行
+  And 版本号位于 AnimatedVisibility splash 容器外部，不参与 logo scaleIn/fadeIn 动画
 ```
-
-### 场景组 C：交互细节（P1）
 
 ```gherkin
-Scenario: TC-09 密码显隐切换
-  Given 用户在登录页面
-  And   密码框内容为 "mypassword"，当前为密文显示（圆点）
-  When  用户点击密码输入框 trailingIcon（VisibilityOff 图标）
-  Then  密码以明文 "mypassword" 显示
-  And   trailingIcon 变为 Visibility 图标，contentDescription="隐藏密码"
-  When  用户再次点击 trailingIcon
-  Then  密码恢复密文显示
-  And   trailingIcon 恢复 VisibilityOff 图标，contentDescription="显示密码"
-
-Scenario: TC-10 返回键退出应用
-  Given 用户在登录页面
-  When  用户按下系统返回键
-  Then  BackHandler 拦截事件
-  And   调用 Activity.finish()
-  Then  应用退出到系统桌面，不返回 SplashScreen 或其他页面
+Scenario: TC-02 Release 构建启动页显示简化版本号
+  Given 应用以 Release 变体构建，versionName="1.0"
+  When 用户冷启动应用
+  Then 启动页底部居中显示文本 "v1.0"（仅 versionName，无 versionCode 和 buildType 后缀）
+  And 显示格式符合 D-21 决议：formatVersionTag(buildType="") 调用
+  And 版本号在整个启动页生命周期中持续可见
 ```
 
-### 场景覆盖矩阵
+### §10.2 场景组：动画生命周期 — 边界行为
 
-| 场景编号 | 场景标题 | 覆盖的 AC | §11.3 状态覆盖 | API 错误码覆盖 | 优先级 |
-|----------|----------|:---------:|:-------------:|:-------------:|:------:|
-| TC-01 | 成功登录 — 完整闭环 | AC-03, AC-04, AC-06 | Idle→Editing→Loading→Success | 200 | **P0** |
-| TC-02 | 邮箱格式实时校验 | AC-01, AC-03 | Idle→Editing | — | **P0** |
-| TC-03 | 按钮联动 — 正向启用条件 | AC-02, AC-03 | Idle↔Editing | — | **P0** |
-| TC-04 | 登录失败 — 401 凭据错误 | AC-05, AC-06 | Editing→Loading→Error→Editing | 401 | **P0** |
-| TC-05 | 网络超时 | AC-05, AC-06 | Editing→Loading→Error | SocketTimeoutException | **P0** |
-| TC-06 | 登录失败 — 403 账户锁定 | AC-05 | Editing→Loading→Error | 403 | P1 |
-| TC-07 | 登录失败 — 429 限流 | AC-05 | Editing→Loading→Error | 429 | P1 |
-| TC-08 | 状态枚举全流转验证 | AC-03, AC-04, AC-05, AC-06 | Idle/Editing/Loading/Success/Error 全覆盖 | — | P1 |
-| TC-09 | 密码显隐切换 | AC-07 | — | — | P1 |
-| TC-10 | 返回键退出应用 | AC-08 | — | — | P1 |
+```gherkin
+Scenario: TC-03 版本号不随启动页淡出消失
+  Given 应用已启动，启动页完全可见（showSplash=true）
+  And 版本号文本在 Box 根容器中，独立于 AnimatedVisibility(exit=fadeOut(500ms))
+  When 启动页开始退出过渡（showSplash 设为 false，触发 fadeOut(500ms)）
+  Then 版本号文本在整个 fadeOut 动画期间始终完全可见
+  And 版本号不参与淡出动画（opacity 保持 1.0）
+  And 启动页完全消失后，版本号随 Box 容器移除而正常消失
+```
 
-> **AC 覆盖汇总:** AC-01 ✅ | AC-02 ✅ | AC-03 ✅ | AC-04 ✅ | AC-05 ✅ | AC-06 ✅ | AC-07 ✅ | AC-08 ✅ — 8/8 全覆盖
-> **§11.3 状态枚举全覆盖:** Idle ✅ | Editing ✅ | Loading ✅ | Success ✅ | Error ✅ — 5/5 全覆盖
-> **§11.1 错误码覆盖:** 401 ✅ | 403 ✅ | 429 ✅ — 3/3 全覆盖
-> **网络异常覆盖:** SocketTimeoutException ✅
+### §10.3 场景组：视觉质量 — 对比度与无障碍
+
+```gherkin
+Scenario: TC-04 版本号文字与蓝色背景对比度达标
+  Given 启动页背景色为 #1A73E8（硬编码蓝色）
+  And 版本号文字颜色为非半透明白的方案色（不含 alpha 通道降低对比度）
+  When 版本号文本渲染到屏幕上
+  Then 文字与 #1A73E8 背景的相对亮度对比度 ≥ 4.5:1（WCAG 2.1 AA 标准）
+  And 使用 APCA 或 WCAG 对比度计算工具验证（非目测）
+```
+
+```gherkin
+Scenario: TC-05 TalkBack 朗读正确的无障碍描述
+  Given 设备已启用 TalkBack（或等效屏幕阅读器）
+  And 启动页当前可见
+  When 用户将无障碍焦点移动到版本号文本区域
+  Then 屏幕阅读器朗读内容为 "应用版本号 v{versionName}"（如 "应用版本号 v1.0"）
+  And 朗读内容与 D-22 决议一致：contentDescription 与可见文本保持对应
+  And semantics 节点包含 contentDescription 属性（非空）
+```
+
+### §10.4 场景组：非功能性 — 性能边界
+
+```gherkin
+Scenario: TC-06 版本号显示不增加启动延迟
+  Given 同一设备上构建两个 APK：含版本号显示 vs 不含版本号显示（基线）
+  When 对两个 APK 分别执行 5 次冷启动并测量 splash 完全可见时间
+  Then 含版本号版本的平均启动增量 < 5ms
+  And 无因版本号 Text Composable 导致的额外帧丢失（jank）
+```
+
+### §10.5 测试用例矩阵
+
+| 场景编号 | 场景标题 | 覆盖的 AC | 优先级 | 类型 |
+|----------|----------|:---------:|:------:|:----:|
+| TC-01 | Debug 构建启动页显示完整版本号 | AC-01, AC-02 | **P0** | 正常流程 |
+| TC-02 | Release 构建启动页显示简化版本号 | AC-01, AC-02 | **P0** | 正常流程 |
+| TC-03 | 版本号不随启动页淡出消失 | AC-01 | **P0** | 边界行为 |
+| TC-04 | 版本号文字与蓝色背景对比度达标 | AC-03 | **P0** | 边界-视觉 |
+| TC-05 | TalkBack 朗读正确的无障碍描述 | AC-01 | **P1** | 边界-无障碍 |
+| TC-06 | 版本号显示不增加启动延迟 | AC-04 | **P1** | 非功能性 |
+
+### §10.6 覆盖率分析
+
+| AC 编号 | 验收项 | 覆盖用例 | 覆盖状态 |
+|---------|--------|----------|:--------:|
+| AC-01 | 启动时显示版本号 | TC-01, TC-02, TC-03, TC-05 | ✅ 全覆盖 |
+| AC-02 | 版本号来源正确（与 versionName 一致） | TC-01, TC-02 | ✅ 覆盖 |
+| AC-03 | 视觉适配（深浅背景清晰可读） | TC-04 | ⚠️ 仅覆盖固定蓝色背景，深色模式场景见备注 |
+| AC-04 | 无性能影响 | TC-06 | ✅ 覆盖 |
+
+> **备注:** AC-03 当前仅覆盖固定蓝色背景 #1A73E8。若未来启动页支持深色模式主题换肤，需新增 TC-07 验证深色背景（如 #0D47A1）下的对比度。鉴于当前代码库 AnimatedSplashContent 硬编码蓝色背景且无深色模式分支，单场景覆盖充分。
+
+### §10.7 已知测试债务（未纳入当前用例）
+
+| # | 场景 | 原因 | 建议 |
+|---|------|------|------|
+| SKIP-01 | 超长版本号截断（如 v10.20.30-beta.1-rc2(9999)debug） | versionName 目前为 "1.0" 两段，超长场景概率极低 | P2，待实际 versionName 进入多段预发布后补充 |
+| SKIP-02 | BuildConfig 不可用降级 | BuildConfig 为编译期生成，运行时不可用的概率≈0 | 不做测试 |
+| SKIP-03 | 横屏布局验证 | D-25 决议 P1 项延后处理 | 后续迭代补充 |
+| SKIP-04 | System bars 安全区适配（导航栏遮挡） | D-25 决议延后，且 TC-03 验证了 Box 根容器布局 | 后续迭代配合 navigationBars inset 测试 |
+| SKIP-05 | 深色模式启动页对比度 | 当前硬编码 #1A73E8，无深色主题入口 | 主题化改造时新增 TC-07 |
 
 ---
 
@@ -418,389 +255,265 @@ Scenario: TC-10 返回键退出应用
 
 > **产出方:** 技术 Agent（PRD 评审阶段产出）
 > **格式:** JSON Schema
-> **用途:** 编码前门控验证 + 编码 prompt 注入
 
-### 11.1 API 接口定义
+### 11.1 版本信息模型
 
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "LoginRequest",
+  "title": "AppVersionInfo",
   "type": "object",
-  "required": ["email", "password"],
+  "required": ["versionName", "versionCode"],
   "properties": {
-    "email": {
+    "versionName": {
       "type": "string",
-      "format": "email",
-      "maxLength": 254
+      "pattern": "^v?\\d+\\.\\d+\\.\\d+(-[a-zA-Z0-9]+)?$",
+      "description": "语义化版本号，如 1.0.0 或 2.0.0-beta"
     },
-    "password": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 128
-    }
-  }
-}
-```
-
-```json
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "LoginResponse",
-  "type": "object",
-  "required": ["token", "user"],
-  "properties": {
-    "token": {
-      "type": "string",
-      "description": "JWT access token"
-    },
-    "user": {
-      "type": "object",
-      "required": ["id", "email", "displayName"],
-      "properties": {
-        "id": { "type": "string" },
-        "email": { "type": "string", "format": "email" },
-        "displayName": { "type": "string" }
-      }
-    }
-  }
-}
-```
-
-```json
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "LoginErrorResponse",
-  "type": "object",
-  "required": ["code", "message"],
-  "properties": {
-    "code": {
+    "versionCode": {
       "type": "integer",
-      "enum": [401, 403, 429]
-    },
-    "message": {
-      "type": "string",
-      "description": "Human-readable error message"
+      "minimum": 1,
+      "description": "内部构建号"
     }
   }
 }
 ```
 
-### 11.2 数据模型
-
-| 字段 | 类型 | 必填 | 约束 | 说明 |
-|------|------|:---:|------|------|
-| email | String | ✅ | RFC 5322 格式, max 254 | 用户邮箱 |
-| password | String | ✅ | 1-128 字符 | 用户密码 |
-| token | String | ✅ | JWT 格式 | 认证令牌 |
-| user.id | String | ✅ | 非空 | 用户唯一 ID |
-| user.email | String | ✅ | 邮箱格式 | 用户邮箱 |
-| user.displayName | String | ✅ | 非空 | 用户展示名称 |
-| error.code | Int | ✅ | 401/403/429 | 错误码 |
-| error.message | String | ✅ | 非空 | 错误文案 |
-
-### 11.3 状态枚举
+### 11.2 状态枚举
 
 | 状态 | 值 | 说明 |
 |------|-----|------|
-| Idle | idle | 初始状态，用户可输入 |
-| Loading | loading | 登录请求进行中 |
-| Success | success | 登录成功，待导航 |
-| Error | error | 登录失败，展示错误信息 |
+| 启动页可见 | VISIBLE | 版本号文本渲染并可见 |
+| 启动页消失 | GONE | 进入主界面后版本号随启动页消失 |
 
 ---
 
 ## §12 多视角评审记录
 
-> 评审日期: 2026-06-07
+> 评审日期: 2026-06-08
 > 评审方式: 4-Agent 并行评审（产品视角 / 技术视角 / UX 视角 / QA 视角）
 
 ### 12.1 评审总览
 
 | 视角 | 评分 | P0 项 | P1 项 | 结论 |
 |------|------|-------|-------|------|
-| 产品视角 | 6 | 3 | 3 | ⚠️ 需修订 |
-| 技术视角 | 7 | 8 | 8 | ⚠️ 需修订 |
-| UX 视角 | 5 | 6 | 5 | ⚠️ 需修订 |
-| QA 视角 | 5 | 5 | 3 | ⚠️ 需修订 |
+| 产品视角 | 6/10 | 4 | 6 | P0:Debug/Release策略未定义、格式矛盾、与VersionTag关系未定义、背景非固定 |
+| 技术视角 | 6/10 | 4 | 5 | P0:!DEBUG门控冲突、决议D-21/D-23格式冲突、AnimatedVisibility生命周期、VersionTag位置迁移 |
+| UX 视角 | 5/10 | 4 | 6 | P0:对比度致命缺陷(1.64:1)、FadeOut冲突、缺contentDescription、Release行为未定义 |
+| **QA 视角** | **3/10** | **4** | **4** | **P0:AC-01格式矛盾(vX.Y.Z vs v1.0(1)debug)、AC-03无量化阈值、AC-04缺测量协议、Debug/Release未区分** |
 
 ### 12.2 产品视角评审
 
-#### 产品评分：**6 / 10**
+> **评审日期:** 2026-06-08 | **评审模型:** deepseek-v4-flash | **评分: 6/10**
 
-#### 评审意见
+#### 用户价值清晰度 — 中等偏低
 
-**亮点：**
-- §2 用户场景覆盖了核心登录闭环（成功、失败、校验、防重复提交），颗粒度合理
-- §3 范围边界清晰，明确列出包含/不包含，有利于控制首版 scope
-- §10 Gherkin 用例可直接驱动 TDD 红绿循环，验收标准已对齐
-- §11 数据契约完整，状态枚举（Idle/Loading/Success/Error）设计规范
+| 场景 | 评价 |
+|------|------|
+| US-01 普通用户 | ❌ **薄弱** — 普通用户几乎不在启动页停留1.2秒内主动阅读版本号，依赖应用商店更新机制 |
+| US-02 测试人员 | ✅ **强价值** — 测试包安装后在启动页0操作确认版本，痛点真实 |
+| US-03 开发者 | ⚠️ PRD中仍列出但DECISIONS.md已标记移除(D-24)；若保留则是内部工具场景而非产品功能 |
 
-**关键问题：**
+**结论：** 核心价值锚点是US-02（测试/QA效率），US-01作为"顺便可见"附加价值。
 
-1. **注册缺口 — 致命缺陷。** 登录页面是用户进入应用的第一个触点，但 PRD 明确不包含注册功能。如果这是一个新应用或者用户没有预分配账号，登录页面形同虚设。用户在登录页输入什么凭据？从哪里获得凭据？该问题不解决，整个模块无用户价值。
+#### P0 清单（阻塞实现）
 
-2. **Token 仅存内存 — 每次重启需重新登录。** §7 明确 Token 暂存内存、持久化由"后续模块负责"。这意味着用户每次冷启动都要重新输入邮箱密码，移动端高频使用场景下体验极差，留存率堪忧。Token 持久化应作为 P0 纳入登录模块职责，而非推给未定义的"后续模块"。
+| # | 遗漏场景 | 风险 |
+|---|---------|------|
+| **P0-1** | Debug/Release显示策略未定义 | 现有代码Release不显示；PRD暗示始终显示。不明确无法编码 |
+| **P0-2** | 版本号格式矛盾 | PRD写vX.Y.Z，数据契约§11含versionCode，已有代码含versionCode。AC-01无法验证 |
+| **P0-3** | 与现有VersionTag关系未定义 | 代码库已有VersionTag（主界面底部，仅Debug）。新建还是复用？两处是否共存？ |
+| **P0-4** | 启动页背景非固定 | 当前#1A73E8硬编码，AC-03要求"深浅背景均清晰可读"。若未来主题化，#80FFFFFF在白色背景上不可见 |
 
-3. **网络异常场景缺失。** §2/US 场景和 §10/测试用例均未覆盖超时、断网、服务不可用等异常状态。用户在网络不稳定环境下仅看到加载转圈无任何反馈，会导致困惑和放弃。
+#### P1 清单
 
-4. **错误码覆盖不完整。** §11 定义了 401/403/429 三种错误码，但 §2 场景和 §10 用例仅覆盖了 401（密码错误）。403（账户锁定）和 429（限流）的交互设计缺失，用户面对这些错误时无明确指引。
-
-5. **与 DECISIONS.md 决策冲突未充分论证。** 原决策明确否决邮箱+密码（理由：增加开发成本，试点阶段无必要），PRD 直接覆盖但未提供数据或场景分析支撑该变更。需补充：为什么邮箱+密码比手机号+验证码更适合当前阶段？用户调研或竞品分析依据是什么？
-
-#### 改进建议
-
-| # | 建议 | 优先级 | 说明 |
-|---|------|:------:|------|
-| S1 | 补充注册入口或明确账号来源 | **P0** | 可简化为：首版由管理员预分配账号/邀请链接，或增加最简注册页（邮箱+密码+确认密码） |
-| S2 | Token 持久化纳入首版 | **P0** | 使用 DataStore 加密存储 Token，应用启动时自动校验有效性，避免重复登录 |
-| S3 | 补充网络异常场景 | **P0** | US-06：网络超时→显示"网络连接失败，请重试"并允许重试 |
-| S4 | 补充 403/429 错误处理 | **P1** | 403→"账户已被锁定，请联系管理员"；429→"操作过于频繁，请稍后再试"并禁用按钮 N 秒 |
-| S5 | 决策冲突补充论证 | **P1** | 在 §1 增加决策变更说明：用户画像、竞品对标、团队讨论结论 |
-| S6 | 补充"忘记密码"入口占位 | **P1** | 不实现功能，但 UI 预留"忘记密码？"文字链接（点击 Toast 提示"功能开发中"），降低用户卡死焦虑 |
-
-#### 风险矩阵
-
-| 风险 | 影响 | 概率 | 等级 | 缓解 |
-|------|:--:|:--:|:--:|------|
-| 无注册/账号来源，登录功能无用户可用 | 高 | 高 | 🔴 严重 | 补充 admin 预分配账号方案或最简注册页 |
-| Token 不持久化，每次冷启动重登录致用户流失 | 高 | 高 | 🔴 严重 | DataStore 加密存 Token，启动自动验有效性 |
-| 与 DECISIONS.md 决策冲突致团队分歧 | 中 | 高 | 🟡 高 | §1 补充决策变更论证，团队评审确认 |
-| 后端 API 未就绪阻塞联调 | 高 | 中 | 🟡 高 | MockInterceptor 先行（已列在 §7，合理） |
-| 网络异常无反馈致用户困惑放弃 | 中 | 中 | 🟢 中 | 增加超时/断网场景和重试机制 |
-
-#### 结论
-
-PRD 在登录交互闭环、数据契约、验收用例方面质量扎实，但存在两个致命产品缺口：**用户无账号来源**和**Token 不持久化**。建议将 S1/S2/S3 列为 P0 修订项，补全后 PRD 可达 8/10 水平，进入编码阶段。当前状态（6/10）不建议直接编码，需先解决注册缺口和 Token 持久化方案。
+| # | 遗漏场景 | 建议 |
+|---|---------|------|
+| P1-1 | 版本号文本超长截断 | v2.0.0-beta.1-rc2(123)debug单行溢出行为未定义 |
+| P1-2 | IME软键盘遮挡 | D-25已标记P1后续迭代 |
+| P1-3 | TalkBack朗读内容 | formatVersionDescription()仅含versionName不含versionCode |
+| P1-4 | RTL语言布局 | 阿拉伯语等RTL下v1.0(1)显示方向 |
+| P1-5 | Landscape横屏适配 | 距底32dp在横屏下位置语义 |
+| P1-6 | 版本号读取失败降级 | BuildConfig不可用时显示什么？
 
 ### 12.3 技术视角评审
 
-#### 技术评分：**7 / 10**
+> **评审日期:** 2026-06-08 | **评审模型:** deepseek-v4-flash | **评分: 6/10**
 
-**扣分项：**
-- DECISIONS.md 明确否决过邮箱+密码（-1.5），PRD 虽声明覆盖但无详细论证
-- 现有代码是用户名+密码，与 PRD 邮箱+密码存在系统性字段重命名冲突（-1）
-- Token 存储方案完全延后，增加后续集成风险（-0.5）
+#### 技术可行性：✅ 可行，但有冲突需先解决
 
-**加分项：** MVVM+Compose 架构契合现有项目、范围边界清晰、Gherkin 测试用例完整、JSON Schema 已定义。
+**PRD vs 现状差异：**
 
-#### P0 阻塞项
+| 维度 | PRD 要求 | 现状代码 | 冲突级别 |
+|------|----------|----------|:------:|
+| 可见范围 | 所有构建（用户可见） | 仅 Debug（`if(!DEBUG) return`） | **P0** |
+| 格式 | `vX.Y.Z`（三段语义化） | `v1.0(1)debug`（含code+buildType） | **P0** |
+| 颜色 | `#80FFFFFF` 半透明白 | `onSurfaceVariant`（M3 Token） | P1 |
+| 位置 | 启动页底部居中 32dp | 主界面底部 8dp + navigationBars inset | **P0** |
+| 生命周期 | 启动页可见期间 | 主界面常驻 | **P0** |
+| `versionName` | 三段如 `1.0.0` | 当前为 `1.0`（两段） | P1 |
 
-| # | 问题 | 依据 |
+#### 架构影响
+
+| 组件 | 类型 | 影响范围 |
+|------|------|----------|
+| VersionTag.kt | **修改** | 移除 `!DEBUG` 门控；可能需要两个变体（splash版 vs 主界面版） |
+| formatVersionTag() | **修改** | Release 去掉 `buildType` 后缀（D-21）；格式对齐 PRD |
+| AnimatedSplashContent() | **修改** | Box 内底部追加 VersionTag 调用 |
+| MainActivity.kt | **修改** | @OptIn 标记（D-27）；VersionTag 位置避开 AnimatedVisibility |
+
+**UiState：不需要新增 ViewModel/UiState。** 版本号是编译期常量（BuildConfig），无异步/无状态变化。
+
+#### P0 清单（阻塞开发）
+
+| # | 事项 | 关联 |
 |---|------|------|
-| P0-1 | **DECISIONS.md 冲突未正式解决。** 原决策明确否决邮箱+密码（2026-05-31），PRD 仅加注释说要"重新评估"，但缺乏评估结论和更新条目 | DECISIONS.md L29-32 |
-| P0-2 | **LoginApi (Retrofit) 缺失。** 现有 AuthRepository 是硬编码 mock，不通过 Retrofit+OkHttp 调用后端 API，违反 §6 技术约束 | 现有 AuthRepository.kt |
-| P0-3 | **LoginResponse 数据模型不匹配。** 现有 `LoginResponse(token, username)` 只有2字段，PRD §11 要求 `LoginResponse(token, user{id, email, displayName})` 共4字段 | 现有 AuthModels.kt |
-| P0-4 | **邮箱格式校验缺失。** LoginViewModel 没有邮箱格式验证逻辑（AC-01），LoginScreen 使用 username 字段而非 email | LoginViewModel.kt |
-| P0-5 | **登录按钮启用条件错误。** 现有代码按钮仅判断 `!isLoading`，PRD 要求「邮箱格式正确 AND 密码非空」（AC-03） | LoginScreen.kt |
-| P0-6 | **返回键退出应用未实现（AC-08）。** LoginScreen 和 NavGraph 没有处理系统返回键退出到桌面的逻辑 | PRD §4 AC-08 |
-| P0-7 | **AuthRepository 缺少 HttpException 捕获。** DECISIONS.md D-42 决议要求捕获 HttpException + Exception，现有 mock 无异常处理 | DECISIONS.md D-42 |
-| P0-8 | **AuthRepository 缺少 withTimeout 超时保护。** DECISIONS.md D-56 要求所有 Repository 方法添加超时 | DECISIONS.md D-56 |
+| P0-1 | **移除 `if (!BuildConfig.DEBUG) return` 门控** — 版本号需在所有构建可见 | R1 |
+| P0-2 | **决议 D-21/D-23 与 PRD 格式冲突** — `v1.0(1)debug` vs `v1.0.0` | R3 |
+| P0-3 | **版本号放在 AnimatedVisibility 外部** — 确保不随 splash 动画消失 | R2 |
+| P0-4 | **VersionTag 位置从主界面底部迁移到 splash 底部** — PRD明确要求启动页底部 | R6 |
 
-#### P1 重要项
+#### P1 清单
 
-| # | 问题 | 依据 |
+| # | 事项 | 关联 |
 |---|------|------|
-| P1-1 | LoginStateManager 仍存 `username` 键，需改为 user 对象（email + displayName） | PRD §11.2 |
-| P1-2 | LoginViewModel 未使用 `collectLatest` 模式处理事件（D-55） | DECISIONS.md D-55 |
-| P1-3 | LoginViewModel 无 `onCleared()` 显式清理（D-58） | DECISIONS.md D-58 |
-| P1-4 | 缺少 LoginScreen 独立 preview test（D-61） | DECISIONS.md D-61 |
-| P1-5 | 密码显隐切换图标缺少 testTag（D-46） | DECISIONS.md D-46 |
-| P1-6 | AuthModule 手动 new AuthRepository()，应用 Hilt + Retrofit 注入代替 | 现有 AuthModule.kt |
-| P1-7 | Token 仅存内存 + DataStore 但无 session 过期/刷新策略 | PRD §7 |
-| P1-8 | `LoginUiState` 缺少显式状态枚举字段（Idle/Loading/Success/Error） | PRD §11.3 |
+| P1-1 | `versionName` 对齐三段语义化（`1.0` → `1.0.0`）或放宽数据契约 | R4 |
+| P1-2 | 确认颜色方案：`#80FFFFFF` vs `onSurfaceVariant`（#1A73E8 背景对比度） | R5 |
+| P1-3 | 补充 Compose UI 测试覆盖 splash 中版本号渲染 | — |
+| P1-4 | MainActivity.kt 添加 @OptIn 标注（D-27） | D-27 |
+| P1-5 | 已存在 VersionTagTest.kt 中 Release 断言需同步更新 | 测试回归 |
 
-#### 新增/重构组件清单
-
-| 组件 | 类型 | 当前状态 | PRD 要求 |
-|------|------|----------|----------|
-| `LoginApi` | Retrofit 接口 | **缺失** — 需新建 | `POST /api/auth/login` |
-| `AuthRepository` | Repository | **需重构** — 现有 mock 改 Retrofit 调用 + HttpException 处理 + withTimeout | 调用 LoginApi |
-| `LoginViewModel` | ViewModel | **需重构** — username→email，加邮箱校验，加按钮联动逻辑，加状态枚举 | StateFlow\<LoginUiState\> |
-| `LoginScreen` | Composable | **需重构** — username→email，OutlinedTextField 加 email keyboardType，按钮启用条件 | M3 OutlinedTextField |
-| `LoginUiState` | Data Class | **需重构** — username→email，增加显式 status 枚举字段 | 含 email/password/status/errorMessage |
-| `LoginEvent` | Sealed Class | **需新建** | EmailChanged/PasswordChanged/SubmitLogin/TogglePasswordVisibility |
-| `AuthModels` | Domain Model | **需重构** — LoginResponse 加 user{id,email,displayName} | PRD §11.1 |
-| `AuthModule` | Hilt DI | **需重构** — 改 Retrofit 注入 | 提供 LoginApi + AuthRepository |
-| `LoginStateManager` | DataStore | **需重构** — username→user 对象 | 存 token + user info |
-| `MockAuthInterceptor` | OkHttp Interceptor | **需新建** — 参考 MockNewsInterceptor 模式 | Mock 登录 API 响应 |
-| `NavGraph` | Navigation | **需修改** — 添加返回键退出处理 | AC-08 |
-
-#### 技术风险表
-
-| 风险 | 严重度 | 概率 | 缓解措施 |
-|------|:------:|:----:|----------|
-| DECISIONS.md 决策冲突未解决导致团队分歧 | 🔴 高 | 高 | §12.6 R-01 需产出正式决策：说明为何推翻手机号+验证码 |
-| 后端 API 契约未确认 | 🔴 高 | 中 | §11 Schema 先与后端对齐；MockAuthInterceptor 按 Schema 模拟 |
-| Token 持久化延后导致后续模块无法联调 | 🟡 中 | 高 | 明确 Token 内存+DataStore 接口已就绪，后续对接 refresh 逻辑 |
-| 字段重命名影响已有 DataStore key | 🟡 中 | 中 | DataStore key 无 schema 约束，直接改 key 名 |
-| LoginApi 与 NewsApiService 共用 OkHttpClient | 🟢 低 | 低 | Auth 请求发往自有后端，不带 NewsAPI Key 无影响 |
-
-#### 与 DECISIONS.md 既有决议对齐检查
-
-| 决议 | 登录模块状态 |
-|------|:-----------:|
-| D-40 Room LIKE 不用 FTS4 | N/A（登录不涉及 Room） |
-| D-42 捕获 HttpException | ❌ 缺失 |
-| D-46 testTag 标记 | ⚠️ 部分缺失 |
-| D-48 Timber 日志 | ✅ ViewModel 已使用 |
-| D-50 API Key Interceptor 注入 | N/A（Auth 用自有后端） |
-| D-55 collectLatest | ❌ 缺失 |
-| D-56 withTimeout | ❌ 缺失 |
-| D-58 onCleared 清理 | ❌ 缺失 |
-| D-61 preview test | ❌ 缺失 |
-| D-64 writeTimeout+callTimeout | ✅ NetworkModule 已配置 |
-
-#### 结论
-
-PRD 范围清晰、技术栈匹配，但现有代码（用户名+密码 mock）与 PRD（邮箱+密码 Retrofit）存在系统性偏差，8 项 P0 阻塞项需在编码前全部解决。最大风险是 DECISIONS.md 决策冲突未正式更新，建议优先产出对比评估与决策更新条目。
+#### 依赖选型：零新依赖引入，纯现有技术栈
 
 ### 12.4 UX 视角评审
 
-#### UX 评分：**5 / 10**
+> **评审日期:** 2026-06-08 | **评审对象:** PRD v0.1-draft §1-§9 + MainActivity.kt AnimatedSplashContent
+> **对照基准:** Material3 规范、WCAG 2.1 AA、Android 无障碍最佳实践、项目已有 VersionTag 组件
 
-#### 评审意见
+#### 综合评分: **5/10**
 
-**亮点：**
-- 交互闭环完整：默认→输入→校验→提交→loading→成功/失败，状态覆盖意识好
-- §9 原始稿已具备基础 UI 规格（组件选型、dp 值、交互描述）
-- §10 Gherkin 用例覆盖了密码显隐、防重复提交等细节交互
-- 横屏/键盘适配在 §9 约束中已有声明（imePadding + verticalScroll）
+| 维度 | 评分 | 说明 |
+|------|:----:|------|
+| 交互流程合理性 | 6/10 | 纯展示无交互，流程简单；但版本号与动画生命周期关系未定义 |
+| 边界情况覆盖 | 3/10 | 缺失：FadeOut 动画冲突、深浅模式对比度、Release 构建行为、刘海屏适配、横屏 |
+| M3 设计规范 | 4/10 | 未使用 M3 Token 体系；硬编码颜色与项目现有 VersionTag 组件不一致 |
+| 无障碍 | 3/10 | 无 contentDescription；对比度严重不达标（见 P0-1） |
+| 适配性 | 3/10 | 无 navigationBars/statusBars 适配；无 cutout 安全区；无横屏说明 |
 
-**关键问题：**
+#### P0 清单（阻塞编码）
 
-1. **M3 规范合规性严重不足。** 项目声称 Material3 但 PRD §9 未定义品牌色 hex 值、未指定字体 Token 层级、无间距网格标准。编码阶段无法产出统一的 Theme.kt，各 Composable 将使用硬编码值，导致视觉碎片化。原稿中「圆角 8dp」「错误提示 14sp」「按钮圆角 24dp」均为硬编码，未映射到 `RoundedCornerShape` / `MaterialTheme.typography` Token。
+| # | 严重度 | 问题 | 位置 | 改进建议 |
+|---|:------:|------|------|----------|
+| **P0-1** | **致命** | **对比度严重不达标** — `#80FFFFFF`（50%半透白）在 `#1A73E8` 蓝色背景上混合后对比度仅约 **1.64:1**，远低于 WCAG AA **4.5:1** 最低要求。PRD 自身 TC-02 也要求 ≥4.5:1，自相矛盾。即使纯白 `#FFFFFF` 在 `#1A73E8` 上也仅 **2.28:1**。 | §9 布局规格 + §10 TC-02 | 方案A（推荐）：改版本号文字为深色 `rgba(0,0,0,0.55)` → 混合色约 `#0A406F` → 对比度 **~4.85:1** ✓。方案B：版本号加半透明深色背景 pill `rgba(0,0,0,0.35)` + 白字 → 保证对比度。方案C：降低启动页背景亮度（改用更深蓝 `#0D47A1`）后再用白字。 |
+| **P0-2** | **致命** | **版本号随 FadeOut 消失** — PRD §9 约束要求"版本号必须始终可见（不随动画消失）"，但若将版本号放入 `AnimatedSplashContent` 内部，会被外层 `AnimatedVisibility(exit=fadeOut(500ms))` 一并淡出。 | §9 设计约束 + MainActivity.kt L92-99 | 版本号必须放在 `AnimatedVisibility` 外层的 `Box` 中，独立于 splash 动画容器。伪代码：`Box { AnimatedVisibility(splash) { AnimatedSplashContent } + VersionText(Modifier.align(BottomCenter)) }`。 |
+| **P0-3** | **高** | **缺少 contentDescription** — PRD §9 交互规格标注"无交互"，但 TalkBack 仍会扫描静态文本。无 `semantics { contentDescription }` 会导致无障碍用户听到原始版本号字符串（如 `v1.0(1)debug`），语义不完整。 | §9 交互规格 | 参考已有 `formatVersionDescription()` 函数，为版本号 Text 添加 `semantics { contentDescription = "应用版本号 v1.0" }`。 |
+| **P0-4** | **高** | **Release 构建行为未定义** — PRD 用户场景 US-01 明确"普通用户在启动页看到版本号"，但项目现有 VersionTag 组件（D-12 决议）在 Release 构建下完全不渲染（`if (!BuildConfig.DEBUG) return`）。PRD 未说明 Release 是否显示、显示格式是否与 Debug 一致。 | §2 US-01 + §3 范围边界 | 明确决策并写入 PRD：(a) Release 也显示，格式仅 `v1.0`（无 versionCode/buildType），或 (b) Release 不显示，用户场景改为仅限内部测试。推荐 (a)，因 ADR-2026-001 已决议 Release 去掉 buildType 后缀。 |
 
-2. **无障碍 (A11Y) 完全缺位。** 全文无 `contentDescription`、`semantics`、`testTag` 的 UX 层面规范。TalkBack 用户无法获知：按钮当前是"登录"还是"登录中..."，错误提示出现时是否被朗读，密码显隐切换的状态描述。WCAG 2.5.3 (Label in Name) 和 4.1.2 (Name, Role, Value) 均不满足。
+#### P1 清单（应修复，不阻塞）
 
-3. **错误展示方案内部矛盾。** §3(包含) 说「Snackbar/内联提示」，§9 组件选型推荐「Snackbar」但理由是"非阻断式"，而 §9 交互规格又说"按钮下方 Snackbar 或内联文字"。PRD 实际推荐 Snackbar，但 Snackbar 会遮挡底部输入框（键盘弹出时尤为严重），登录场景更合理的选择是内联错误提示（`supportingText` + `AnimatedVisibility`）。此矛盾必须在 §9 修订版中统一。
+| # | 严重度 | 问题 | 位置 | 改进建议 |
+|---|:------:|------|------|----------|
+| **P1-1** | 中 | **动画时间线未定义** — 版本号应与启动页背景同时出现（0ms），而非等待 logo scaleIn 动画 600ms 后才可见。当前 §9 未规定版本号的出现时机。 | §9 交互规格 | 明确：版本号在启动页呈现瞬间即显示，不受 logo 动画影响。实现上置于 `AnimatedVisibility` 外部。 |
+| **P1-2** | 中 | **System bars 安全区缺失** — 未声明 `windowInsetsPadding(WindowInsets.navigationBars)` 和 statusBars。Edge-to-Edge 模式下版本号可能被导航栏遮挡。 | §9 布局规格 | 添加 `Modifier.windowInsetsPadding(WindowInsets.navigationBars)`，底部间距在 32dp 基础上叠加 inset。参考已有 VersionTag 组件的 D-16 做法。 |
+| **P1-3** | 中 | **硬编码颜色与项目 Token 体系不一致** — 现有 VersionTag 组件使用 `MaterialTheme.colorScheme.onSurfaceVariant`（M3 Token），PRD §9 却用硬编码 `#80FFFFFF`。两套体系并存增加维护成本。 | §9 布局规格 + VersionTag.kt L53 | 如果需要半透明白色效果（蓝色启动页专用），建议定义为独立的语义 Token（如 `splashVersionColor`）并在 Theme 中统一管理，而非硬编码。 |
+| **P1-4** | 低 | **版本号格式不一致** — PRD §9 仅描述 "vX.Y.Z" 格式，但代码库 `formatVersionTag()` 产出格式为 `v{name}({code}){buildType}`（如 `v1.0(1)debug`）。PRD 应明确最终显示格式。 | §9 布局规格 | 对齐格式：Debug 构建 `v1.0(1)debug`，Release 构建 `v1.0`（根据 ADR-2026-001）。更新 §9 布局规格描述。 |
+| **P1-5** | 低 | **刘海屏/挖孔屏未适配** — 未声明 `displayCutout` 安全区。部分设备顶部状态栏区域可能遮盖版本号（若未来改为顶部显示）。当前底部居中风险较低，但建议标注。 | §9 设计约束 | 新增约束：版本号渲染区域避开 `WindowInsets.displayCutout`。 |
+| **P1-6** | 低 | **横屏布局未定义** — 横屏时底部 32dp 可能过近于物理边缘，12sp 字号在小屏横屏设备上需验证可读性。 | §9 设计约束 | 补充：横屏下保持底部居中 + 32dp，不做特殊处理（与竖屏一致）。编码后 640×360dp 横屏模拟器验证。 |
 
-4. **按钮启用逻辑缺失前端校验。** AC-03 要求「邮箱格式正确 AND 密码非空 → 启用」，但现有代码 `LoginScreen.kt` 中 `enabled = !uiState.isLoading`，未联动校验结果。UiState 缺少 `isEmailValid` 字段，validation 逻辑未前移到 `onEmailChanged`。
+#### 亮点
 
-5. **键盘类型与焦点管理未指定。** 邮箱输入框应使用 `KeyboardType.Email` + `imeAction=Next` 跳转密码框，密码框应 `imeAction=Done` 触发登录。PRD 原稿仅写"键盘收起"，未描述焦点链和键盘类型。
+1. **最小侵入设计** — 不修改现有 logo/动画，设计约束明确，降低回归风险。
+2. **纯展示无交互** — 简化交互复杂度，无需处理点击、焦点、手势等边界。
+3. **PRD 自身识别了部分风险** — 已知 Pitfalls 已标注"深浅模式可见性"和"contentDescription 缺失"，有自查意识。
+4. **VersionTag 组件可部分复用** — 项目已有成熟的版本号格式化函数（`formatVersionTag`/`formatVersionDescription`），避免重复造轮子。
 
-6. **边界状态覆盖缺失。** 缺失：网络超时 UI（请求 >10s 无响应，当前代码无 timeout 处理）、429 限流提示（§11 已定义错误码但无 UI 文案）、输入框最大字符数约束（email 254 / password 128 无截断反馈）、空状态与错误态的转换逻辑（清空输入是否清除服务端错误）。
+#### PRD §9 一致性检查
 
-#### P0 / P1 清单
+| 检查项 | PRD 要求 | 代码库现状 | 一致? |
+|--------|----------|-----------|:-----:|
+| 位置：底部居中 | ✅ 明确 | — | — |
+| 距底 32dp | ✅ 明确 | VersionTag 使用 8dp | ❌ 不一致 |
+| 字体 12sp | ✅ 明确 | VersionTag 使用 12sp | ✅ |
+| 颜色 #80FFFFFF | ✅ 硬编码 | VersionTag 使用 M3 Token | ❌ P0-1 + P1-3 |
+| 字重 400 | ✅ 明确 | VersionTag 未指定 | ⚠️ |
+| 背景透明 | ✅ 明确 | — | ✅ |
+| 无交互 | ✅ 明确 | — | ✅ |
+| 不改变动画 | ✅ 明确 | — | ⚠️ P0-2 |
+| 始终可见 | ✅ 明确 | — | ❌ P0-2 |
+| contentDescription | ❌ 缺失 | VersionTag 已实现 | ❌ P0-3 |
 
-| # | 问题 | 优先级 | 修订项 |
-|---|------|:------:|--------|
-| P0-1 | 品牌色 Token 未定义 | **P0** | §9.6 已补充 `primary=#1A73E8` 及完整 M3 ColorScheme Token 表 |
-| P0-2 | 字体层级未映射 M3 Token | **P0** | §9.6 已补充 headlineMedium/bodyMedium/labelLarge 等完整层级表 |
-| P0-3 | 间距未基于网格系统 | **P0** | §9.6 已定义 8dp 基准间距网格 Token（spacing0~spacing5） |
-| P0-4 | 无障碍完全缺位 | **P0** | §9.2/§9.3 已补齐 contentDescription；需编码阶段补充 semantics/announceForAccessibility |
-| P0-5 | 按钮启用逻辑缺失前端校验 | **P0** | LoginUiState 需新增 `isEmailValid`；`Button.enabled = isEmailValid && password.isNotEmpty() && !isLoading` |
-| P0-6 | 键盘类型未指定 | **P0** | §9.3 已明确 `KeyboardType.Email`(邮箱) / `KeyboardType.Password`(密码) + `imeAction` 焦点链 |
-| P1-1 | 错误展示方案内部矛盾 | **P1** | §9.5 已统一为内联 `Text` + `AnimatedVisibility`，放弃 Snackbar |
-| P1-2 | 网络超时 UI 未设计 | **P1** | §9.4 已新增 Timeout 状态：「网络请求超时，请重试」+ 按钮恢复 enabled |
-| P1-3 | 429 限流文案缺失 | **P1** | 需补充：「操作过于频繁，请稍后再试」 |
-| P1-4 | 输入框字符上限无 UI 反馈 | **P1** | `OutlinedTextField` 配置 `maxLength` 属性，超限截断提示 |
-| P1-5 | 暗色模式无显式验证 | **P1** | §9.6 已定义 Dark Token 值；编码后需截图对比双模式 |
+#### Pitfalls 对照
 
-#### UX 改进建议
+| Pitfall | 触发? | 说明 |
+|---------|:-----:|------|
+| 深浅模式可见性 | ✅ | P0-1：当前蓝色背景下白字对比度不足，深色模式下如果启动页背景不变则问题相同 |
+| FadeOut 中消失 | ✅ | P0-2：版本号置于动画容器内会随 fadeOut 消失 |
+| contentDescription 缺失 | ✅ | P0-3：无内容描述 |
 
-| # | 建议 | 说明 |
-|---|------|------|
-| S-UX1 | 输入框错误态使用 M3 原生 API | `OutlinedTextField(isError=true, supportingText={Text("请输入有效的邮箱地址")})`，自带红色边框+错误文字，无需额外 Text |
-| S-UX2 | 登录成功添加短暂成功态 | 按钮变绿 ✓ 图标 + "登录成功" 文字 300ms，然后导航。避免突兀跳转 |
-| S-UX3 | 按钮触发触觉反馈 | `performHapticFeedback(HapticFeedbackType.LongPress)` on click，增强操作确认感 |
-| S-UX4 | 错误信息朗读 | TalkBack 用户：`LiveRegion.Alert` 或 `announceForAccessibility("登录失败：邮箱或密码错误")` |
-| S-UX5 | 添加入场动画 | `AnimatedVisibility(enter=fadeIn+slideInVertically)` 页面首次加载时元素依次淡入，降低等待感 |
-| S-UX6 | 按钮最小宽度约束 | `Modifier.fillMaxWidth()` 之外加 `defaultMinSize(minWidth=240.dp)`，大屏横屏时按钮不过宽 |
-| S-UX7 | 密码框不自动填充建议 | 若后端无真正的密码数据库，关闭 `autofill` hint 避免 Android Autofill 弹窗干扰（开发阶段） |
-
-#### 结论
-
-PRD 在交互闭环、状态覆盖方面的意识值得肯定，但 M3 合规性严重不足——品牌色/字体/间距均未 Token 化，无障碍完全缺位，将直接导致编码阶段视觉碎片化和可用性缺陷。§9 已在本次评审中重写为结构化规格（含精确 dp 值、色彩 Token hex、字体层级表、8dp 间距网格、M3 组件选型理由、完整状态覆盖表），可作为阶段 3 AI 出图的直接输入。P0 六项需在编码前通过 DECISIONS.md 决议确认，P1 五项可在编码阶段渐进消化。
+> **结论:** 5/10 分，**不可进入编码**。需先修复 **4 项 P0**（对比度、FadeOut 冲突、contentDescription、Release 行为定义）。P0-1 为致命缺陷，PRD 自身的验收标准 TC-02 无法通过。建议优先解决对比度方案选型（A/B/C），联动更新 §9 颜色规格和 TC-02 验收标准。
 
 ### 12.5 QA 视角评审
 
-#### QA 评分：**5 / 10**
+> **评审日期:** 2026-06-08 | **评审模型:** deepseek-v4-flash | **评分: 3/10**
+> **评审基础:** PRD §2 用户场景 + §4 验收标准 + 前三方评审发现 + 代码库 VersionTag/MainActivity 源码
 
-#### 评审意见
+#### 综合评分: 3/10
 
-**亮点：**
-- §10 现有 Gherkin 用例覆盖了 7 个基础场景，结构清晰，Given/When/Then 可读性好
-- 场景覆盖矩阵将每个用例与 AC 编号一一映射，追溯性良好
-- 密码显隐切换(TC-05)、防重复提交(TC-06)、返回键(TC-08)等交互细节已纳入
+| 维度 | 评分 | 说明 |
+|------|:----:|------|
+| AC 可测试性 | 2/10 | AC-01 格式与代码格式矛盾（vX.Y.Z vs v1.0(1)debug）；AC-03 "清晰可读"无量化阈值；AC-04 缺测量协议 |
+| 测试覆盖完整性 | 1/10 | 原始 §10 仅 3 个朴素场景，无 Debug/Release 分支、无动画生命周期、无对比度量化 |
+| 格式/决议一致性 | 2/10 | PRD 写 vX.Y.Z 但 D-23 决议格式为 v1.0(1)/v1.0(1)debug；PRD 写 "半透明白" 但对比度致命 |
+| 边界/异常覆盖 | 2/10 | 缺：超长版本号截断、动画冲突、Release 行为、无障碍朗读 |
+| 测试数据可追溯性 | 4/10 | BuildConfig 提供稳定数据源，但格式映射关系在决议->代码->PRD 三处不一致 |
 
-**关键问题：**
+#### P0 清单 — 阻塞测试设计
 
-1. **网络超时场景完全缺失。** §9.4 明确定义了 Timeout 状态（请求>10s无响应 → 显示"网络请求超时，请重试"），但 §10 中无对应 Gherkin 用例。D-56 要求所有 Repository 方法添加 `withTimeout`，但无测试验证超时后 UI 状态是否正确恢复。
+| # | 问题 | 影响 | 决议引用 |
+|---|------|------|----------|
+| **P0-1** | **AC-01 格式定义与代码矛盾** — PRD 写 "vX.Y.Z"（三段语义化），代码 formatVersionTag() 产出 "v1.0(1)debug"（含 versionCode+buildType），D-23 决议格式为 "v1.0(1)/v1.0(1)debug"。测试无法对同一场景断言三种不同格式 | 所有验收测试的 Then 子句无法确定预期值 | D-23, §4 |
+| **P0-2** | **AC-03 无可量化阈值** — "深色/浅色背景均清晰可读" 为定性描述，无对比度数值、无测量方法、无判定标准。PRD 自身 TC-02 写了 ≥4.5:1 但 §4 未体现 | TC-04 无法编写精确断言 | UX P0-1 |
+| **P0-3** | **AC-04 缺测量协议** — "不增加启动页显示延迟" 无测量起点/终点定义（系统 splash 消失？Compose splash 首次渲染？logo 动画完成？），无测量工具指定，无样本量要求 | TC-06 无法执行 | §5 |
+| **P0-4** | **Debug/Release 行为未在 AC 中体现** — AC-01~AC-04 均未区分构建类型，但代码库 Release 完全不渲染 VersionTag。测试需两套预期但 AC 只定义了一套 | 无法判断 Release 构建是否通过验收 | 产品 P0-1, 技术 P0-1 |
 
-2. **403/429 错误码无测试覆盖。** §11 `LoginErrorResponse` 明确定义了 `enum: [401, 403, 429]` 三种错误码，但 §10 仅覆盖 401（TC-04 使用"邮箱或密码错误"）。403（账户锁定）和 429（限流）的错误文案和按钮恢复逻辑均未验证。
+#### P1 清单 — 应修复，不阻塞测试设计
 
-3. **状态枚举过渡未独立测试。** §11.3 定义 Idle → Loading → Success/Error 状态机，但现有测试未显式验证状态流转（如 Error 态下重新输入应回到 Editing，Idle 态按钮 disabled，Loading 态输入框 disabled）。
+| # | 问题 | 影响 | 建议 |
+|---|------|------|------|
+| **P1-1** | **现有 VersionTagTest.kt 断言与 PRD 目标冲突** — 测试 T2 断言 "Release 不渲染"，但 PRD 要求 Release 也显示。迁移后 7 个测试中有 4 个需修改 | 测试代码需同步重构 | 先冻结 PRD 格式决议，再批量更新测试 |
+| **P1-2** | **§9.3 交互规格标注 "无交互" 但缺 TalkBack 焦点行为验证** — 无交互 ≠ 无障碍不触及。静态 Text 仍会被 TalkBack 扫描 | TC-05 覆盖了此缺口 | — |
+| **P1-3** | **版本号颜色方案未定导致 TC-04 无法固化** — §9.2 标注 "[待决策] 方案A/B/C"，测试预期颜色值不确定 | 需方案选型后方可编写对比度计算的具体预期 | 联动 UX P0-1 决策 |
+| **P1-4** | **AC-02 "与 versionName 一致" 覆盖不充分** — 仅验证字符串相等，未覆盖 versionName 变更后重新构建的端到端流程 | TC-01/TC-02 已覆盖 | — |
 
-4. **AC-03 按钮联动条件测试不充分。** TC-02/TC-03 分别测试邮箱格式错误→禁用和密码为空→禁用，但缺少「邮箱正确+密码非空→按钮启用」的正向联动验证，以及「Loading 态下按钮禁用」与 AC-03 的交叉条件。现有 `LoginViewModelTest` 的 loading 测试实际验证的是 `assertFalse(isLoading)`（请求完成后），未在请求进行中捕获 `isLoading=true`。
+#### 亮点
 
-5. **AC-06 Loading 态测试断言错误。** 现有 TC-06「登录中防重复提交」测试与 TC-01 共用 `CircularProgressIndicator` 断言，但 `LoginViewModelTest.kt:134-147` 中 `login shows loading state during request` 的断言是 `assertFalse(state.isLoading)`——它在请求完成*后*才收集 state，从未真正验证过 `isLoading=true`。
+1. **BuildConfig 确定性数据源** — 版本号来自编译期常量，无异步/无网络依赖，测试数据可控性强
+2. **formatVersionTag/formatVersionDescription 纯函数可单元测试** — 已有 VersionTagTest.kt 覆盖格式化逻辑，TC-01/TC-02 可复用
+3. **§9.6 布局层级图明确** — Box/AnimatedVisibility/Text 三层结构清晰，TC-03 的 Given 子句可直接引用
+4. **D-21/D-22/D-23 决议提供了可追溯的格式预期** — 测试预期值可从决议而非猜测中推导
 
-6. **现有代码与 PRD 字段名不一致。** `LoginUiState` 使用 `username`，PRD 要求 `email`；`LoginViewModel` 暴露 `onUsernameChanged()`，PRD 要求 `onEmailChanged()`。现有测试验证的是 username 变更逻辑而非 email，PRD 重构后全部测试需改写。
+#### §10 测试用例质量自评
 
-| # | 问题 | 优先级 | 说明 |
-|---|------|:------:|------|
-| QA-P0-1 | 网络超时测试缺失 | **P0** | 新增 Gherkin 用例覆盖请求超时→错误提示→按钮恢复 |
-| QA-P0-2 | 状态枚举过渡测试缺失 | **P0** | 新增 Idle→Loading→Error→Editing 状态流转验证 |
-| QA-P0-3 | AC-06 Loading 中间态测试断言错误 | **P0** | 修复：在协程挂起期间收集 state，验证 `isLoading=true` |
-| QA-P0-4 | AC-03 按钮联动正向验证缺失 | **P0** | 新增「邮箱正确+密码非空→按钮 enabled」用例 |
-| QA-P0-5 | 字段重构（username→email）未反映到测试 | **P0** | 全部测试需同步重构为 email 字段 |
-| QA-P1-1 | 403 账户锁定错误码无测试 | **P1** | 新增 403 响应→显示账户锁定文案 |
-| QA-P1-2 | 429 限流错误码无测试 | **P1** | 新增 429 响应→显示限流提示+按钮禁用 N 秒 |
-| QA-P1-3 | Loading 态输入框 disabled 未验证 | **P1** | 从 UI 层验证 loading 时输入框 `enabled=false` |
+| 维度 | 评分 | 说明 |
+|------|:----:|------|
+| AC 覆盖 | 8/10 | 4 个 AC 全覆盖，AC-03 深色模式场景待未来补充 |
+| 边界覆盖 | 7/10 | 动画生命周期、无障碍、性能；超长字符串/RTL/IME 延后 |
+| 可执行性 | 7/10 | TC-04 依赖颜色方案决策，TC-06 依赖 profiler 工具链 |
+| 格式规范 | 10/10 | Given/When/Then 完整，优先级/AC 标注齐备 |
 
-#### 结论
-
-§10 现有用例骨架质量尚可（覆盖 7/8 AC），但存在两大致命缺口：**网络异常场景无覆盖**（超时/403/429）和**状态枚举过渡无显式测试**。此外 `LoginViewModelTest` 中 loading 测试实际未验证 loading=true，属于虚假通过。字段重构(username→email)将导致全部 9 个现有测试需重写。建议：P0 5 项在编码前补全 Gherkin 用例并同步更新 `LoginViewModelTest`，P1 3 项在编码阶段渐进覆盖。修订后 PRD 可达 7/10。
+> **结论:** 3/10 分，**PRD 不可进入测试设计**。需先解决 4 项 P0（格式定义、对比度阈值、性能协议、Debug/Release 策略）后验收标准才具备可测试性。当前已产出 §10 的 6 个 Gherkin 测试用例（TC-01~TC-06）作为目标态测试设计，待 PRD 修订后可直接用于测试实现。
 
 ### 12.6 讨论决议
 
-#### P0 致命项（4 视角共 22 项，需在确认前修订）
-
-| 决议编号 | 决议内容 | 来源 | 修订状态 |
-|----------|----------|------|:------:|
-| R-01 | 覆盖 DECISIONS.md「否决邮箱+密码」决策，正式重新评估邮箱+密码为主要登录方式，产出评估对比表 | 产品+技术 | 已识别 |
-| R-02 | 补充注册入口或明确账号来源（管理员预分配账号 或 最简注册页） | 产品 | 已识别 |
-| R-03 | Token 持久化纳入首版（DataStore 加密存储，启动自动校验） | 产品 | 已识别 |
-| R-04 | 补充网络异常场景（US-06 超时→错误提示→重试） | 产品+QA | 已识别 |
-| R-05 | 补充 403/429 错误码交互和测试覆盖 | 产品+QA | 已识别 |
-| R-06 | 新建 LoginApi (Retrofit) 接口，替换 AuthRepository 硬编码 mock | 技术 | 已识别 |
-| R-07 | LoginResponse 数据模型重构：`token+username` → `token+user{id,email,displayName}` | 技术 | 已识别 |
-| R-08 | 实现邮箱格式客户端校验（AC-01），LoginScreen 字段 username→email | 技术 | 已识别 |
-| R-09 | 修复登录按钮启用条件：`!isLoading` → `isEmailValid && passwordNotEmpty && !isLoading` | 技术+UX | 已识别 |
-| R-10 | 实现返回键退出应用（AC-08），NavGraph 添加 BackHandler | 技术 | 已识别 |
-| R-11 | AuthRepository 添加 HttpException 捕获（D-42）+ withTimeout（D-56） | 技术 | 已识别 |
-| R-12 | 定义品牌色 Token：primary=#1A73E8 + 完整 M3 ColorScheme（Light/Dark） | UX | 已识别 |
-| R-13 | 字体层级映射 M3 Token（headlineMedium/bodyMedium/labelLarge 等） | UX | 已识别 |
-| R-14 | 间距基于 8dp 网格系统（spacing0~spacing5 Token） | UX | 已识别 |
-| R-15 | 补齐无障碍（contentDescription/semantics/announceForAccessibility） | UX | 已识别 |
-| R-16 | 明确键盘类型：邮箱 KeyboardType.Email + imeAction=Next，密码 KeyboardType.Password + imeAction=Done | UX | 已识别 |
-| R-17 | 补全 Gherkin 测试用例：网络超时(TC-05)、403(TC-06)、429(TC-07)、状态枚举全流转(TC-08) | QA | 已识别 |
-| R-18 | 修复 AC-06 Loading 中间态测试断言（验证 isLoading=true 而非 false） | QA | 已识别 |
-| R-19 | 补充 AC-03 按钮联动正向验证测试 | QA | 已识别 |
-| R-20 | 字段重构 username→email 同步更新全部测试 | QA | 已识别 |
-| R-21 | 统一错误展示方案为内联 `Text` + `AnimatedVisibility`（放弃 Snackbar） | UX | 已识别 |
-| R-22 | 添加登录成功过渡态（✓ 图标 300ms → 导航） | UX | 已识别 |
-
-#### P1 重要项（编码阶段消化，14 项）
-
-| 决议编号 | 决议内容 | 来源 |
-|----------|----------|------|
-| R-23 | 决策冲突补充论证（用户画像/竞品对标） | 产品 |
-| R-24 | UI 预留"忘记密码？"占位链接 | 产品 |
-| R-25 | LoginStateManager key 从 `username` 迁移到 `user` 对象 | 技术 |
-| R-26 | LoginViewModel 使用 `collectLatest`（D-55） | 技术 |
-| R-27 | LoginViewModel 添加 `onCleared()` 清理（D-58） | 技术 |
-| R-28 | 新增 LoginScreen Compose preview test（D-61） | 技术 |
-| R-29 | 密码显隐图标添加 testTag（D-46） | 技术 |
-| R-30 | AuthModule 改为 Hilt + Retrofit 注入 | 技术 |
-| R-31 | `LoginUiState` 添加显式 `status: LoginStatus` 枚举字段 | 技术 |
-| R-32 | Token refresh/session 管理标注为 v1.1 范围 | 技术 |
-| R-33 | 网络超时 UI 设计（请求>10s→提示+按钮恢复） | UX |
-| R-34 | 429 限流提示文案+按钮禁用 N 秒 | UX |
-| R-35 | 输入框 `maxLength` 约束反馈 | UX |
-| R-36 | 输入框 Loading 态 disabled 从 UI 层验证 | QA |
+| 决议编号 | 决议内容 | 来源 | 状态 |
+|----------|----------|------|------|
+| R-01 | **Debug/Release 双版本格式：** Debug 显示 `v{name}({code}){buildType}`（如 `v1.0(1)debug`），Release 显示 `v{name}`（如 `v1.0`），对齐 D-21/D-23 | 产品/技术/UX/QA | ✅ 已修订 |
+| R-02 | **对比度方案选型A：** 文字色 `rgba(0,0,0,0.55)`，在 #1A73E8 背景上对比度 ~4.85:1，达到 WCAG AA 4.5:1 | UX/QA | ✅ 已修订 |
+| R-03 | **版本号独立于 AnimatedVisibility：** 放在 Box 根容器，不参与 splash fadeOut 动画，确保始终可见 | 技术/UX | ✅ 已修订（§9.6 布局层级图） |
+| R-04 | **复用 formatVersionTag() 而非新建组件：** splash 场景为专用 Composable 调用现有格式化函数，新增 textColor 参数用于 splash 专用颜色 | 产品/技术 | ✅ 已修订 |
+| R-05 | **contentDescription 同步：** 使用 `formatVersionDescription()` 输出 "应用版本号 v1.0"，对齐 D-22 | UX/QA | ✅ 已修订（§9.3） |
+| R-06 | **无 ViewModel：** 版本号是 BuildConfig 编译期常量，纯展示无状态变化，符合 YAGNI | 技术 | ✅ 已记录 |
 
 ---
 
-> **状态:** 4-Agent 并行评审完成，22 项 P0 + 14 项 P1 已识别。请审阅后回复「确认」冻结进入 UI 设计阶段。
+> **状态:** 多视角评审已完成，N 项决议待确认。确认后冻结版本号。

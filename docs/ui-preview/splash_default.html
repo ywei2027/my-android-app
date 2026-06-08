@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>启动页版本号显示 — UI 预览</title>
+<style>
+:root {
+  --splash-bg: #1A73E8;
+  --version-color: rgba(0,0,0,0.55);
+  --version-size: 12px;
+  --bottom-padding: 32px;
+  --nav-bar-height: 34px;
+  --logo-white: #FFFFFF;
+  --subtitle-alpha: 0.8;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #1a1a2e;
+  display: flex; justify-content: center; align-items: center;
+  min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+.phone-frame {
+  width: 375px; height: 812px;
+  border-radius: 44px; overflow: hidden;
+  box-shadow: 0 0 0 12px #1a1a2e, 0 0 0 14px #2d2d44, 0 20px 60px rgba(0,0,0,0.5);
+  position: relative;
+}
+.notch {
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 150px; height: 30px; background: #1a1a2e;
+  border-radius: 0 0 20px 20px; z-index: 10;
+}
+.splash-screen {
+  width: 100%; height: 100%;
+  background: var(--splash-bg);
+  display: flex; flex-direction: column;
+  justify-content: center; align-items: center;
+  position: relative;
+}
+.logo-container {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 16px;
+  animation: scaleIn 0.6s ease-out;
+}
+@keyframes scaleIn {
+  from { transform: scale(0.3); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.emoji-logo { font-size: 72px; line-height: 1; }
+.app-title {
+  color: var(--logo-white); font-size: 28px; font-weight: 700;
+  letter-spacing: 2px;
+}
+.subtitle {
+  color: rgba(255,255,255,var(--subtitle-alpha));
+  font-size: 14px; font-weight: 400; margin-top: 8px;
+}
+.version-tag {
+  position: absolute;
+  bottom: calc(var(--bottom-padding) + var(--nav-bar-height));
+  left: 50%; transform: translateX(-50%);
+  font-size: var(--version-size);
+  color: var(--version-color);
+  font-weight: 400;
+  white-space: nowrap;
+  user-select: none;
+  z-index: 5;
+}
+.nav-bar {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: var(--nav-bar-height);
+  background: rgba(0,0,0,0.15);
+  display: flex; justify-content: center; align-items: center;
+}
+.nav-indicator {
+  width: 134px; height: 5px;
+  background: rgba(255,255,255,0.3);
+  border-radius: 100px;
+}
+/* Build variant toggle */
+.build-toggle {
+  position: absolute; top: 50px; right: 10px;
+  background: rgba(255,255,255,0.15); border: none;
+  color: white; font-size: 11px; padding: 4px 10px;
+  border-radius: 12px; cursor: pointer; z-index: 20;
+  backdrop-filter: blur(4px);
+}
+.build-toggle:hover { background: rgba(255,255,255,0.25); }
+</style>
+</head>
+<body>
+<div class="phone-frame">
+  <div class="notch"></div>
+  <button class="build-toggle" onclick="toggleBuild()" aria-label="切换 Debug/Release 构建">
+    <span id="build-label">Debug</span>
+  </button>
+  <div class="splash-screen" role="img" aria-label="启动页 — 新闻应用">
+    <div class="logo-container">
+      <span class="emoji-logo" aria-hidden="true">📰</span>
+      <span class="app-title">新闻</span>
+      <span class="subtitle">热点资讯 一键掌握</span>
+    </div>
+    <div class="version-tag" id="version-text" role="text" aria-live="polite"
+         aria-label="应用版本号 v1.0(1)debug">
+      v1.0(1)debug
+    </div>
+    <div class="nav-bar">
+      <div class="nav-indicator"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const debugVersion = 'v1.0(1)debug';
+const releaseVersion = 'v1.0';
+let isDebug = true;
+
+function toggleBuild() {
+  isDebug = !isDebug;
+  const vt = document.getElementById('version-text');
+  const label = document.getElementById('build-label');
+  if (isDebug) {
+    vt.textContent = debugVersion;
+    vt.setAttribute('aria-label', '应用版本号 ' + debugVersion);
+    label.textContent = 'Debug';
+  } else {
+    vt.textContent = releaseVersion;
+    vt.setAttribute('aria-label', '应用版本号 ' + releaseVersion);
+    label.textContent = 'Release';
+  }
+}
+</script>
+</body>
+</html>

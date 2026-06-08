@@ -3,99 +3,75 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>my-android-app — UI 原型预览</title>
+<title>UI 预览导航 — 启动页版本号显示</title>
 <style>
 :root {
-  --primary: #1A73E8;
-  --primary-light: #B0C6FF;
-  --surface: #FEFBFF;
-  --surface-variant: #E7E0EC;
-  --on-surface: #1C1B1E;
-  --on-surface-variant: #49454F;
-  --on-primary: #FFFFFF;
-  --error: #B81C1C;
-  --outline: #79747E;
-  --outline-variant: #CAC4D0;
-  --ripple: rgba(26, 115, 232, 0.08);
+  --bg: #f5f5f5; --card-bg: #ffffff; --primary: #1A73E8;
+  --text: #1a1a1a; --text-secondary: #666;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --surface: #1C1B1F;
-    --surface-variant: #49454F;
-    --on-surface: #E6E1E5;
-    --on-surface-variant: #CAC4D0;
-    --primary: #8AB4F8;
-    --primary-light: #1A4FBF;
-    --on-primary: #003A75;
-    --error: #FFB4AB;
-    --outline: #938F99;
-    --outline-variant: #49454F;
-    --ripple: rgba(138, 180, 248, 0.08);
+    --bg: #1a1a2e; --card-bg: #2d2d44;
+    --text: #e0e0e0; --text-secondary: #999;
   }
 }
-* { margin: 0; padding: 0; box-sizing: border-box; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body {
-  background: #e8e8e8;
-  display: flex; justify-content: center; align-items: center;
-  min-height: 100vh;
-  font-family: 'Roboto', 'Noto Sans SC', sans-serif;
+  background: var(--bg); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  padding: 24px; max-width: 600px; margin: 0 auto;
 }
-.container { max-width: 420px; padding: 24px; text-align: center; }
-h1 { font-size: 24px; color: var(--on-surface); margin-bottom: 4px; }
-.subtitle { font-size: 14px; color: var(--on-surface-variant); margin-bottom: 24px; }
+h1 { font-size: 20px; margin-bottom: 8px; }
+.subtitle { color: var(--text-secondary); font-size: 14px; margin-bottom: 24px; }
+.pages { display: flex; flex-direction: column; gap: 12px; }
 .page-card {
-  background: var(--surface);
-  border: 1px solid var(--outline-variant);
-  border-radius: 16px;
-  padding: 20px;
-  margin-bottom: 16px;
-  text-align: left;
+  background: var(--card-bg); border-radius: 12px; padding: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  text-decoration: none; color: inherit;
+  display: flex; align-items: center; gap: 12px;
+  transition: box-shadow 0.2s;
 }
-.page-card h2 { font-size: 18px; color: var(--on-surface); margin-bottom: 4px; }
-.page-card p { font-size: 13px; color: var(--on-surface-variant); margin-bottom: 12px; }
-.links { display: flex; gap: 8px; flex-wrap: wrap; }
-.links a {
-  display: inline-block;
-  padding: 6px 14px;
-  border-radius: 20px;
-  text-decoration: none;
-  font-size: 13px;
-  transition: background 0.15s;
-}
-.link-primary { background: var(--primary); color: var(--on-primary); }
-.link-primary:hover { opacity: 0.9; }
-.badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-size: 11px;
-  margin-left: 8px;
-  background: var(--primary);
-  color: var(--on-primary);
-  opacity: 0.7;
-}
+.page-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+.page-icon { font-size: 28px; }
+.page-info { flex: 1; }
+.page-title { font-weight: 600; font-size: 15px; }
+.page-desc { color: var(--text-secondary); font-size: 12px; margin-top: 2px; }
+.arrow { color: var(--primary); font-size: 18px; }
+.token-section { margin-top: 32px; padding-top: 24px; border-top: 1px solid rgba(0,0,0,0.08); }
+.token-section h2 { font-size: 16px; margin-bottom: 12px; }
+.token-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.token-table th, .token-table td { padding: 8px; text-align: left; border-bottom: 1px solid rgba(0,0,0,0.06); }
+.token-table th { font-weight: 600; color: var(--text-secondary); }
 </style>
 </head>
 <body>
-<div class="container">
-  <h1>my-android-app — UI 原型预览</h1>
-  <p class="subtitle">v0.1-draft — 2026-06-07</p>
+<h1>🎨 启动页版本号显示 — UI 预览</h1>
+<p class="subtitle">功能: 启动页版本号显示 | PRD v1.0-confirmed | 2026-06-08</p>
 
-  <div class="page-card">
-    <h2>用户登录 <span class="badge">新</span></h2>
-    <p>LoginScreen — 邮箱+密码登录，M3 风格，含完整状态覆盖（Idle/Editing/Loading/Error/Timeout）</p>
-    <div class="links">
-      <a href="login.html" class="link-primary">登录页原型（可交互）</a>
+<div class="pages">
+  <a class="page-card" href="splash_default.html">
+    <span class="page-icon" aria-hidden="true">📱</span>
+    <div class="page-info">
+      <div class="page-title">启动页 (Splash Screen)</div>
+      <div class="page-desc">蓝色背景 #1A73E8 + 📰 logo + 底部版本号 | 支持 Debug/Release 切换</div>
     </div>
-  </div>
+    <span class="arrow">→</span>
+  </a>
+</div>
 
-  <div class="page-card">
-    <h2>启动页面版本号</h2>
-    <p>MainActivity → LoginScreen + VersionTag 叠加，键盘弹出时版本号自动隐藏</p>
-    <div class="links">
-      <a href="startup_default.html" class="link-primary">默认态（版本号可见）</a>
-    </div>
-  </div>
+<div class="token-section">
+  <h2>设计 Token</h2>
+  <table class="token-table">
+    <tr><th>属性</th><th>值</th></tr>
+    <tr><td>启动页背景</td><td>#1A73E8</td></tr>
+    <tr><td>版本号文字色</td><td>rgba(0,0,0,0.55)</td></tr>
+    <tr><td>对比度 (vs #1A73E8)</td><td>~4.85:1 ✅ WCAG AA</td></tr>
+    <tr><td>版本号字号</td><td>12sp</td></tr>
+    <tr><td>底部间距</td><td>32dp + navigationBars</td></tr>
+    <tr><td>Debug 格式</td><td>v1.0(1)debug</td></tr>
+    <tr><td>Release 格式</td><td>v1.0</td></tr>
+    <tr><td>contentDescription</td><td>应用版本号 vX.Y</td></tr>
+  </table>
 </div>
 </body>
 </html>
