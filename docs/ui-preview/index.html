@@ -3,75 +3,52 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>UI 预览导航 — 启动页版本号显示</title>
+<title>启动页版本号显示 — UI 原型预览</title>
 <style>
 :root {
-  --bg: #f5f5f5; --card-bg: #ffffff; --primary: #1A73E8;
-  --text: #1a1a1a; --text-secondary: #666;
+  --primary: #1A73E8;
+  --surface: #FEFBFF;
+  --on-surface: #1C1B1F;
+  --on-surface-variant: #49454F;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #1a1a2e; --card-bg: #2d2d44;
-    --text: #e0e0e0; --text-secondary: #999;
-  }
-}
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body {
-  background: var(--bg); color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  padding: 24px; max-width: 600px; margin: 0 auto;
+  background: #e8e8e8;
+  font-family: 'Roboto', 'Noto Sans SC', sans-serif;
+  display: flex; justify-content: center; align-items: center;
+  min-height: 100vh; padding: 20px;
 }
-h1 { font-size: 20px; margin-bottom: 8px; }
-.subtitle { color: var(--text-secondary); font-size: 14px; margin-bottom: 24px; }
-.pages { display: flex; flex-direction: column; gap: 12px; }
+.container { max-width: 400px; width: 100%; }
+h1 { color: var(--on-surface); font-size: 24px; margin-bottom: 4px; }
+.subtitle { color: var(--on-surface-variant); font-size: 14px; margin-bottom: 24px; }
 .page-card {
-  background: var(--card-bg); border-radius: 12px; padding: 16px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-  text-decoration: none; color: inherit;
-  display: flex; align-items: center; gap: 12px;
-  transition: box-shadow 0.2s;
+  background: var(--surface); border-radius: 16px;
+  padding: 20px; margin-bottom: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
-.page-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
-.page-icon { font-size: 28px; }
-.page-info { flex: 1; }
-.page-title { font-weight: 600; font-size: 15px; }
-.page-desc { color: var(--text-secondary); font-size: 12px; margin-top: 2px; }
-.arrow { color: var(--primary); font-size: 18px; }
-.token-section { margin-top: 32px; padding-top: 24px; border-top: 1px solid rgba(0,0,0,0.08); }
-.token-section h2 { font-size: 16px; margin-bottom: 12px; }
-.token-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.token-table th, .token-table td { padding: 8px; text-align: left; border-bottom: 1px solid rgba(0,0,0,0.06); }
-.token-table th { font-weight: 600; color: var(--text-secondary); }
+.page-card h2 { font-size: 18px; color: var(--on-surface); margin-bottom: 6px; }
+.page-card p { font-size: 14px; color: var(--on-surface-variant); margin-bottom: 14px; }
+.links { display: flex; gap: 8px; flex-wrap: wrap; }
+.link-primary {
+  display: inline-block; padding: 8px 16px;
+  background: var(--primary); color: #fff;
+  border-radius: 20px; text-decoration: none;
+  font-size: 13px; font-weight: 500;
+}
+.link-primary:hover { opacity: 0.9; }
 </style>
 </head>
 <body>
-<h1>🎨 启动页版本号显示 — UI 预览</h1>
-<p class="subtitle">功能: 启动页版本号显示 | PRD v1.0-confirmed | 2026-06-08</p>
+<div class="container">
+  <h1>🚀 启动页版本号显示</h1>
+  <p class="subtitle">UI 原型预览 — v0.2-review | 2026-06-08</p>
 
-<div class="pages">
-  <a class="page-card" href="splash_default.html">
-    <span class="page-icon" aria-hidden="true">📱</span>
-    <div class="page-info">
-      <div class="page-title">启动页 (Splash Screen)</div>
-      <div class="page-desc">蓝色背景 #1A73E8 + 📰 logo + 底部版本号 | 支持 Debug/Release 切换</div>
+  <div class="page-card">
+    <h2>📱 AnimatedSplashContent</h2>
+    <p>Splash 启动页，品牌蓝背景 + Logo 缩放动画 + 底部版本号淡入</p>
+    <div class="links">
+      <a href="splash_default.html" class="link-primary">Debug 默认态</a>
     </div>
-    <span class="arrow">→</span>
-  </a>
-</div>
-
-<div class="token-section">
-  <h2>设计 Token</h2>
-  <table class="token-table">
-    <tr><th>属性</th><th>值</th></tr>
-    <tr><td>启动页背景</td><td>#1A73E8</td></tr>
-    <tr><td>版本号文字色</td><td>rgba(0,0,0,0.55)</td></tr>
-    <tr><td>对比度 (vs #1A73E8)</td><td>~4.85:1 ✅ WCAG AA</td></tr>
-    <tr><td>版本号字号</td><td>12sp</td></tr>
-    <tr><td>底部间距</td><td>32dp + navigationBars</td></tr>
-    <tr><td>Debug 格式</td><td>v1.0(1)debug</td></tr>
-    <tr><td>Release 格式</td><td>v1.0</td></tr>
-    <tr><td>contentDescription</td><td>应用版本号 vX.Y</td></tr>
-  </table>
+  </div>
 </div>
 </body>
 </html>
