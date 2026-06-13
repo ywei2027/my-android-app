@@ -1,7 +1,10 @@
 {
   "current_stage": "STAGE_PRD",
   "feature_name": "用户注册",
-  "updated": "2026-06-13T14:00:00.000Z",
+  "updated": "2026-06-13T15:00:00.000Z",
   "run_id": "run-20260613-001",
-  "prd_version": "v0.1-draft"
+  "prd_version": "v0.2-review",
+  "review_round": 1,
+  "review_status": "completed",
+  "next_stage": "ui-design-review"
 }

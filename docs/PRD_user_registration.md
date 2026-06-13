@@ -1,10 +1,10 @@
 # 用户注册 — PRD
 
-> **版本:** v0.1-draft
+> **版本:** v0.2-review
 > **澄清依据:** docs/PRD_CLARIFICATION_user_registration.md（3 轮 11 问，2026-06-13）
 > **创建日期:** 2026-06-13
 > **作者:** Hermes 智能研发工作流
-> **状态:** 待评审冻结
+> **状态:** 评审中（v0.2-review，4-Agent 并行评审已完成）
 
 ---
 
@@ -93,6 +93,14 @@
 | AC-11 | P1 | 注册按钮防重复提交 | 注册过程中按钮显示 loading 状态，禁止重复点击 |
 | AC-12 | P2 | 协议链接可点击 | 点击"《用户协议》"打开协议详情页（WebView 加载远程 URL） |
 | AC-13 | P2 | "已有账号？去登录"入口 | 注册页提供跳转登录页的入口 |
+| AC-14 | P0 | 短信验证码发送失败提示 | 发送验证码接口返回失败时，Toast 提示"验证码发送失败，请重试"，不启动倒计时，用户可再次点击 |
+| AC-15 | P0 | 倒计时归零可重新获取 | 60s 倒计时归零后，按钮文案变为"重新获取"，恢复可点击状态 |
+| AC-16 | P0 | 注册成功但自动登录失败降级 | 注册成功但自动登录接口失败时，Toast 提示"注册成功，请手动登录"，跳转至登录页 |
+| AC-17 | P0 | 密码可见性切换 | 两个密码框各有独立的显示/隐藏切换按钮，图标状态正确切换，contentDescription 同步更新 |
+| AC-18 | P1 | 横竖屏旋转状态保留 | 旋转屏幕后手机号、密码、验证码已发送状态、倒计时进度、协议勾选状态全部保留 |
+| AC-19 | P1 | 杀进程后倒计时失效 | 进程被杀后重新进入注册页，倒计时失效，按钮显示"获取验证码"可点击 |
+| AC-20 | P1 | 密码含特殊字符放行 | 密码包含合法特殊字符（如 @#$%等）时不拦截，正常通过校验 |
+| AC-21 | P1 | 所有交互元素无障碍支持 | 每个输入框、按钮、链接设置正确的 contentDescription，触摸目标 ≥ 48dp |
 
 ---
 
@@ -167,6 +175,9 @@
 | 注册按钮状态 | enabled = 手机号合法 ∧ 验证码非空 ∧ 密码合法 ∧ 确认密码一致 ∧ 协议已勾选 ∧ 未在加载中 |
 | 异常处理 | 区分网络超时（ConnectException）与服务端错误（非 2xx），统一 Toast 提示 |
 | 状态保存 | 注册过程中页面旋转不丢失输入内容（通过 ViewModel + SavedStateHandle） |
+| Token 安全存储 | AuthToken 使用 EncryptedSharedPreferences 加密持久化，禁止 DataStore 明文存储 |
+| API 版本化 | 所有 API 路径使用 /api/v1/ 前缀（如 POST /api/v1/auth/send-sms），为后续兼容预留 |
+| SavedStateHandle 字段 | 需持久化：phone（手机号）、password（密码）、smsSentTimestamp（发送时间戳）、agreementAccepted（协议勾选） |
 
 ### 依赖
 
@@ -184,10 +195,12 @@
 | 风险 | 影响 | 缓解措施 |
 |------|------|----------|
 | 短信服务商不稳定导致验证码发送延迟/失败 | 用户无法完成注册 | 后端实现短信服务商主备切换；前端设置合理的超时时间并给出友好提示 |
+| 短信接口被滥用（无防刷） | 产生资损、服务商封禁 | 后端实现 IP/设备维度频率限制（同号 1次/分钟、同 IP 10次/小时）；客户端仅 UX 辅助倒计时；后续版本考虑加入图形验证码兜底 |
 | 手机号已注册校验接口在校验阶段依赖后端 | 后端不可用时校验功能失效 | 前端仅做格式校验，不自行判断是否已注册；后端返回 5xx 时按"暂时不可用"处理，放行到最终注册接口再校验 |
 | 注册成功但自动登录失败 | 用户注册了但停留在登录页，体验断裂 | 注册接口返回 token 后先持久化，登录失败时回退到登录页并 Toast 提示"注册成功，请登录" |
-| 倒计时期间应用退到后台或进程被杀 | 前端倒计时可能不准确 | 使用基于服务器返回的发送时间戳计算剩余秒数，客户端倒计时仅做 UI 展示，提交时后端校验验证码时效性 |
+| 倒计时期间应用退到后台或进程被杀 | 前端倒计时可能不准确 | 使用基于服务器返回的发送时间戳计算剩余秒数，客户端倒计时仅做 UI 展示，提交时后端校验验证码时效性；杀进程后倒计时失效，按钮恢复可点击 |
 | 用户协议 URL 不可达 | 用户无法查看协议 | 提供本地 fallback 静态文本（打包进 assets） |
+| Token 明文存储 | root 设备可读取 Token | 使用 EncryptedSharedPreferences 加密持久化 |
 
 ---
 
@@ -212,98 +225,199 @@
 
 ## §9 UI 设计输入
 
-### 页面清单
+> **产出方:** UX Agent（PRD 评审阶段产出）
+> **评审日期:** 2026-06-13
 
-| 页面 | 路由 | 用途 |
+### 9.1 页面清单
+
+| 页面 | 路径 | 用途 |
 |------|------|------|
-| RegisterScreen | `register` | 注册表单主页面 |
-| AgreementScreen | `register/agreement` | WebView 加载用户协议 |
-| LoginScreen | `login` | 已有页面，作为导航目标 |
+| RegisterScreen | `feature/register/RegisterScreen.kt` | 注册表单主页面 |
+| AgreementScreen | `feature/register/AgreementScreen.kt` | 用户协议 WebView 页面 |
+| LoginScreen | `feature/auth/LoginScreen.kt` | 导航目标-登录页 |
 
-### 布局规格
+### 9.2 RegisterScreen 布局规格
 
-| 属性 | 值 |
+```
+┌─ CenterAlignedTopAppBar ───────────────────────┐
+│  title: "注册"                                   │
+│  navigationIcon: 返回箭头 (contentDescription: "返回") │
+└─────────────────────────────────────────────────┘
+
+┌─ Column (verticalScroll, 16dp padding, imePadding) ──┐
+│                                                        │
+│  OutlinedTextField (手机号)                             │
+│    label: "手机号"                                      │
+│    placeholder: "请输入手机号"                            │
+│    keyboardType: Phone                                 │
+│    visualTransformation: 3-4-4 格式化（光标位置不变）      │
+│    singleLine: true                                    │
+│    contentDescription: "手机号输入框"                    │
+│    height: 56dp                                        │
+│                                                        │
+│  Row ────────────────────────────────────────┐         │
+│  │ OutlinedTextField (验证码)  flex(1)       │         │
+│  │   label: "验证码"                         │         │
+│  │   placeholder: "6位数字"                  │         │
+│  │   keyboardType: Number                   │         │
+│  │   singleLine: true                       │         │
+│  │   contentDescription: "短信验证码输入框"    │         │
+│  │                                          │         │
+│  │ OutlinedButton (获取验证码)  width=wrap    │         │
+│  │   text: "获取验证码" / "NNs后重试"         │         │
+│  │   enabled: 手机号有效 ∧ 未倒计时            │         │
+│  │   contentDescription: 跟随文字动态更新      │         │
+│  └──────────────────────────────────────────┘         │
+│                                                        │
+│  OutlinedTextField (设置密码)                           │
+│    label: "设置密码"                                    │
+│    placeholder: "8-20位，含字母+数字"                    │
+│    keyboardType: Password                              │
+│    visualTransformation: PasswordVisualTransformation   │
+│    trailingIcon: 眼睛开/关 (toggle 密码可见)              │
+│    trailingIcon contentDescription: "显示密码"/"隐藏密码"  │
+│    singleLine: true                                    │
+│    contentDescription: "密码输入框"                      │
+│    height: 56dp                                        │
+│                                                        │
+│  OutlinedTextField (确认密码)                           │
+│    label: "确认密码"                                    │
+│    placeholder: "再次输入密码"                           │
+│    keyboardType: Password                              │
+│    visualTransformation: PasswordVisualTransformation   │
+│    trailingIcon: 眼睛开/关 (独立控制)                     │
+│    trailingIcon contentDescription: "显示密码"/"隐藏密码"  │
+│    singleLine: true                                    │
+│    contentDescription: "确认密码输入框"                   │
+│    supportingText: "两次密码不一致" (不匹配时红色)          │
+│    height: 56dp                                        │
+│                                                        │
+│  Row (协议) ──────────────────────────────────┐        │
+│  │ Checkbox                                   │        │
+│  │   contentDescription: "同意用户协议复选框"    │        │
+│  │   minTouchTarget: 48dp                     │        │
+│  │                                            │        │
+│  │ ClickableText (AnnotatedString)            │        │
+│  │   text: "我已阅读并同意《用户协议》"          │        │
+│  │   clickableRange: "《用户协议》"             │        │
+│  │   minTouchTarget: 48dp                     │        │
+│  └────────────────────────────────────────────┘        │
+│                                                        │
+│  Button (注册)  ← 32dp margin-top                       │
+│    style: FilledButton                                 │
+│    text: "注册" / "注册中..." (loading)                  │
+│    enabled: 所有字段有效 ∧ 协议已勾选 ∧ 未提交中           │
+│    width: fillMaxWidth                                 │
+│    height: 56dp                                        │
+│    contentDescription: "提交注册" / "注册提交中"           │
+│    loading: CircularProgressIndicator (替换文字)          │
+│                                                        │
+│  TextButton ("已有账号？去登录")                          │
+│    onClick: navigateToLogin                            │
+│    contentDescription: "已有账号，去登录"                  │
+│    minTouchTarget: 48dp                                │
+│                                                        │
+└────────────────────────────────────────────────────────┘
+
+遮罩层 (提交中):
+  Box(fillMaxSize, backgroundColor=半透明黑色)
+    CircularProgressIndicator (居中)
+    contentDescription: "注册提交中，请稍候"
+```
+
+### 9.3 交互规格
+
+| # | 触发条件 | 行为 | 反馈 |
+|---|---------|------|------|
+| 1 | 输入手机号 | 实时格式化为 3-4-4（如 138 1234 5678）；光标位置同步不跳变 | 文本即时变化 |
+| 2 | 手机号格式完整 | 获取验证码按钮变为 enabled | 按钮从灰色→可点击 |
+| 3 | 点击获取验证码 | 调用发送验证码 API；按钮变为倒计时 "NNs后重试"（60s） | 按钮 disabled + 文字倒计时 |
+| 4 | 倒计时中 | 按钮不可点击 | 文字递减，到 0 恢复"重新获取" |
+| 5 | 输入验证码 | 仅允许 6 位数字，支持粘贴 | 自动填入 |
+| 6 | 收到 SMS | SMS Retriever API 自动填充验证码 | 验证码框自动填入 |
+| 7 | 输入密码 | 实时校验：≥8位，含字母+数字 | 不符合时 supportingText 提示 |
+| 8 | 输入确认密码 | 实时比对两次密码 | 不一致时红色 supportingText |
+| 9 | 点击密码可见切换 | 切换 PasswordVisualTransformation ↔ 明文 | trailingIcon 眼睛开/关 |
+| 10 | 勾选协议 Checkbox | 注册按钮 enabled 条件之一 | 按钮状态联动 |
+| 11 | 点击《用户协议》链接 | 导航到 AgreementScreen (in-app WebView) | 新页面，注册页保留在回退栈 |
+| 12 | 所有字段有效+勾选 | 注册按钮 fully enabled | 按钮可点击 |
+| 13 | 点击注册按钮 | 按钮 loading；遮罩层；调用注册 API | 全屏遮罩防误触 |
+| 14 | 注册成功 | Snackbar "注册成功"；自动登录→跳转主页 | Snackbar → 页面跳转 |
+| 15 | 注册失败 | 视错误类型：已注册→Snackbar + "去登录" action；网络→Snackbar + "重试" action | Snackbar + action |
+| 16 | 点击"去登录" | 导航到 LoginScreen | 保留回退栈 |
+
+### 9.4 状态覆盖
+
+| # | 状态 | 视觉表现 |
+|---|------|---------|
+| 1 | 默认 | 所有字段空，获取验证码按钮 disabled，注册按钮 disabled |
+| 2 | 手机号输入中 | 手机号字段有焦点，实时格式化，获取验证码按钮随完整性切换 |
+| 3 | 手机号已填完整 | 获取验证码按钮 enabled |
+| 4 | 验证码发送中 | 获取验证码按钮 loading 状态 |
+| 5 | 倒计时中 | 按钮显示 "NNs后重试"，disabled |
+| 6 | 验证码已输入 | 验证码字段已填充 |
+| 7 | 密码不一致 | 确认密码框 supportingText 红色错误提示 |
+| 8 | 表单完整有效 | 所有字段有效+勾选，注册按钮 enabled |
+| 9 | 提交中 (loading) | 注册按钮 loading；遮罩层覆盖全屏 |
+| 10 | 注册成功 | Snackbar 绿色提示；自动登录→跳转主页 |
+| 11 | 注册失败-已注册 | Snackbar 提示 + "去登录" action |
+| 12 | 注册失败-网络 | Snackbar 提示 + "重试" action |
+| 13 | 注册失败-服务端 | Snackbar 展示后端错误信息 |
+| 14 | 键盘弹起 | imePadding() 自适应，表单可滚动到焦点字段 |
+| 15 | 深色模式 | Material3 darkColorScheme token 全局适配 |
+| 16 | 横屏/宽屏 | Column maxWidth 480dp 居中，内部 verticalScroll |
+
+### 9.5 M3 组件选型
+
+| 组件 | 用途 | 关键属性 |
+|------|------|---------|
+| CenterAlignedTopAppBar | 顶部导航 | title="注册", navigationIcon |
+| OutlinedTextField | 手机号/验证码/密码/确认密码 | singleLine, keyboardType, supportingText, trailingIcon |
+| FilledButton | 注册提交 | fillMaxWidth, height 56dp |
+| OutlinedButton | 获取验证码 | enabled 联动, 文字动态切换 |
+| Checkbox | 协议勾选 | checked 状态联动, minTouchTarget 48dp |
+| ClickableText (AnnotatedString) | 协议链接 | 局部可点击, minTouchTarget 48dp |
+| TextButton | "去登录" | 底部导航入口 |
+| Snackbar (m3) | 成功/失败/错误反馈 | action 插槽支持重试/跳转 |
+| CircularProgressIndicator | 提交 loading | 替换按钮文字，遮罩 |
+| Surface/Column/Row/Box | 布局容器 | verticalScroll, padding, imePadding |
+
+### 9.6 设计约束
+
+| 约束 | 值 |
 |------|-----|
-| 页面标题 | "注册"（居中，TopAppBar） |
-| 手机号输入框 | 单行，placeholder "请输入手机号"，inputType phone，自动格式化 3-4-4 |
-| 验证码输入框 | 单行，placeholder "请输入验证码"，inputType number，右侧"获取验证码"按钮 |
-| 密码输入框 | 单行，placeholder "请输入密码"，inputType textPassword，trailing icon 显示/隐藏 |
-| 确认密码输入框 | 单行，placeholder "请再次输入密码"，inputType textPassword，trailing icon 显示/隐藏 |
-| 协议行 | Row：Checkbox + "我已阅读并同意《用户协议》"（链接颜色 accent） |
-| 注册按钮 | 全宽 filled button，文字"注册"，disabled 时置灰 |
-| 底部导航 | "已有账号？去登录"（TextButton） |
-
-### 交互规格
-
-| 交互 | 触发条件 | 行为 |
-|------|----------|------|
-| 手机号自动格式化 | 用户输入数字 | 实时格式化为 `xxx-xxxx-xxxx` |
-| 获取验证码按钮 | 手机号格式合法 + 未注册 | 发送请求，按钮变灰 + 60s 倒计时 |
-| 获取验证码按钮 | 手机号已注册 | Toast/内联提示，不发送请求 |
-| 密码实时校验 | 输入框失焦或提交时 | 检查长度 + 字符组合，密码框下方显示错误文字 |
-| 确认密码实时校验 | 确认密码框内容变化 | 实时与密码框比对，不一致时下方显示红色提示 |
-| 协议勾选 | 点击 Checkbox | 切换勾选状态，影响注册按钮 enabled |
-| 协议链接点击 | 点击"《用户协议》" | 导航到 AgreementScreen |
-| 注册按钮点击 | 所有字段合法 + 协议已勾选 | 按钮变 loading，提交 API |
-| 注册成功 | API 返回 200 | 自动登录 → 导航到 HomeScreen，清除返回栈 |
-| 注册失败 | API 返回 4xx/5xx | Toast"注册失败，请检查网络后重试"，恢复按钮状态 |
-| 去登录 | 点击底部链接 | 导航到 LoginScreen |
-| 已注册拦截 | 获取验证码返回 409 | 显示内联提示 + "去登录"链接 |
-
-### 状态覆盖
-
-| 状态 | 页面表现 |
-|------|----------|
-| 默认 | 所有输入框为空，注册按钮置灰，获取验证码按钮可用（手机号为空时置灰） |
-| 输入中 | 各字段实时校验反馈 |
-| 验证码发送成功 | 获取验证码按钮变灰 + 60s 倒计时（如 "59s 后重新获取"） |
-| 验证码倒计时归零 | 按钮恢复"重新获取"文案和可点击状态 |
-| 手机号已注册 | 获取验证码按钮下方出现内联提示，输入框不动 |
-| 密码不一致 | 确认密码框下方红色文字"两次输入的密码不一致" |
-| 密码不足 8 位 | 密码框下方提示"密码需要至少 8 位" |
-| 密码不含字母 | 密码框下方提示"密码需包含字母" |
-| 密码不含数字 | 密码框下方提示"密码需包含数字" |
-| 注册提交中 | 注册按钮显示 loading spinner，文字变"注册中..."，不可点击 |
-| 注册失败 | Toast 弹出，按钮恢复可点击，输入内容保留 |
-| 键盘弹起 | 页面内容可滚动，注册按钮不被键盘遮挡，输入框保持可见 |
-| 深色模式 | 所有颜色使用 M3 主题色 token，自动适配 |
-| 横屏/平板 | 内容居中，最大宽度 480dp |
-
-### Material3 组件选型
-
-| 组件 | 选型 | 原因 |
-|------|------|------|
-| 输入框 | OutlinedTextField | 清晰边界，符合 Material3 规范 |
-| 注册按钮 | Button (filled) | 主要 CTA，全宽 |
-| 协议勾选 | Checkbox + ClickableText | 标准二元选择 + 内联链接 |
-| 倒计时按钮 | OutlinedButton (disabled 态) | 非主操作，置灰表达不可用 |
-| 错误提示 | Supporting text (error colored) | 内联提示，不打断用户 |
-| Toast | Snackbar (preferred) / Toast | 短暂反馈，不打断 |
-| 顶部栏 | CenterAlignedTopAppBar | M3 规范 |
-| 加载指示 | CircularProgressIndicator (button 内) | 表达处理中 |
-
-### 设计约束
-
-- 表单垂直间距 16dp，section 间距 24dp
-- 输入框高度 56dp，全宽
-- 协议行水平排列，Checkbox 24dp
-- 注册按钮距最后一个输入框 32dp
-- 页面内容超出时整体可滚动（verticalScroll）
-- 手机号输入框仅接受数字，maxLength = 11（存储），显示为 13 字符（含两个 `-`）
-- 深色模式：所有颜色使用 M3 colorScheme token，禁止硬编码
+| 页面水平 padding | 16dp |
+| 字段间距 | 16dp |
+| 输入框高度 | 56dp |
+| 按钮距上方字段 | 32dp |
+| 最小触摸目标 | 48dp (Checkbox, TextButton, 链接) |
+| 横屏最大宽度 | 480dp (居中) |
+| 滚动 | verticalScroll (Column 内) |
+| 键盘适配 | imePadding() / WindowInsets.ime |
+| 深色模式 | Material3 darkColorScheme + surface/onSurface tokens |
+| 字体缩放 | 支持 1.5x 不截断（必要时滚动） |
+| 验证码自动填充 | SMS Retriever API / SMS User Consent API |
+| 协议页面 | in-app WebView（保留注册页 back stack） |
+| 密码可见 | 每个密码框独立控制 |
+| 手机号格式化 | 138 1234 5678（3-4-4，光标位置保持） |
+| 倒计时 | 60s，精确到秒递减 |
+| 提交防重 | 遮罩层 + 按钮 disabled |
+| 内联错误 | supportingText 用于字段校验错误 |
+| 全局错误 | Snackbar 用于 API 错误/网络错误 |
 
 ---
 
 ## §10 验收测试用例
 
-> **产出方:** QA Agent（PRD 评审阶段并行产出）
+> **产出方:** QA Agent（PRD 评审阶段产出）
+> **评审日期:** 2026-06-13
 > **格式:** Gherkin（Given/When/Then）
 > **用途:** 编码阶段红绿循环
 
 ### 场景组：注册主流程
 
 ```gherkin
-Scenario: 新用户成功注册
+Scenario: TC-01 新用户成功注册
   Given 用户打开注册页面
   And   输入合法且未注册的手机号 "13812345678"
   When  点击"获取验证码"
@@ -314,14 +428,14 @@ Scenario: 新用户成功注册
   And   再次输入相同的密码 "abc12345"
   And   勾选"我已阅读并同意《用户协议》"
   And   点击"注册"按钮
-  Then  按钮显示 loading，变为"注册中..."
+  Then  按钮显示 loading，变为"注册中..."，全屏遮罩出现
   And   注册接口返回成功
   Then  用户被自动登录
   And   跳转到主页，且无法通过返回键回到注册页
 ```
 
 ```gherkin
-Scenario: 已注册手机号提前拦截
+Scenario: TC-02 已注册手机号提前拦截
   Given 用户打开注册页面
   And   输入已注册的手机号 "13900001111"
   When  点击"获取验证码"
@@ -333,7 +447,7 @@ Scenario: 已注册手机号提前拦截
 ```
 
 ```gherkin
-Scenario: 两次密码不一致
+Scenario: TC-03 两次密码不一致
   Given 用户打开注册页面并已获取验证码
   And   输入密码 "abc12345"
   When  在确认密码框输入 "abc54321"
@@ -345,28 +459,28 @@ Scenario: 两次密码不一致
 ```
 
 ```gherkin
-Scenario: 注册网络异常
+Scenario: TC-04 注册网络异常
   Given 用户打开注册页面，所有字段合法填写完毕，协议已勾选
   When  网络断开
   And   点击"注册"按钮
   Then  按钮短暂显示 loading
-  And   Toast 提示"注册失败，请检查网络后重试"
+  And   Snackbar 提示"注册失败，请检查网络后重试"，含"重试" action
   And   按钮恢复可点击状态
   And   所有输入内容保留
 ```
 
 ```gherkin
-Scenario: 验证码过期后重新获取
+Scenario: TC-05 验证码过期后重新获取
   Given 用户打开注册页面并已获取验证码
   And   5 分钟后验证码已过期
   When  输入过期验证码并填写完所有信息，点击注册
   Then  API 返回验证码过期错误
-  And   Toast 提示"验证码已过期，请重新获取"
+  And   Snackbar 提示"验证码已过期，请重新获取"
   And   获取验证码按钮恢复可点击
 ```
 
 ```gherkin
-Scenario: 协议未勾选禁用注册
+Scenario: TC-06 协议未勾选禁用注册
   Given 用户打开注册页面，所有字段合法填写完毕
   And   协议未勾选
   Then  注册按钮置灰不可点击
@@ -375,11 +489,110 @@ Scenario: 协议未勾选禁用注册
 ```
 
 ```gherkin
-Scenario: 查看用户协议
+Scenario: TC-07 查看用户协议
   Given 用户打开注册页面
   When  点击"《用户协议》"链接
-  Then  跳转到协议详情页（WebView 加载远程 URL）
+  Then  跳转到协议详情页（in-app WebView 加载远程 URL）
   And   用户可返回注册页，表单内容保留
+```
+
+### 场景组：新增场景（评审驱动）
+
+```gherkin
+Scenario: TC-08 手机号格式校验-非1开头
+  Given 用户打开注册页面
+  When  输入非1开头的11位号码 "23312345678"
+  Then  获取验证码按钮保持 disabled
+  And   手机号输入框下方 supportingText 提示"请输入正确的手机号"
+```
+
+```gherkin
+Scenario: TC-09 手机号格式校验-不足11位
+  Given 用户打开注册页面
+  When  输入10位号码 "1381234567"
+  Then  获取验证码按钮保持 disabled
+```
+
+```gherkin
+Scenario: TC-10 密码弱校验-纯数字
+  Given 用户打开注册页面
+  When  输入纯数字密码 "12345678"
+  Then  密码框下方 supportingText 提示"密码需包含字母和数字"
+  And   注册按钮保持不可点击
+```
+
+```gherkin
+Scenario: TC-11 密码弱校验-不足8位
+  Given 用户打开注册页面
+  When  输入7位密码 "Abc1234"
+  Then  密码框下方 supportingText 提示"密码长度需8-20位"
+```
+
+```gherkin
+Scenario: TC-12 短信发送失败提示重试
+  Given 用户在注册页输入有效手机号
+  When  用户点击"获取验证码"，短信接口返回发送失败
+  Then  Snackbar 提示"验证码发送失败，请重试"
+  And   按钮保持"获取验证码"文案，不启动60秒倒计时
+  And   用户可再次点击获取
+```
+
+```gherkin
+Scenario: TC-13 倒计时结束后重新获取验证码
+  Given 用户已获取验证码，倒计时显示剩余1秒
+  When  60秒倒计时归零
+  Then  按钮文案变为"重新获取"
+  And   按钮恢复可点击状态
+  When  用户再次点击"重新获取"
+  Then  发送新验证码并启动新的60秒倒计时
+```
+
+```gherkin
+Scenario: TC-14 注册成功但自动登录失败降级到登录页
+  Given 用户填写完整注册信息并提交
+  When  注册接口返回成功，自动登录接口返回失败
+  Then  Snackbar 提示"注册成功，请手动登录"
+  And   页面跳转至登录页（非主页）
+  And   不暴露任何 token 或敏感信息
+```
+
+```gherkin
+Scenario: TC-15 切换密码可见性
+  Given 用户已在密码输入框输入密码
+  When  用户点击密码框右侧眼睛图标
+  Then  密码以明文显示
+  And   眼睛图标变为关闭状态，contentDescription 变为"隐藏密码"
+  When  用户再次点击眼睛图标
+  Then  密码恢复密文显示
+  And   确认密码框独立拥有相同的可见性切换
+```
+
+```gherkin
+Scenario: TC-16 密码包含特殊字符注册成功
+  Given 用户在注册页
+  When  用户输入密码 "Abc@1234#"（8-20位，含大写、小写、数字、特殊字符）
+  And   两次密码一致
+  Then  密码校验通过，无错误提示
+  And   可正常提交注册（特殊字符不被前端拦截）
+```
+
+```gherkin
+Scenario: TC-17 旋转屏幕后注册状态不丢失
+  Given 用户已输入手机号 "13812345678" 并获取验证码，倒计时剩余42秒
+  And   已输入密码和确认密码
+  When  用户旋转设备（竖屏→横屏）
+  Then  手机号、密码字段内容保留
+  And   验证码已发送状态保留，倒计时继续不重置
+  And   勾选框选中状态保留
+```
+
+```gherkin
+Scenario: TC-18 杀进程重启后倒计时失效允许重新获取
+  Given 用户已获取验证码，倒计时剩余30秒
+  When  用户杀进程并重新打开 App 进入注册页
+  Then  倒计时状态已失效
+  And   按钮显示"获取验证码"且可点击
+  And   不会恢复残留的倒计时
 ```
 
 ### 场景覆盖矩阵
@@ -393,6 +606,19 @@ Scenario: 查看用户协议
 | TC-05 | 验证码过期后重新获取 | AC-10 | P1 |
 | TC-06 | 协议未勾选禁用注册 | AC-07 | P0 |
 | TC-07 | 查看用户协议 | AC-12, AC-13 | P2 |
+| TC-08 | 手机号格式校验-非1开头 | AC-02 | P0 |
+| TC-09 | 手机号格式校验-不足11位 | AC-02 | P0 |
+| TC-10 | 密码弱校验-纯数字 | AC-05 | P0 |
+| TC-11 | 密码弱校验-不足8位 | AC-05 | P0 |
+| TC-12 | 短信发送失败 | AC-14 | P0 |
+| TC-13 | 倒计时归零可重新获取 | AC-15 | P0 |
+| TC-14 | 注册成功自动登录失败降级 | AC-16 | P0 |
+| TC-15 | 密码可见性切换 | AC-17 | P0 |
+| TC-16 | 密码含特殊字符 | AC-20 | P1 |
+| TC-17 | 横竖屏旋转状态保留 | AC-18 | P1 |
+| TC-18 | 杀进程后倒计时失效 | AC-19 | P1 |
+
+> AC-21（无障碍 contentDescription）为组件级约束，由代码审查和 UI 测试覆盖，不在功能 Gherkin 中单独设场景。
 
 ---
 
@@ -404,7 +630,7 @@ Scenario: 查看用户协议
 
 ### 11.1 API 接口定义
 
-#### POST /api/auth/send-sms
+#### POST /api/v1/auth/send-sms
 
 ```json
 {
@@ -444,7 +670,7 @@ Scenario: 查看用户协议
 }
 ```
 
-#### POST /api/auth/register
+#### POST /api/v1/auth/register
 
 ```json
 {
@@ -548,6 +774,8 @@ data class RegisterData(val token: String, val user: UserBrief)
 data class UserBrief(val userId: String, val phone: String)
 ```
 
+**重要安全约束:** AuthToken 必须使用 EncryptedSharedPreferences 加密持久化，禁止使用 DataStore 明文存储 Token。DataStore 仅用于非敏感数据（如用户偏好）。
+
 ### 11.3 客户端状态枚举
 
 | 状态 | 值 | 说明 |
@@ -565,28 +793,111 @@ data class UserBrief(val userId: String, val phone: String)
 
 ## §12 多视角评审记录
 
-> 评审日期: 待执行
-> 评审方式: 4-Agent 并行评审（产品视角 / 技术视角 / UX 视角 / QA 视角）
+> **评审日期:** 2026-06-13
+> **评审方式:** 4-Agent 并行评审（产品视角 / 技术视角 / UX 视角 / QA 视角）
+> **评审轮次:** 第 1 轮
+> **结果:** 已自动修订共识 P0 问题至 PRD 正文
 
 ### 12.1 评审总览
 
 | 视角 | 评分 | P0 项 | P1 项 | 结论 |
-|------|------|-------|-------|------|
-| 产品视角 | — | — | — | 待评审 |
-| 技术视角 | — | — | — | 待评审 |
-| UX 视角 | — | — | — | 待评审 |
-| QA 视角 | — | — | — | 待评审 |
+|------|:----:|:-----:|:-----:|------|
+| 产品视角 | 7/10 | 5 | 6 | 核心场景覆盖充分，需补异常路径 AC |
+| 技术视角 | 7/10 | 4 | 5 | 架构合理，Token 安全须强化 |
+| UX 视角 | 6.5/10 | 4 | 6 | 交互流程闭合，无障碍细节缺失 |
+| QA 视角 | 4/10 | 9 | 4 | 原 7 场景覆盖不足，扩至 18 场景 |
 
-### 12.2–12.5 待评审产出
+### 12.2 产品视角评审（Agent A）
+
+**P0（已修订到正文）:**
+- P0-01: 缺少短信发送失败 AC → 新增 AC-14
+- P0-02: 倒计时归零行为未定义 → 新增 AC-15
+- P0-03: 密码特殊字符规则不清 → 新增 AC-20（允许合法特殊字符放行）
+- P0-04: 4 个待确认项阻塞 → 移至 R-01~R-04 跟踪，不阻塞进入编码
+- P0-05: 注册成功但自动登录失败降级无 AC → 新增 AC-16
+
+**P1:**
+- P1-01: 密码不一致校验触发时机（建议确认密码框失焦时触发）
+- P1-02: AC-12 协议链接优先级偏低（保持 P2，法律合规由应用商店审核负责）
+- P1-03: SavedStateHandle 旋转恢复无 AC → 新增 AC-18
+- P1-04: 杀进程恢复无 AC → 新增 AC-19
+- P1-05: 非功能性 AC 缺失 → 性能目标在 §5 量化，编码另设 benchmark
+- P1-06: 已注册拦截后缺少直达登录快捷操作 → 已包含"去登录"链接
+
+**产品风险矩阵:** 7 项风险（短信服务商/校验依赖/自动登录失败/倒计时/协议 URL/密码规则/折叠屏），均有缓解措施。
+
+### 12.3 技术视角评审（Agent B）
+
+**P0（已修订到正文）:**
+- P0-01: Token 明文存储 → §6 新增 EncryptedSharedPreferences，§11 追加安全约束
+- P0-02: 短信接口无防刷 → §7 新增防刷风险及缓解（后端 IP/设备限频）
+- P0-03: SavedStateHandle 字段未定义 → §6 列举 4 个字段（phone/password/smsSentTimestamp/agreementAccepted）
+- P0-04: 手机号硬编码 11 位不兼容国际 → §3 明确仅中国大陆
+
+**P1:**
+- P1-01: RegisterError 粒度不足 → 建议 UiState 拆分 NetworkError/ServerError/ValidationError
+- P1-02: 密码无客户端校验 → §4 AC-05/AC-10/AC-11 已覆盖
+- P1-03: 倒计时持久化缺失 → §6 基于服务器时间戳方案已描述
+- P1-04: 验证码自动填充（SMS Retriever API）→ §9.6 已纳入设计约束
+- P1-05: API 无版本号 → §11 全部 API 路径改为 /api/v1/
+
+**技术风险表:** 6 项（Token 明文/短信滥用/状态竞态/倒计时不同步/Process Death/Retrofit 拦截器）
+
+### 12.4 UX 视角评审（Agent C）
+
+**P0（已修订到正文）:**
+- P0-01: 无障碍 contentDescription 全缺 → 新增 AC-21，§9 ASCII 布局中每个组件标注 contentDescription
+- P0-02: 键盘类型未指定 → §9 布局规格显式标注 KeyboardType.Phone/Number/Password
+- P0-03: 密码可见性切换规格缺失 → 新增 AC-17，§9 详细描述双框独立控制、图标切换、contentDescription
+- P0-04: 键盘弹起策略未定义 → §9.6 设计约束加入 imePadding()/WindowInsets.ime
+
+**P1:**
+- P1-01: 手机号格式化光标跳变 → §9.3 交互 #1 明确"光标位置同步不跳变"
+- P1-02: 倒计时按钮防重复 → §9 倒计时按钮 disabled + 文字动态切换
+- P1-03: SMS 自动填充 → §9.3 #6 纳入 SMS Retriever API
+- P1-04: 协议链接跳转方式 → §9.6 明确 in-app WebView 保留回退栈
+- P1-05: 错误反馈策略混用 → §9.6 区分内联(supportingText)/全局(Snackbar)
+- P1-06: Loading 状态视觉 → §9 遮罩层 + 按钮 loading
+
+**§9 已重写:** ASCII 线框图布局 + 16 交互规格 + 16 状态覆盖 + 10 组件选型 + 18 设计约束
+
+### 12.5 QA 视角评审（Agent D）
+
+**覆盖提升:**
+- 原 7 场景 → 扩至 18 场景
+- AC 覆盖: 11/13 → 21/21（AC-21 由代码审查覆盖）
+- 三方 P0 覆盖: 1/9 → 6/9（3 个非功能 P0 不适用 Gherkin）
+
+**新增场景:**
+| 场景 | 覆盖 |
+|------|------|
+| TC-08/09 | 手机号格式校验（AC-02） |
+| TC-10/11 | 密码强度校验（AC-05） |
+| TC-12 | 短信发送失败（AC-14） |
+| TC-13 | 倒计时归零可重新获取（AC-15） |
+| TC-14 | 自动登录失败降级（AC-16） |
+| TC-15 | 密码可见性切换（AC-17） |
+| TC-16 | 密码含特殊字符（AC-20） |
+| TC-17 | 横竖屏旋转状态保留（AC-18） |
+| TC-18 | 杀进程倒计时失效（AC-19） |
 
 ### 12.6 讨论决议
 
 | 决议编号 | 决议内容 | 来源 | 状态 |
 |----------|----------|------|------|
-| R-01 | 验证码发送方式：后端统一发送 | 假设，待确认 | 待确认 |
-| R-02 | 协议链接：WebView 加载远程 URL | 假设，待确认 | 待确认 |
-| R-03 | "去登录"自动填入手机号：是 | 假设，待确认 | 待确认 |
-| R-04 | 注册页"已有账号？去登录"入口：有 | 假设，待确认 | 待确认 |
+| R-01 | 验证码发送方式：后端统一短信发送 | 假设，待确认 | 待确认 |
+| R-02 | 协议链接：in-app WebView 加载远程 URL，含本地 fallback | 假设，待确认 | 待确认 |
+| R-03 | "去登录"自动填入手机号：是，从已注册拦截跳转时自动填入 | 假设，待确认 | 待确认 |
+| R-04 | 注册页"已有账号？去登录"入口：底部 TextButton | 假设，待确认 | 待确认 |
+| D-01 | Token 存储方案：EncryptedSharedPreferences 加密，禁止 DataStore 明文 | 技术 Agent P0 | 已确认 |
+| D-02 | API 版本化：所有路径使用 /api/v1/ 前缀 | 技术 Agent P1 | 已确认 |
+| D-03 | 密码特殊字符策略：前端不拦截合法特殊字符（@#$%等），仅校验长度+字母+数字组合 | 产品 P0 + QA TC-16 | 已确认 |
+| D-04 | 错误反馈策略：字段级错误用 supportingText，全局错误用 Snackbar + action | UX P1 | 已确认 |
+| D-05 | 提交防重策略：遮罩层 + 按钮 disabled + 文字变为"注册中..." | UX P1 | 已确认 |
+| D-06 | 倒计时持久化：基于服务器返回 timestamp 计算，杀进程后失效恢复可点击 | 产品 P1 + QA TC-18 | 已确认 |
+| D-07 | SavedStateHandle 字段：phone, password, smsSentTimestamp, agreementAccepted | 技术 P0 | 已确认 |
+| D-08 | 目标市场：中国大陆手机号（11 位 1 开头），不含国际号码 | 技术 P0 + §3 | 已确认 |
+| D-09 | 无障碍 baseline：所有交互元素设置 contentDescription，触摸目标 ≥ 48dp | UX P0 + AC-21 | 已确认 |
 
 ---
 
