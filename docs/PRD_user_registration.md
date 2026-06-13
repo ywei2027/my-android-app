@@ -1,10 +1,10 @@
 # 用户注册 — PRD
 
-> **版本:** v0.2-review
+> **版本:** v1.0-confirmed
 > **澄清依据:** docs/PRD_CLARIFICATION_user_registration.md（3 轮 11 问，2026-06-13）
 > **创建日期:** 2026-06-13
 > **作者:** Hermes 智能研发工作流
-> **状态:** 评审中（v0.2-review，4-Agent 并行评审已完成）
+> **状态:** 已冻结（v1.0-confirmed，2026-06-13 多视角评审通过后人工确认）
 
 ---
 

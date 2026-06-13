@@ -14,6 +14,7 @@
 | D-07 | 2026-06-13 | SavedStateHandle 持久化字段：phone, password, smsSentTimestamp, agreementAccepted | 已确认 |
 | D-08 | 2026-06-13 | 目标市场：中国大陆手机号（11 位 1 开头），不含国际号码 | 已确认 |
 | D-09 | 2026-06-13 | 无障碍 baseline：所有交互元素设置 contentDescription，触摸目标 ≥ 48dp | 已确认 |
+| D-10 | 2026-06-13 | PRD 冻结：v1.0-confirmed，多视角评审（产品/技术/UX/QA）通过后人工确认 | 已确认 |
 
 ## 变更历史
 
