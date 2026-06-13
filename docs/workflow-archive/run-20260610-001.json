@@ -1,0 +1,25 @@
+{
+  "run_id": "run-20260610-001",
+  "feature": "注册",
+  "archived_stage": "STAGE_PRD",
+  "archived_at": "2026-06-10T02:44:27.190Z",
+  "started": "2026-06-09T15:49:20.219Z",
+  "duration_days": 1,
+  "prd_version": null,
+  "ui_design_version": null,
+  "design_version": null,
+  "tdd_version": null,
+  "code_version": null,
+  "test_version": null,
+  "pr_url": null,
+  "issues_count": 0,
+  "prd_p0_count": 0,
+  "prd_p1_count": 0,
+  "documents": [],
+  "full_state": {
+    "run_id": "run-20260610-001",
+    "current_stage": "STAGE_PRD",
+    "feature_name": "注册",
+    "updated": "2026-06-10T02:40:44.242Z"
+  }
+}
