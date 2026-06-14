@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>注册 — 默认态</title>
+<style>
+:root {
+  --primary: #6750A4;
+  --on-primary: #FFFFFF;
+  --primary-container: #EADDFF;
+  --surface: #FEF7FF;
+  --surface-variant: #E7E0EC;
+  --on-surface: #1C1B1E;
+  --on-surface-variant: #49454F;
+  --outline: #79747E;
+  --outline-variant: #CAC4D0;
+  --error: #BA1A1A;
+  --background: #FEF7FF;
+  --ripple: rgba(103, 80, 164, 0.08);
+  --scrim: rgba(0,0,0,0.6);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary: #D0BCFF;
+    --on-primary: #381E72;
+    --primary-container: #4F378B;
+    --surface: #1C1B1F;
+    --surface-variant: #49454F;
+    --on-surface: #E6E1E5;
+    --on-surface-variant: #CAC4D0;
+    --outline: #938F99;
+    --outline-variant: #49454F;
+    --error: #FFB4AB;
+    --background: #1C1B1F;
+    --ripple: rgba(208, 188, 255, 0.08);
+    --scrim: rgba(0,0,0,0.75);
+  }
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: #e8e8e8;
+  display: flex; justify-content: center; align-items: center;
+  min-height: 100vh;
+  font-family: 'Roboto', 'Noto Sans SC', system-ui, sans-serif;
+}
+.phone {
+  width: 375px; height: 812px;
+  background: var(--surface);
+  border-radius: 44px;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+  position: relative;
+  display: flex; flex-direction: column;
+}
+.status-bar {
+  height: 44px; background: var(--surface);
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0 24px; font-size: 12px; font-weight: 600;
+  color: var(--on-surface);
+}
+.topbar {
+  height: 56px; display: flex; align-items: center;
+  background: var(--surface); color: var(--on-surface);
+  padding: 0 4px;
+}
+.topbar .back-btn {
+  width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; border: none; background: none; color: var(--on-surface);
+  border-radius: 24px; transition: background 0.15s;
+}
+.topbar .back-btn:hover, .topbar .back-btn:active { background: var(--ripple); }
+.topbar .title {
+  font-size: 18px; font-weight: 500; line-height: 24px;
+  position: absolute; left: 50%; transform: translateX(-50%);
+}
+.scroll-area {
+  flex:1; overflow-y: auto; padding: 0 16px 24px;
+}
+.field {
+  width: 100%; height: 56px; border: 1px solid var(--outline-variant);
+  border-radius: 4px 4px 0 0; margin-top: 16px; position: relative;
+  background: var(--surface); transition: border-color 0.2s;
+  display: flex; align-items: center;
+}
+.field:focus-within { border-color: var(--primary); border-width: 2px; }
+.field .label {
+  position: absolute; top: 8px; left: 16px;
+  font-size: 12px; color: var(--on-surface-variant); pointer-events: none;
+}
+.field input {
+  width: 100%; height: 100%; border: none; outline: none; background: transparent;
+  font-size: 16px; color: var(--on-surface); padding: 18px 16px 0;
+  caret-color: var(--primary);
+}
+.field input::placeholder { color: var(--outline); font-size: 16px; }
+.field input:focus { padding-top: 18px; }
+.field .trailing {
+  position: absolute; right: 0; top: 0; width: 48px; height: 56px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--on-surface-variant); background: none; border: none;
+}
+.sms-row {
+  display: flex; gap: 12px; margin-top: 16px; align-items: flex-start;
+}
+.sms-row .field { flex:1; margin-top: 0; }
+.sms-btn {
+  height: 56px; padding: 0 16px; min-width: 96px;
+  border: 1px solid var(--outline); border-radius: 20px;
+  background: var(--surface); color: var(--primary);
+  font-size: 14px; font-weight: 500; cursor: pointer;
+  white-space: nowrap; transition: background 0.15s;
+}
+.sms-btn:hover { background: var(--ripple); }
+.sms-btn.disabled {
+  opacity: 0.38; pointer-events: none; cursor: default;
+}
+.eye-btn {
+  position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+  width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; background: none; border: none; color: var(--on-surface-variant);
+  border-radius: 24px;
+}
+.eye-btn:hover { background: var(--ripple); }
+.agreement-row {
+  display: flex; align-items: center; margin-top: 24px; gap: 4px;
+}
+.agreement-row input[type="checkbox"] {
+  width: 18px; height: 18px; margin: 0 8px; accent-color: var(--primary);
+  cursor: pointer;
+}
+.agreement-row label {
+  font-size: 14px; color: var(--on-surface-variant); cursor: pointer;
+}
+.agreement-link { color: var(--primary); text-decoration: none; cursor: pointer; }
+.agreement-link:hover { text-decoration: underline; }
+.register-btn {
+  width: 100%; height: 56px; margin-top: 32px;
+  border: none; border-radius: 20px;
+  background: var(--primary); color: var(--on-primary);
+  font-size: 16px; font-weight: 500; cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+.register-btn:hover { filter: brightness(1.1); }
+.register-btn:active { filter: brightness(0.9); }
+.register-btn.disabled {
+  opacity: 0.38; pointer-events: none; cursor: default;
+}
+.login-link {
+  display: block; text-align: center; margin-top: 16px;
+  font-size: 14px; color: var(--primary); cursor: pointer;
+  background: none; border: none; width: 100%; padding: 12px 0;
+  border-radius: 20px; transition: background 0.15s;
+}
+.login-link:hover { background: var(--ripple); }
+.snackbar {
+  position: absolute; bottom: 48px; left: 16px; right: 16px;
+  background: var(--on-surface); color: var(--surface);
+  padding: 12px 16px; border-radius: 4px;
+  font-size: 14px; display: flex; align-items: center; justify-content: space-between;
+  z-index: 10; box-shadow: 0 3px 5px rgba(0,0,0,0.2);
+}
+.snackbar.success { background: #2E7D32; color: #FFFFFF; }
+.snackbar.error { background: #C62828; color: #FFFFFF; }
+.overlay {
+  position: absolute; inset: 0; background: var(--scrim);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 20;
+}
+.overlay .spinner {
+  width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.3);
+  border-top-color: #fff; border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 16px;
+}
+.overlay .text { color: #fff; font-size: 16px; }
+.overlay .cancel-hint { color: rgba(255,255,255,0.7); font-size: 12px; margin-top: 8px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="status-bar">09:41</div>
+  <div class="topbar">
+    <button class="back-btn" aria-label="返回">←</button>
+    <span class="title">注册</span>
+  </div>
+  <div class="scroll-area">
+    <!-- 手机号 -->
+    <div class="field">
+      <span class="label">手机号</span>
+      <input type="tel" placeholder="请输入手机号" aria-label="手机号输入框" maxlength="13">
+    </div>
+
+    <!-- 验证码 + 获取按钮 -->
+    <div class="sms-row">
+      <div class="field">
+        <span class="label">验证码</span>
+        <input type="text" placeholder="6位数字" aria-label="短信验证码输入框" maxlength="6" inputmode="numeric">
+      </div>
+      <button class="sms-btn disabled" aria-label="获取验证码" disabled>获取验证码</button>
+    </div>
+
+    <!-- 设置密码 -->
+    <div class="field" style="margin-top:16px;">
+      <span class="label">设置密码</span>
+      <input type="password" placeholder="8-20位，含字母+数字" aria-label="密码输入框" style="padding-right:48px;">
+      <button class="eye-btn" aria-label="显示密码" style="top:0;transform:none;">👁</button>
+    </div>
+
+    <!-- 确认密码 -->
+    <div class="field" style="margin-top:16px;">
+      <span class="label">确认密码</span>
+      <input type="password" placeholder="再次输入密码" aria-label="确认密码输入框" style="padding-right:48px;">
+      <button class="eye-btn" aria-label="显示密码" style="top:0;transform:none;">👁</button>
+    </div>
+
+    <!-- 协议 -->
+    <div class="agreement-row">
+      <input type="checkbox" id="agree" aria-label="同意用户协议复选框">
+      <label for="agree">我已阅读并同意<span class="agreement-link" role="link" tabindex="0" aria-label="查看用户协议">《用户协议》</span></label>
+    </div>
+
+    <!-- 注册按钮 -->
+    <button class="register-btn disabled" aria-label="提交注册" disabled>注册</button>
+
+    <!-- 去登录 -->
+    <button class="login-link" aria-label="已有账号，去登录">已有账号？去登录</button>
+  </div>
+</div>
+</body>
+</html>

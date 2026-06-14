@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>用户注册 — UI 原型预览</title>
+<style>
+:root {
+  --primary: #6750A4;
+  --on-primary: #FFFFFF;
+  --primary-container: #EADDFF;
+  --surface: #FEF7FF;
+  --surface-variant: #E7E0EC;
+  --on-surface: #1C1B1E;
+  --on-surface-variant: #49454F;
+  --outline: #79747E;
+  --outline-variant: #CAC4D0;
+  --error: #BA1A1A;
+  --background: #FEF7FF;
+  --ripple: rgba(103, 80, 164, 0.08);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary: #D0BCFF;
+    --on-primary: #381E72;
+    --primary-container: #4F378B;
+    --surface: #1C1B1F;
+    --surface-variant: #49454F;
+    --on-surface: #E6E1E5;
+    --on-surface-variant: #CAC4D0;
+    --outline: #938F99;
+    --outline-variant: #49454F;
+    --error: #FFB4AB;
+    --background: #1C1B1F;
+    --ripple: rgba(208, 188, 255, 0.08);
+  }
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: #e8e8e8;
+  min-height: 100vh;
+  font-family: 'Roboto', 'Noto Sans SC', system-ui, sans-serif;
+  color: var(--on-surface);
+}
+.container {
+  max-width: 640px; margin: 0 auto; padding: 40px 20px;
+}
+h1 { font-size: 28px; font-weight: 600; margin-bottom: 4px; }
+.subtitle { font-size: 14px; color: var(--on-surface-variant); margin-bottom: 32px; }
+.page-card {
+  background: var(--surface); border-radius: 16px; padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.page-card h2 {
+  font-size: 18px; font-weight: 500; margin-bottom: 4px;
+}
+.page-card p {
+  font-size: 14px; color: var(--on-surface-variant); margin-bottom: 16px;
+}
+.links { display: flex; flex-wrap: wrap; gap: 8px; }
+.links a {
+  display: inline-block; padding: 8px 16px; border-radius: 8px;
+  font-size: 13px; font-weight: 500; text-decoration: none;
+  transition: background 0.15s;
+}
+.link-primary { background: var(--primary-container); color: var(--on-surface); }
+.link-primary:hover { filter: brightness(0.95); }
+.link-secondary { background: var(--surface-variant); color: var(--on-surface-variant); }
+.link-secondary:hover { background: var(--outline-variant); }
+.link-success { background: #E8F5E9; color: #2E7D32; }
+.link-error { background: #FFEBEE; color: #C62828; }
+.footer {
+  margin-top: 32px; text-align: center;
+  font-size: 12px; color: var(--outline);
+}
+.badge {
+  display: inline-block; background: var(--primary-container);
+  padding: 2px 8px; border-radius: 8px;
+  font-size: 11px; color: var(--on-surface); margin-left: 6px;
+}
+</style>
+</head>
+<body>
+<div class="container" role="main">
+  <h1>📱 用户注册</h1>
+  <p class="subtitle">UI 原型预览 — v0.1-draft <span class="badge">M3 Design</span></p>
+
+  <div class="page-card">
+    <h2>RegisterScreen — 注册表单</h2>
+    <p>手机号 + 短信验证码 + 密码 + 协议勾选的完整注册流程，覆盖 Idle / Valid / Loading / Success / Error 全部状态。</p>
+    <div class="links">
+      <a href="register_default.html" class="link-primary">默认态 (Idle)</a>
+      <a href="register_form_valid.html" class="link-primary">表单完整 (Valid)</a>
+      <a href="register_loading.html" class="link-primary">提交中 (Loading)</a>
+      <a href="register_result.html" class="link-secondary">结果态 (Success/Error)</a>
+    </div>
+  </div>
+
+  <div class="page-card">
+    <h2>AgreementScreen — 用户协议</h2>
+    <p>in-app WebView 加载用户协议全文，含本地 fallback 降级方案。</p>
+    <div class="links">
+      <a href="agreement.html" class="link-primary">协议页 (默认)</a>
+    </div>
+  </div>
+
+  <div class="footer">
+    UI 设计方案：UI_DESIGN.md | PRD 来源：§9 UI 设计输入 (v1.2-confirmed) | 生成时间：2026-06-14
+  </div>
+</div>
+</body>
+</html>

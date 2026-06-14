@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>用户协议</title>
+<style>
+:root {
+  --primary: #6750A4;
+  --on-primary: #FFFFFF;
+  --primary-container: #EADDFF;
+  --surface: #FEF7FF;
+  --surface-variant: #E7E0EC;
+  --on-surface: #1C1B1E;
+  --on-surface-variant: #49454F;
+  --outline: #79747E;
+  --outline-variant: #CAC4D0;
+  --error: #BA1A1A;
+  --background: #FEF7FF;
+  --ripple: rgba(103, 80, 164, 0.08);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary: #D0BCFF;
+    --on-primary: #381E72;
+    --primary-container: #4F378B;
+    --surface: #1C1B1F;
+    --surface-variant: #49454F;
+    --on-surface: #E6E1E5;
+    --on-surface-variant: #CAC4D0;
+    --outline: #938F99;
+    --outline-variant: #49454F;
+    --error: #FFB4AB;
+    --background: #1C1B1F;
+    --ripple: rgba(208, 188, 255, 0.08);
+  }
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: #e8e8e8;
+  display: flex; justify-content: center; align-items: center;
+  min-height: 100vh;
+  font-family: 'Roboto', 'Noto Sans SC', system-ui, sans-serif;
+}
+.phone {
+  width: 375px; height: 812px;
+  background: var(--surface);
+  border-radius: 44px;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+  position: relative;
+  display: flex; flex-direction: column;
+}
+.status-bar {
+  height: 44px; background: var(--surface);
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0 24px; font-size: 12px; font-weight: 600;
+  color: var(--on-surface);
+}
+.topbar {
+  height: 56px; display: flex; align-items: center;
+  background: var(--surface); color: var(--on-surface);
+  padding: 0 4px;
+  border-bottom: 1px solid var(--outline-variant);
+}
+.topbar .back-btn {
+  width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; border: none; background: none; color: var(--on-surface);
+  border-radius: 24px; transition: background 0.15s;
+}
+.topbar .back-btn:hover, .topbar .back-btn:active { background: var(--ripple); }
+.topbar .title {
+  font-size: 18px; font-weight: 500; line-height: 24px;
+  position: absolute; left: 50%; transform: translateX(-50%);
+}
+.content {
+  flex:1; overflow-y: auto; padding: 24px 16px;
+}
+.content h2 {
+  font-size: 18px; font-weight: 500; color: var(--on-surface);
+  text-align: center; margin-bottom: 16px;
+}
+.content h3 {
+  font-size: 15px; font-weight: 500; color: var(--on-surface);
+  margin: 20px 0 8px;
+}
+.content p {
+  font-size: 14px; color: var(--on-surface-variant);
+  line-height: 1.6; margin-bottom: 8px;
+}
+.content ul {
+  padding-left: 20px; margin-bottom: 12px;
+}
+.content li {
+  font-size: 14px; color: var(--on-surface-variant);
+  line-height: 1.6; margin-bottom: 4px;
+}
+.loading {
+  flex:1; display: flex; align-items: center; justify-content: center;
+}
+.loading .spinner {
+  width: 36px; height: 36px; border: 3px solid var(--outline-variant);
+  border-top-color: var(--primary); border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.fallback-badge {
+  display: inline-block; background: var(--primary-container);
+  color: var(--on-surface); font-size: 11px; padding: 2px 8px;
+  border-radius: 8px; margin-left: 8px; vertical-align: middle;
+}
+</style>
+</head>
+<body>
+<div class="phone" aria-label="用户协议页面">
+  <div class="status-bar">09:42</div>
+  <div class="topbar">
+    <button class="back-btn" aria-label="返回注册页">←</button>
+    <span class="title">用户协议</span>
+  </div>
+  <div class="content" role="main">
+    <h2>用户服务协议</h2>
+    <p>更新日期：2026年6月1日</p>
+    <p>生效日期：2026年6月1日 <span class="fallback-badge">本地备份</span></p>
+
+    <h3>一、总则</h3>
+    <p>1.1 本协议是您（下称"用户"）与本应用（下称"本平台"）之间关于使用本平台服务所订立的协议。</p>
+    <p>1.2 本协议内容包括协议正文以及本平台已经发布或将来可能发布的各类规则。</p>
+    <p>1.3 用户在使用本平台提供的各项服务之前，应仔细阅读本协议。用户一旦使用本平台服务，即视为已阅读并同意接受本协议全部条款的约束。</p>
+
+    <h3>二、账号注册与使用</h3>
+    <p>2.1 用户在使用本平台服务前需要注册账号。账号应当使用手机号进行注册。</p>
+    <p>2.2 用户在注册时应提供真实、准确的个人信息，并在信息变更时及时更新。</p>
+    <p>2.3 用户注册成功后，本平台将给予每个用户一个用户账号及相应的密码，该账号和密码由用户负责保管。</p>
+    <p>2.4 用户应对其账号进行的所有活动和事件负法律责任。</p>
+
+    <h3>三、用户信息保护</h3>
+    <p>3.1 本平台重视用户个人信息的保护，保护用户个人信息是本平台的一项基本原则。</p>
+    <p>3.2 本平台将按照相关法律法规的规定，采取合理必要的措施保护用户的个人信息安全。</p>
+    <p>3.3 用户在注册账号或使用本服务的过程中，可能需要填写或提交一些必要的信息。如用户提交的信息不完整或不符合法律法规的规定，则用户可能无法使用本服务或在使用本服务的过程中受到限制。</p>
+
+    <h3>四、用户行为规范</h3>
+    <p>4.1 用户在使用本平台服务过程中，必须遵循以下原则：</p>
+    <ul>
+      <li>遵守中国有关的法律法规；</li>
+      <li>不得为任何非法目的而使用网络服务系统；</li>
+      <li>遵守所有与网络服务有关的网络协议、规定和程序；</li>
+      <li>不得利用本平台进行任何可能对互联网的正常运转造成不利影响的行为。</li>
+    </ul>
+
+    <h3>五、免责声明</h3>
+    <p>5.1 本平台不对用户在本平台服务中相关数据的删除或储存失败负责。</p>
+    <p>5.2 本平台有权根据实际情况自行决定单个用户在本平台服务中数据的最长储存期限，并在服务器上为其分配数据最大存储空间等。</p>
+
+    <p style="text-align:center;margin-top:32px;color:var(--outline);">—— 协议结束 ——</p>
+  </div>
+</div>
+</body>
+</html>

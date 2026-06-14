@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>注册 — 执行结果（成功/失败）</title>
+<style>
+:root {
+  --primary: #6750A4;
+  --on-primary: #FFFFFF;
+  --primary-container: #EADDFF;
+  --surface: #FEF7FF;
+  --surface-variant: #E7E0EC;
+  --on-surface: #1C1B1E;
+  --on-surface-variant: #49454F;
+  --outline: #79747E;
+  --outline-variant: #CAC4D0;
+  --error: #BA1A1A;
+  --background: #FEF7FF;
+  --ripple: rgba(103, 80, 164, 0.08);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary: #D0BCFF;
+    --on-primary: #381E72;
+    --primary-container: #4F378B;
+    --surface: #1C1B1F;
+    --surface-variant: #49454F;
+    --on-surface: #E6E1E5;
+    --on-surface-variant: #CAC4D0;
+    --outline: #938F99;
+    --outline-variant: #49454F;
+    --error: #FFB4AB;
+    --background: #1C1B1F;
+    --ripple: rgba(208, 188, 255, 0.08);
+  }
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: #e8e8e8;
+  display: flex; justify-content: center; align-items: center; gap: 32px;
+  min-height: 100vh; flex-wrap: wrap;
+  font-family: 'Roboto', 'Noto Sans SC', system-ui, sans-serif;
+}
+.phone {
+  width: 375px; height: 812px;
+  background: var(--surface);
+  border-radius: 44px;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+  position: relative;
+  display: flex; flex-direction: column;
+}
+.status-bar {
+  height: 44px; background: var(--surface);
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0 24px; font-size: 12px; font-weight: 600;
+  color: var(--on-surface);
+}
+.topbar {
+  height: 56px; display: flex; align-items: center;
+  background: var(--surface); color: var(--on-surface);
+  padding: 0 4px;
+}
+.topbar .back-btn {
+  width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; border: none; background: none; color: var(--on-surface);
+  border-radius: 24px; transition: background 0.15s;
+}
+.topbar .back-btn:hover { background: var(--ripple); }
+.topbar .title {
+  font-size: 18px; font-weight: 500; line-height: 24px;
+  position: absolute; left: 50%; transform: translateX(-50%);
+}
+.scroll-area {
+  flex:1; overflow-y: auto; padding: 0 16px 24px;
+  position: relative;
+}
+.field {
+  width: 100%; height: 56px; border: 1px solid var(--outline-variant);
+  border-radius: 4px 4px 0 0; margin-top: 16px; position: relative;
+  background: var(--surface); display: flex; align-items: center;
+}
+.field .label {
+  position: absolute; top: 8px; left: 16px;
+  font-size: 12px; color: var(--on-surface-variant); pointer-events: none;
+}
+.field input {
+  width: 100%; height: 100%; border: none; outline: none; background: transparent;
+  font-size: 16px; color: var(--on-surface); padding: 18px 46px 0 16px;
+}
+.eye-btn {
+  position: absolute; right: 0; top: 0; width: 48px; height: 56px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; background: none; border: none; color: var(--on-surface-variant);
+}
+.sms-row {
+  display: flex; gap: 12px; margin-top: 16px; align-items: flex-start;
+}
+.sms-row .field { flex:1; margin-top: 0; }
+.sms-btn {
+  height: 56px; padding: 0 16px; min-width: 96px;
+  border: 1px solid var(--outline); border-radius: 20px;
+  background: var(--surface); color: var(--primary);
+  font-size: 14px; font-weight: 500; white-space: nowrap;
+}
+.agreement-row {
+  display: flex; align-items: center; margin-top: 24px; gap: 4px;
+}
+.agreement-row input[type="checkbox"] {
+  width: 18px; height: 18px; margin: 0 8px; accent-color: var(--primary);
+}
+.agreement-row label { font-size: 14px; color: var(--on-surface-variant); }
+.agreement-link { color: var(--primary); text-decoration: none; }
+.register-btn {
+  width: 100%; height: 56px; margin-top: 32px;
+  border: none; border-radius: 20px;
+  background: var(--primary); color: var(--on-primary);
+  font-size: 16px; font-weight: 500; cursor: pointer;
+}
+.login-link {
+  display: block; text-align: center; margin-top: 16px;
+  font-size: 14px; color: var(--primary); cursor: pointer;
+  background: none; border: none; width: 100%; padding: 12px 0;
+  border-radius: 20px; transition: background 0.15s;
+}
+.login-link:hover { background: var(--ripple); }
+.snackbar {
+  position: absolute; bottom: 48px; left: 16px; right: 16px;
+  padding: 12px 16px; border-radius: 4px;
+  font-size: 14px; display: flex; align-items: center; justify-content: space-between;
+  z-index: 10; box-shadow: 0 3px 5px rgba(0,0,0,0.2);
+}
+.snackbar.success { background: #2E7D32; color: #FFFFFF; }
+.snackbar.error { background: #C62828; color: #FFFFFF; }
+.snackbar .action {
+  font-weight: 600; cursor: pointer; margin-left: 16px;
+  white-space: nowrap; border: none; background: none;
+  color: inherit; font-size: 14px;
+}
+.supporting {
+  font-size: 12px; color: var(--on-surface-variant);
+  padding: 4px 16px 0; line-height: 16px;
+}
+.supporting.error { color: var(--error); }
+</style>
+</head>
+<body>
+
+<!-- 注册成功 Snackbar -->
+<div class="phone" aria-label="注册页面，注册成功提示">
+  <div class="status-bar">09:41</div>
+  <div class="topbar">
+    <button class="back-btn" aria-label="返回">←</button>
+    <span class="title">注册</span>
+  </div>
+  <div class="scroll-area">
+    <div class="field"><span class="label">手机号</span><input type="tel" value="138 1234 5678" readonly></div>
+    <div class="sms-row">
+      <div class="field"><span class="label">验证码</span><input type="text" value="123456" readonly></div>
+      <button class="sms-btn">38s后重试</button>
+    </div>
+    <div class="field" style="margin-top:16px;"><span class="label">设置密码</span><input type="password" value="abc12345" readonly><button class="eye-btn">👁</button></div>
+    <div class="field" style="margin-top:16px;"><span class="label">确认密码</span><input type="password" value="abc12345" readonly><button class="eye-btn">👁</button></div>
+    <div class="agreement-row">
+      <input type="checkbox" checked>
+      <label>我已阅读并同意<span class="agreement-link">《用户协议》</span></label>
+    </div>
+    <button class="register-btn">注册</button>
+    <button class="login-link">已有账号？去登录</button>
+    <div class="snackbar success" role="status" aria-live="polite">
+      注册成功
+    </div>
+  </div>
+</div>
+
+<!-- 已注册错误 -->
+<div class="phone" aria-label="注册页面，手机号已注册提示">
+  <div class="status-bar">09:41</div>
+  <div class="topbar">
+    <button class="back-btn" aria-label="返回">←</button>
+    <span class="title">注册</span>
+  </div>
+  <div class="scroll-area">
+    <div class="field"><span class="label">手机号</span><input type="tel" value="139 0000 1111" readonly></div>
+    <div class="sms-row">
+      <div class="field"><span class="label">验证码</span><input type="text" placeholder="6位数字"></div>
+      <button class="sms-btn" aria-label="获取验证码">获取验证码</button>
+    </div>
+    <div class="field" style="margin-top:16px;"><span class="label">设置密码</span><input type="password" placeholder="8-20位，含字母+数字"><button class="eye-btn">👁</button></div>
+    <div class="field" style="margin-top:16px;"><span class="label">确认密码</span><input type="password" placeholder="再次输入密码"><button class="eye-btn">👁</button></div>
+    <div class="agreement-row"><input type="checkbox"><label>我已阅读并同意<span class="agreement-link">《用户协议》</span></label></div>
+    <button class="register-btn" style="opacity:0.38;pointer-events:none;">注册</button>
+    <button class="login-link">已有账号？去登录</button>
+    <div class="snackbar error" role="alert" aria-live="assertive">
+      该手机号已注册
+      <button class="action" style="color:#FFB4AB;">去登录</button>
+    </div>
+  </div>
+</div>
+
+<!-- 网络错误 -->
+<div class="phone" aria-label="注册页面，网络错误提示">
+  <div class="status-bar">09:41</div>
+  <div class="topbar">
+    <button class="back-btn" aria-label="返回">←</button>
+    <span class="title">注册</span>
+  </div>
+  <div class="scroll-area">
+    <div class="field"><span class="label">手机号</span><input type="tel" value="138 1234 5678" readonly></div>
+    <div class="sms-row">
+      <div class="field"><span class="label">验证码</span><input type="text" value="123456" readonly></div>
+      <button class="sms-btn">38s后重试</button>
+    </div>
+    <div class="field" style="margin-top:16px;"><span class="label">设置密码</span><input type="password" value="abc12345" readonly><button class="eye-btn">👁</button></div>
+    <div class="field" style="margin-top:16px;"><span class="label">确认密码</span><input type="password" value="abc12345" readonly><button class="eye-btn">👁</button></div>
+    <div class="agreement-row"><input type="checkbox" checked><label>我已阅读并同意<span class="agreement-link">《用户协议》</span></label></div>
+    <button class="register-btn">注册</button>
+    <button class="login-link">已有账号？去登录</button>
+    <div class="snackbar error" role="alert" aria-live="assertive">
+      注册失败，请检查网络后重试
+      <button class="action" style="color:#FFB4AB;">重试</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
