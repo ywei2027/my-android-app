@@ -1,7 +1,11 @@
 {
-  "run_id": "run-20260614-001",
-  "current_stage": "STAGE_UI_DESIGN",
+  "current_stage": "STAGE_CODE",
   "feature_name": "注册",
-  "updated": "2026-06-14T09:17:31.895Z",
-  "prd_version": "v1.2-confirmed"
+  "updated": "2026-06-14T13:08:37.117Z",
+  "run_id": "run-20260614-001",
+  "prd_version": "v1.2-confirmed",
+  "ui_design_version": "v0.1-frozen",
+  "design_version": "v1.0-frozen",
+  "tdd_version": "v1.0-frozen",
+  "code_version": "v0.1-draft"
 }

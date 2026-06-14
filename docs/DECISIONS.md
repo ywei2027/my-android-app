@@ -73,3 +73,24 @@
 **影响范围：** RegisterScreen、AgreementScreen 两个新增页面；PhoneVisualTransformation、CountdownState、SubmitOverlay 三个核心组件
 
 **关联：** UI_DESIGN.md §11 | PRD §9
+
+---
+
+### 2026-06-14 — 技术方案 DESIGN.md v1.0：用户注册设计决议
+
+**交付物：** docs/DESIGN.md（架构概览、模块设计、接口定义、安全考虑、测试策略、6 项 ADR）
+
+**新增决策：**
+
+| 编号 | 决策 | 原因 | 否决方案 |
+|------|------|------|---------|
+| D-15 | Token 存储: EncryptedSharedPreferences (AES-256 GCM) | root 设备防读取，与 Keystore 集成 | DataStore / SharedPreferences 明文 |
+| D-16 | 倒计时: ViewModel 协程 + StateFlow + 服务器 timestamp | 配置变更不重置，杀进程后自动失效 | LaunchedEffect（组合树变更时重置） |
+| D-17 | 错误反馈: supportingText(字段级) + Snackbar(全局级) | 区分输入错误和网络错误，action 提供恢复路径 | 统一 Toast / 统一内联 |
+| D-18 | SavedStateHandle 安全: 仅存 phone/smsSentTimestamp/agreementAccepted | password 明文禁入 Bundle，防 IPC 泄露 | 全字段持久化（安全红线） |
+| D-19 | SMS 自动填充: Retriever API 优先 + 手动输入降级 | GMS 设备自动填充，无 GMS 设备粘贴 | 仅依赖自动填充（国内设备不可用） |
+| D-20 | DI 作用域: Repository/Service @Singleton, ViewModel @HiltViewModel | 合理复用 + 正确绑定导航生命周期 | — |
+
+**测试策略：** 18 单元测试 + 8 UI 测试 + 6 集成测试 + 2 E2E → 34 场景
+
+**关联：** DESIGN.md | PRD §6 | DECISIONS.md D-01 ~ D-14
