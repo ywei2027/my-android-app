@@ -55,7 +55,7 @@ fun VersionTag(modifier: Modifier = Modifier) {
         overflow = TextOverflow.Ellipsis,
         modifier = modifier
             .windowInsetsPadding(WindowInsets.navigationBars) // D-16
-            .padding(bottom = 8.dp) // D-20
+            .padding(bottom = 12.dp) // D-20: 调整底部间距
             .semantics {
                 // D-17: TalkBack contentDescription
                 contentDescription = formatVersionDescription()
